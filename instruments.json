@@ -1,0 +1,235 @@
+{
+  "instruments": {
+    "rhodes": {
+      "name": "Rhodes",
+      "synth": {
+        "type": "PolySynth",
+        "options": {
+          "oscillator": {
+            "type": "custom",
+            "partials": [1.5, 0.9, 0.5, 0.3, 0.15]
+          },
+          "envelope": {
+            "attack": 0.01,
+            "decay": 2.8,
+            "sustain": 0.3,
+            "release": 1.8
+          }
+        }
+      },
+      "effects": [
+        {
+          "type": "Filter",
+          "options": {
+            "type": "lowpass",
+            "frequency": 3500,
+            "Q": 1.2
+          }
+        },
+        {
+          "type": "Tremolo",
+          "options": {
+            "rate": 4.5,
+            "depth": 0.18,
+            "wet": 0.3
+          }
+        },
+        {
+          "type": "Reverb",
+          "options": {
+            "roomSize": 0.5,
+            "decay": 1.5,
+            "wet": 0.25
+          }
+        }
+      ],
+      "volume": 10
+    },
+    "wurlitzer": {
+      "name": "Wurlitzer",
+      "synth": {
+        "type": "PolySynth",
+        "options": {
+          "oscillator": {
+            "type": "triangle",
+            "partials": [1, 0.8, 0.6, 0.4, 0.2]
+          },
+          "envelope": {
+            "attack": 0.008,
+            "decay": 0.6,
+            "sustain": 0.5,
+            "release": 1.2
+          }
+        }
+      },
+      "effects": [
+        {
+          "type": "Filter",
+          "options": {
+            "type": "bandpass",
+            "frequency": 1800,
+            "Q": 1.5
+          }
+        },
+        {
+          "type": "Distortion",
+          "options": {
+            "distortion": 0.12
+          }
+        },
+        {
+          "type": "Reverb",
+          "options": {
+            "roomSize": 0.3,
+            "decay": 1.0,
+            "wet": 0.2
+          }
+        }
+      ],
+      "volume": 10
+    },
+    "fm": {
+      "name": "FM",
+      "synth": {
+        "type": "PolySynth",
+        "options": {
+          "harmonicity": 3.5,
+          "modulationIndex": 2.8,
+          "carrier": {
+            "type": "sine"
+          },
+          "modulator": {
+            "type": "square"
+          },
+          "envelope": {
+            "attack": 0.005,
+            "decay": 0.7,
+            "sustain": 0.7,
+            "release": 1.5
+          }
+        }
+      },
+      "effects": [
+        {
+          "type": "Filter",
+          "options": {
+            "type": "highpass",
+            "frequency": 600,
+            "Q": 0.8
+          }
+        },
+        {
+          "type": "Chorus",
+          "options": {
+            "rate": 1.2,
+            "depth": 0.2,
+            "wet": 0.2
+          }
+        },
+        {
+          "type": "Reverb",
+          "options": {
+            "roomSize": 0.4,
+            "decay": 1.2,
+            "wet": 0.2
+          }
+        }
+      ],
+      "volume": 10
+    },
+    "clav": {
+      "name": "Clav",
+      "synth": {
+        "type": "PolySynth",
+        "options": {
+          "oscillator": {
+            "type": "square",
+            "partialCount": 5
+          },
+          "envelope": {
+            "attack": 0.003,
+            "decay": 0.3,
+            "sustain": 0.2,
+            "release": 0.6
+          }
+        }
+      },
+      "effects": [
+        {
+          "type": "Filter",
+          "options": {
+            "type": "highpass",
+            "frequency": 1200,
+            "Q": 1.0
+          }
+        },
+        {
+          "type": "Compressor",
+          "options": {
+            "threshold": -16,
+            "ratio": 5
+          }
+        },
+        {
+          "type": "Delay",
+          "options": {
+            "delayTime": "16n",
+            "feedback": 0.25,
+            "wet": 0.2
+          }
+        }
+      ],
+      "volume": 10
+    },
+    "rhodesMarkII": {
+      "name": "Rhodes Mark II",
+      "synth": {
+        "type": "PolySynth",
+        "options": {
+          "oscillator": {
+            "type": "custom",
+            "partials": [1, 0.8, 0.6, 0.5, 0.3, 0.2]
+          },
+          "envelope": {
+            "attack": 0.01,
+            "decay": 1.0,
+            "sustain": 0.7,
+            "release": 1.7
+          }
+        }
+      },
+      "effects": [
+        {
+          "type": "Filter",
+          "options": {
+            "type": "lowpass",
+            "frequency": 4000,
+            "Q": 1.3
+          }
+        },
+        {
+          "type": "Distortion",
+          "options": {
+            "distortion": 0.2
+          }
+        },
+        {
+          "type": "Tremolo",
+          "options": {
+            "rate": 4.0,
+            "depth": 0.15
+          }
+        },
+        {
+          "type": "Reverb",
+          "options": {
+            "roomSize": 0.6,
+            "decay": 2.0,
+            "wet": 0.3
+          }
+        }
+      ],
+      "volume": 10
+    }
+  }
+}

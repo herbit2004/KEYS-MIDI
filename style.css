@@ -1,0 +1,587 @@
+/* 全局样式 */
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+    font-family: 'Inter', 'Helvetica Neue', sans-serif;
+}
+
+body {
+    background-color: #333;
+    background-image: linear-gradient(rgba(80, 80, 80, 0.5) 1px, transparent 1px),
+                      linear-gradient(90deg, rgba(80, 80, 80, 0.5) 1px, transparent 1px);
+    background-size: 30px 30px;
+    background-position: 0 0;
+    color: #333;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 100vh;
+    padding: 20px;
+    animation: grid-flow 15s linear infinite;
+}
+
+@keyframes grid-flow {
+    0% {
+        background-position: 0 0;
+    }
+    100% {
+        background-position: 50px 50px;
+    }
+}
+
+.midi-keyboard {
+    width: 100%;
+    max-width: 1000px;
+    background-color: #1e1e1e;
+    border-radius: 12px;
+    box-shadow: 0 15px 35px rgba(0, 0, 0, 0.5);
+    overflow: hidden;
+    border: 1px solid #333;
+}
+
+/* 顶部面板样式 */
+.top-panel {
+    background-color: #252525;
+    padding: 15px 25px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-bottom: 1px solid #333;
+}
+
+.logo-section h1 {
+    font-size: 1.8rem;
+    color: #ffffff;
+    font-weight: 700;
+    letter-spacing: 1px;
+}
+
+/* 主显示屏样式 */
+.main-display {
+    background-color: #121212;
+    border: 1px solid #444;
+    border-radius: 6px;
+    padding: 10px 20px;
+    width: 180px;
+    text-align: center;
+}
+
+.display-content {
+    font-size: 1.2rem;
+    color: #00ccff;
+    font-weight: bold;
+    font-family: 'Courier New', monospace;
+}
+
+/* 控制面板样式 */
+.control-panel {
+    background-color: #1e1e1e;
+    padding: 20px 25px;
+    border-bottom: 1px solid #333;
+}
+
+.control-section {
+    margin-bottom: 20px;
+}
+
+.control-section h3 {
+    font-size: 1rem;
+    color: #999;
+    margin-bottom: 15px;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+}
+
+.knobs-row {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 10px;
+}
+
+.knob-item {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    width: 18%;
+}
+
+/* 针对四个控件的特殊样式 */
+/* 移除four-items类的样式，因为不再需要 */
+
+.knob-container {
+    width: 80px;
+    height: 80px;
+    position: relative;
+    margin-bottom: 10px;
+}
+
+.knob {
+    width: 100%;
+    height: 100%;
+    background-color: #2d2d2d;
+    border-radius: 50%;
+    border: 3px solid #444;
+    position: relative;
+    box-shadow: inset 0 0 10px rgba(0, 0, 0, 0.5);
+    cursor: pointer;
+}
+
+.knob:hover {
+    border-color: #00ccff;
+    box-shadow: 0 0 10px rgba(0, 204, 255, 0.7);
+}
+
+.knob-item.selected .knob {
+    border-color: #00ccff;
+    box-shadow: 0 0 10px rgba(0, 204, 255, 0.7);
+}
+
+.knob::after {
+    content: '';
+    position: absolute;
+    top: 10px;
+    left: 50%;
+    width: 5px;
+    height: 20px;
+    background-color: #00ccff;
+    transform: translateX(-50%);
+    border-radius: 2px;
+}
+
+.tone-select {
+    background-color: #252525;
+    color: white;
+    border: 1px solid #444;
+    border-radius: 4px;
+    padding: 8px;
+    width: 100%;
+    margin-bottom: 10px;
+    cursor: pointer;
+}
+
+.tone-select:hover {
+    border-color: #00ccff;
+    box-shadow: 0 0 10px rgba(0, 204, 255, 0.7);
+}
+
+.tone-select:focus {
+    border-color: #00ccff;
+    box-shadow: 0 0 10px rgba(0, 204, 255, 0.7);
+    outline: none;
+}
+
+input[type="range"] {
+    width: 100%;
+    -webkit-appearance: none;
+    appearance: none;
+    height: 8px;
+    border-radius: 4px;
+    background: #252525;
+    outline: none;
+}
+
+input[type="range"]::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    background: #00ccff;
+    cursor: pointer;
+    box-shadow: 0 0 5px rgba(0, 204, 255, 0.7);
+}
+
+input[type="range"]::-moz-range-thumb {
+    width: 20px;
+    height: 20px;
+    border: none;
+    border-radius: 50%;
+    background: #00ccff;
+    cursor: pointer;
+    box-shadow: 0 0 5px rgba(0, 204, 255, 0.7);
+}
+
+.knob-label {
+    font-size: 0.8rem;
+    color: #777;
+    text-align: center;
+    margin-top: 0;
+    line-height: 1;
+    height: 20px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+/* 键盘控制区域样式 */
+.keyboard-controls {
+    background-color: #252525;
+    padding: 20px 25px 15px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-bottom: 1px solid #333;
+    margin-top: 0;
+}
+
+.tone-selector {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-right: 20px;
+    height: 40px;
+}
+
+.tone-selector .tone-select {
+    width: 120px;
+    margin-right: 10px;
+    margin-bottom: 0;
+}
+
+.octave-controls, .transpose-controls {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.octave-button, .transpose-button {
+    background-color: #333;
+    color: white;
+    border: 1px solid #444;
+    border-radius: 4px;
+    width: 40px;
+    height: 40px;
+    cursor: pointer;
+    font-weight: bold;
+}
+
+.octave-button:hover, .transpose-button:hover {
+    background-color: #444;
+    border-color: #00ccff;
+}
+
+.octave-display, .transpose-display {
+    color: white;
+    font-size: 0.9rem;
+    min-width: 100px;
+    text-align: center;
+}
+
+#octave-shift, #key-turning {
+    color: #00ccff;
+    font-weight: bold;
+}
+
+.reset-button {
+    background-color: #ff3e3e;
+    color: white;
+    border: none;
+    border-radius: 4px;
+    padding: 10px 20px;
+    cursor: pointer;
+    font-weight: bold;
+}
+
+.reset-button:hover {
+    background-color: #ff5e5e;
+}
+
+/* MIDI编辑器控制按钮样式 */
+.midi-editor-controls {
+    display: flex;
+    gap: 10px;
+    margin-bottom: 15px;
+}
+
+.midi-editor-button {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    background: rgba(0, 0, 0, 0.5);
+    border: none;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0;
+    box-sizing: border-box;
+    /* 确保按钮在所有状态下都保持一致的显示属性 */
+    display: inline-flex;
+}
+
+.midi-editor-button:hover {
+    background: rgba(0, 204, 255, 0.2);
+    transform: scale(1.05);
+}
+
+.midi-editor-button:active {
+    transform: scale(0.95);
+}
+
+.midi-editor-button:disabled {
+    background: rgba(0, 0, 0, 0.3);
+    cursor: not-allowed;
+    transform: none;
+}
+
+.midi-editor-button img {
+    width: 24px;
+    height: 24px;
+}
+
+.midi-editor-button:disabled img {
+    opacity: 0.5;
+}
+
+/* 特定样式用于导出和导入按钮 */
+.export-import-button {
+    border-radius: 0;
+    background: transparent;
+    border: none;
+}
+
+.export-import-button:hover {
+    background: transparent;
+}
+
+.export-import-button img {
+    filter: invert(100%);
+    transition: all 0.2s ease;
+}
+
+.export-import-button:hover img {
+    transform: scale(1.15);
+    filter: brightness(0) saturate(100%) invert(29%) sepia(89%) saturate(1492%) hue-rotate(180deg) brightness(101%) contrast(101%);
+}
+
+.export-import-button:active img {
+    transform: scale(1.1);
+}
+
+/* 特定样式用于全屏按钮 */
+#fullscreen-button {
+    border-radius: 0;
+    background: transparent;
+    margin-left: auto; /* 将按钮推到容器右侧 */
+}
+
+#fullscreen-button img {
+    transition: all 0.2s ease;
+}
+
+#fullscreen-button:hover img {
+    transform: scale(1.15);
+    filter: brightness(0) saturate(100%) invert(29%) sepia(89%) saturate(1492%) hue-rotate(180deg) brightness(101%) contrast(101%); /* 蓝色效果 */
+}
+
+#fullscreen-button:active img {
+    transform: scale(1.1);
+}
+
+/* MIDI编辑器区域样式 */
+.midi-editor-container {
+    background-color: #252525;
+    padding: 20px;
+    position: relative;
+    border-bottom: 1px solid #333;
+}
+
+.midi-editor-container.fullscreen {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    z-index: 9999;
+    background: #1e1e1e;
+}
+
+.midi-editor-container.fullscreen .midi-editor-controls {
+    padding: 10px;
+    background: #333;
+}
+
+.midi-editor-container.fullscreen .midi-editor-wrapper {
+    height: calc(100%);
+}
+
+.midi-editor-controls {
+    display: flex;
+    gap: 10px;
+    position: absolute;
+    top: 30px;
+    left: 30px;
+    z-index: 20;
+    background-color: rgba(37, 37, 37, 0.8);
+    padding: 10px;
+    border-radius: 4px;
+}
+
+/* MIDI编辑器信息显示区域样式 */
+.midi-editor-info {
+    padding: 5px 10px;
+    color: #888888;
+    font-family: 'Courier New', monospace;
+    font-size: 0.8rem;
+    line-height: 1.2;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    height: 30px;
+    position: absolute;
+    bottom: 30px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 95%;
+    z-index: 20;
+    background-color: rgba(37, 37, 37, 0);
+    border-radius: 4px;
+}
+
+.playhead-info {
+    white-space: nowrap;
+}
+
+.selected-notes-info {
+    text-align: right;
+    flex-grow: 1;
+    margin-left: 20px;
+}
+
+.midi-editor-wrapper {
+    height: 400px;
+    overflow-y: hidden;
+    overflow-x: hidden; /* 显示横向滚动条 */
+}
+
+.midi-editor-track {
+    position: relative;
+    background-color: #121212;
+    border-radius: 4px;
+    height: 100%;
+    overflow: hidden; /* 防止内容溢出 */
+}
+
+/* 固定大小的容器用于横向滚动 */
+.canvas-container {
+    position: relative;
+    width: 100%; /* 使用百分比宽度 */
+    height: 100%;
+    overflow-x: hidden; /* 隐藏横向滚动条 */
+    overflow-y: hidden;
+    /* 确保滚动条始终可见 */
+    scrollbar-width: thin;
+    scrollbar-color: #00ccff #333;
+}
+
+#midi-editor {
+    width: auto; /* 让canvas根据内容动态调整宽度 */
+    height: auto;
+    min-width: 100%; /* 确保canvas至少填满容器 */
+    display: block; /* 确保canvas作为块级元素显示 */
+    /* 添加一些额外的样式确保canvas可以正确滚动 */
+    position: relative;
+}
+
+.midi-editor-playhead {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 2px;
+    height: 1600px;
+    background-color: #00ccff;
+    pointer-events: none;
+    z-index: 10;
+}
+
+/* 键盘区域样式 */
+.keyboard-container {
+    background-color: #252525;
+    padding: 20px;
+    position: relative;
+}
+
+#keyboard {
+    width: 100%;
+    height: auto;
+    background-color: #121212;
+    border-radius: 4px;
+}
+
+/* 使用说明样式 */
+.instructions {
+    background-color: #1e1e1e;
+    padding: 20px 25px;
+    font-size: 0.9rem;
+    color: #777;
+}
+
+.instructions h3 {
+    color: #00ccff;
+    margin-bottom: 10px;
+}
+
+.instructions ul {
+    list-style-type: none;
+    padding-left: 10px;
+}
+
+.instructions li {
+    margin-bottom: 8px;
+    position: relative;
+    padding-left: 20px;
+}
+
+.instructions li::before {
+    content: '•';
+    color: #00ccff;
+    position: absolute;
+    left: 0;
+}
+
+kbd {
+    background-color: #333;
+    border: 1px solid #444;
+    border-radius: 4px;
+    padding: 2px 6px;
+    margin: 0 2px;
+    font-family: 'Courier New', monospace;
+    color: white;
+}
+
+/* 响应式设计 */
+@media (max-width: 768px) {
+    .control-panel {
+        padding: 15px;
+    }
+    
+    .knobs-row {
+        flex-direction: column;
+        gap: 20px;
+    }
+    
+    .knob-item {
+        width: 100%;
+    }
+    
+    .keyboard-controls {
+        flex-direction: column;
+        gap: 15px;
+        padding: 15px;
+    }
+}
+
+/* 动画效果 */
+@keyframes pulse {
+    0% {
+        box-shadow: 0 0 0 0 rgba(0, 204, 255, 0.4);
+    }
+    70% {
+        box-shadow: 0 0 0 10px rgba(0, 204, 255, 0);
+    }
+    100% {
+        box-shadow: 0 0 0 0 rgba(0, 204, 255, 0);
+    }
+}

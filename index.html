@@ -1,0 +1,205 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>虚拟MIDI键盘</title>
+    <link rel="stylesheet" href="style.css">
+    <!-- 引入Tone.js库 -->
+    <script src="https://cdn.jsdelivr.net/npm/tone@14.7.77/build/Tone.js"></script>
+    <script>
+        // 设置Tone.js的延迟提示以优化交互响应
+        Tone.context.latencyHint = "interactive";
+    </script>
+</head>
+<body>
+    <div class="midi-keyboard">
+        <!-- 顶部控制区域 -->
+        <div class="top-panel">
+            <div class="logo-section">
+                <h1>KEYS-MIDI</h1>
+            </div>
+            
+            <!-- 主显示屏 -->
+            <div class="main-display">
+                <div class="display-content">PATCH-01</div>
+            </div>
+        </div>
+        
+
+        
+        <!-- 键盘控制区域 -->
+    <div class="keyboard-controls">
+        <div class="tone-selector">
+            <select id="tone-select" class="tone-select">
+                <option value="rhodes">Rhodes</option>
+                <option value="wurlitzer">Wurlitzer</option>
+                <option value="fm">FM</option>
+                <option value="clav">Clav</option>
+                <option value="rhodesMarkII">Rhodes Mark II</option>
+            </select>
+            <div class="knob-label">TONE</div>
+        </div>
+        <div class="octave-controls">
+            <button id="octave-down" class="octave-button">OCT-</button>
+            <div class="octave-display">OCTAVE <span id="octave-shift">0</span></div>
+            <button id="octave-up" class="octave-button">OCT+</button>
+        </div>
+        <div class="transpose-controls">
+            <button id="transpose-down" class="transpose-button">TR-</button>
+            <div class="transpose-display">TRANSPOSE <span id="key-turning">0</span></div>
+            <button id="transpose-up" class="transpose-button">TR+</button>
+        </div>
+        <button id="reset" class="reset-button">RESET</button>
+    </div>
+        
+        <!-- MIDI编辑器区域 -->
+        <div class="midi-editor-container">
+            <div class="midi-editor-controls">
+            <button id="record-button-editor" class="midi-editor-button">
+                <img src="icons/record.svg" alt="录制">
+            </button>
+            <button id="stop-button-editor" class="midi-editor-button" style="display: none;">
+                <img src="icons/stop.svg" alt="停止">
+            </button>
+            <button id="play-button-editor" class="midi-editor-button">
+                <img src="icons/play.svg" alt="播放">
+            </button>
+            <button id="pause-button-editor" class="midi-editor-button" style="display: none;">
+                <img src="icons/pause.svg" alt="暂停">
+            </button>
+            <button id="save-button-editor" class="midi-editor-button export-import-button">
+                <img src="icons/export.svg" alt="保存">
+            </button>
+            <button id="load-button-editor" class="midi-editor-button export-import-button">
+                <img src="icons/import.svg" alt="导入">
+            </button>
+            <button id="fullscreen-button" class="midi-editor-button">
+                <img src="icons/fullscreen.svg" alt="全屏">
+            </button>
+            <input type="file" id="load-file-input" accept=".json" style="display: none;">
+        </div>
+            <div class="midi-editor-wrapper">
+                <div class="midi-editor-track">
+                    <div class="canvas-container">
+                        <canvas id="midi-editor"></canvas>
+                        <div class="midi-editor-playhead" id="playhead"></div>
+                    </div>
+                </div>
+            </div>
+            <!-- MIDI编辑器信息显示区域 -->
+            <div class="midi-editor-info">
+                <div class="playhead-info">播放头位置: <span id="playhead-position">0.00</span>s / <span id="track-duration">0.00</span>s</div>
+                <div class="selected-notes-info" id="selected-notes-info">
+                    <!-- 选中音符信息将在这里显示 -->
+                </div>
+            </div>
+        </div>
+        
+        <!-- 键盘区域 -->
+        <div class="keyboard-container">
+            <canvas id="keyboard" width="880" height="200"></canvas>
+        </div>
+        
+        <!-- 全局效果器控制区 -->
+        <div class="control-panel">
+            <div class="control-section">
+                <h3>全局效果</h3>
+                <div class="knobs-row">
+                    <div class="knob-item" data-param="delay-time" data-min="0.1" data-max="1" data-step="0.1" data-value="0.2">
+                        <div class="knob-container">
+                            <div class="knob"></div>
+                        </div>
+                        <div class="knob-label">延迟时间</div>
+                        <div class="knob-value">0.2s</div>
+                    </div>
+                    <div class="knob-item" data-param="delay-feedback" data-min="0" data-max="0.9" data-step="0.1" data-value="0.1">
+                        <div class="knob-container">
+                            <div class="knob"></div>
+                        </div>
+                        <div class="knob-label">延迟反馈</div>
+                        <div class="knob-value">0.1</div>
+                    </div>
+                    <div class="knob-item" data-param="reverb-decay" data-min="1" data-max="5" data-step="0.5" data-value="2">
+                        <div class="knob-container">
+                            <div class="knob"></div>
+                        </div>
+                        <div class="knob-label">混响衰减</div>
+                        <div class="knob-value">2s</div>
+                    </div>
+                    <div class="knob-item" data-param="reverb-wet" data-min="0" data-max="1" data-step="0.1" data-value="0.3">
+                        <div class="knob-container">
+                            <div class="knob"></div>
+                        </div>
+                        <div class="knob-label">混响强度</div>
+                        <div class="knob-value">0.3</div>
+                    </div>
+                    <div class="knob-item" data-param="master-volume" data-min="0" data-max="100" data-step="1" data-value="60">
+                        <div class="knob-container">
+                            <div class="knob"></div>
+                        </div>
+                        <div class="knob-label">全局音量</div>
+                        <div class="knob-value">60%</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- 使用说明 -->
+        <div class="instructions">
+            <h3>使用说明:</h3>
+            
+            <h4>键盘演奏</h4>
+            <ul>
+                <li>使用 <kbd>q</kbd> <kbd>2</kbd> <kbd>w</kbd> <kbd>3</kbd> <kbd>e</kbd> 等键演奏</li>
+                <li>支持多键同时按下演奏和弦</li>
+                <li>按住<kbd>空格键</kbd>作为延音踏板</li>
+            </ul>
+            
+            <h4>转调控制</h4>
+            <ul>
+                <li><kbd>↑</kbd> 升高八度 | <kbd>↓</kbd> 降低八度</li>
+                <li><kbd>←</kbd> 升高半音 | <kbd>→</kbd> 降低半音</li>
+            </ul>
+            
+            <h4>MIDI编辑器</h4>
+            <ul>
+                <li>点击<kbd>录制</kbd>按钮开始录制演奏</li>
+                <li>点击<kbd>播放</kbd>按钮回放录制内容</li>
+                <li>点击<kbd>保存</kbd>按钮导出MIDI文件</li>
+                <li>点击<kbd>导入</kbd>按钮加载MIDI文件</li>
+                <li>点击<kbd>全屏</kbd>按钮进入/退出全屏编辑模式</li>
+                <li>在画布上点击音符可选中，按住<kbd>Ctrl</kbd>可多选</li>
+                <li>拖拽选中音符可移动位置或调整长度</li>
+                <li>使用<kbd>Ctrl+C</kbd>/<kbd>Ctrl+X</kbd>/<kbd>Ctrl+V</kbd>复制/剪切/粘贴音符</li>
+                <li>选中音符后使用方向键微调位置</li>
+                <li>按<kbd>Delete</kbd>键删除选中音符</li>
+                <li>选中音符后在音符上滚动鼠标滚轮可调整音符力度</li>
+                <li>按住<kbd>Ctrl</kbd>滚动滚轮可缩放时间轴</li>
+                <li>按住<kbd>Ctrl+Shift</kbd>滚动滚轮可调整画布高度</li>
+                <li>在空白区域拖拽可框选多个音符</li>
+                <li>点击播放头可改变播放位置</li>
+            </ul>
+            
+            <h4>音色与效果器</h4>
+            <ul>
+                <li>通过顶部<kbd>TONE</kbd>下拉菜单切换音色</li>
+                <li>点击旋钮选中后，滚动鼠标滚轮调整参数</li>
+                <li>支持调整延迟时间、延迟反馈、混响衰减、混响强度和全局音量</li>
+            </ul>
+        </div>
+        
+
+    </div>
+    
+    <script src="js/main.js" type="module"></script>
+    <script>
+        // 初始化Tone.js音频上下文
+        document.addEventListener('click', function() {
+            if (Tone.context.state !== 'running') {
+                Tone.context.resume();
+            }
+        });
+    </script>
+</body>
+</html>
