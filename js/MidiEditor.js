@@ -129,6 +129,21 @@ export class MidiEditor {
     document.addEventListener('keydown', (e) => this.handleKeyDown(e));
     document.addEventListener('keyup', (e) => this.handleKeyUp(e));
     
+    // 全局点击事件，用于取消选中音符
+    document.addEventListener('click', (e) => {
+      // 检查点击是否发生在canvas外部
+      if (!this.canvas.contains(e.target) && this.selectedNotes.length > 0) {
+        // 取消选中所有音符
+        this.selectedNotes = [];
+        this.draw();
+      }
+    });
+    
+    // 阻止canvas内部点击事件冒泡，避免触发全局点击事件
+    this.canvas.addEventListener('click', (e) => {
+      e.stopPropagation();
+    });
+    
     // 播放头拖拽
     this.canvas.addEventListener('mousedown', (e) => {
       if (!this.isRecording && !this.isPlaying) {

@@ -88,8 +88,10 @@ export class MainController {
       if (event.repeat) return;
       
       // 如果MIDI编辑器中有选中的音符，阻止方向键的转调功能
-      if (this.midiEditor && this.midiEditor.selectedNote && 
+      if (this.midiEditor && this.midiEditor.selectedNotes && this.midiEditor.selectedNotes.length > 0 &&
           ['arrowup', 'arrowdown', 'arrowleft', 'arrowright'].includes(key)) {
+        event.preventDefault();
+        event.stopPropagation();
         return;
       }
       
