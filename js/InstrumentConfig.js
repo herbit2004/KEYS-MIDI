@@ -5,7 +5,7 @@ export class InstrumentConfig {
   }
 
   // 异步加载音色配置
-  async loadConfig(configPath = '../instruments.json') {
+  async loadConfig(configPath = '/instruments.json') {
     try {
       const response = await fetch(configPath);
       if (!response.ok) {
