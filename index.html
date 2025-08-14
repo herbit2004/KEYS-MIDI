@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>虚拟MIDI键盘</title>
     <link rel="stylesheet" href="style.css">
+    <link rel="icon" type="image/x-icon" href="./favicon.ico">
     <!-- 引入Tone.js库 -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/tone/14.8.49/Tone.js"></script>
     <script>
@@ -20,9 +21,24 @@
                 <h1>KEYS-MIDI</h1>
             </div>
             
-            <!-- 主显示屏 -->
-            <div class="main-display">
-                <div class="display-content">PATCH-01</div>
+            <!-- 帮助按钮和主显示屏容器 -->
+            <div class="display-container">
+                <!-- 帮助按钮 -->
+                <button id="help-button" class="help-button">
+                    <span class="help-icon">?</span>
+                </button>
+                <!-- 主显示屏 -->
+                <div class="main-display">
+                    <div class="display-content">PATCH-01</div>
+                </div>
+            </div>
+            
+            <!-- 帮助窗口 -->
+            <div id="help-modal" class="help-modal">
+                <div class="help-modal-content">
+                    <span class="close-button">&times;</span>
+                    <!-- 使用说明内容将通过JavaScript动态加载 -->
+                </div>
             </div>
         </div>
         
@@ -77,6 +93,8 @@
             <button id="fullscreen-button" class="midi-editor-button">
                 <img src="icons/fullscreen.svg" alt="全屏">
             </button>
+            <!-- 预加载fullscreen-exit.svg用于JavaScript切换 -->
+            <img src="icons/fullscreen-exit.svg" alt="" style="display: none;">
             <input type="file" id="load-file-input" accept=".json" style="display: none;">
         </div>
             <div class="midi-editor-wrapper">

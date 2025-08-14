@@ -40,6 +40,8 @@ export class MainController {
     this.bindGlobalEffectEvents();
     
 
+    // 绑定帮助窗口事件
+    this.bindHelpEvents();
     
     // 初始化状态显示
     this.visualManager.updateStatus(this.keyMapper.octaveShift, this.keyMapper.keyTurning);
@@ -117,6 +119,51 @@ export class MainController {
       
       this.handleNoteOff(key);
     });
+  }
+  
+  // 绑定帮助窗口事件
+  bindHelpEvents() {
+    const helpButton = document.getElementById('help-button');
+    const helpModal = document.getElementById('help-modal');
+    const closeButton = document.querySelector('.close-button');
+    
+    if (helpButton && helpModal && closeButton) {
+      // 显示帮助窗口
+      helpButton.addEventListener('click', () => {
+        helpModal.style.display = 'flex';
+        
+        // 动态加载使用说明内容
+        const instructions = document.querySelector('.instructions');
+        if (instructions) {
+          const content = instructions.innerHTML;
+          const modalContent = helpModal.querySelector('.help-modal-content');
+          if (modalContent) {
+            // 插入内容到关闭按钮之后
+            modalContent.innerHTML = '<span class="close-button">&times;</span>' + content;
+            
+            // 重新绑定关闭按钮事件
+            const newCloseButton = modalContent.querySelector('.close-button');
+            if (newCloseButton) {
+              newCloseButton.addEventListener('click', () => {
+                helpModal.style.display = 'none';
+              });
+            }
+          }
+        }
+      });
+      
+      // 关闭帮助窗口
+      closeButton.addEventListener('click', () => {
+        helpModal.style.display = 'none';
+      });
+      
+      // 点击模态框外部关闭窗口
+      helpModal.addEventListener('click', (event) => {
+        if (event.target === helpModal) {
+          helpModal.style.display = 'none';
+        }
+      });
+    }
   }
   
   // 绑定按钮事件

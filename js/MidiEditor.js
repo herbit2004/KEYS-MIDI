@@ -555,6 +555,9 @@ export class MidiEditor {
     const playheadTime = this.getPlayheadTime();
     this.startTime = Tone.now() - playheadTime;
     
+    // 为播放头添加录制状态样式
+    this.playhead.classList.add('recording');
+    
     // 更新按钮状态
     this.recordButton.style.display = 'none';
     this.stopButton.style.display = 'inline-flex';
@@ -566,6 +569,9 @@ export class MidiEditor {
   // 停止录制
   stopRecording() {
     this.isRecording = false;
+    
+    // 移除播放头的录制状态样式
+    this.playhead.classList.remove('recording');
     
     // 重新调整canvas大小以适应录制的音符
     this.resizeCanvas();
@@ -734,6 +740,9 @@ export class MidiEditor {
     this.isPaused = false;
     this.pausedTime = 0;
     this.setPlayheadPosition(0);
+    
+    // 移除播放头的录制状态样式
+    this.playhead.classList.remove('recording');
     
     // 重置所有录制音符的播放状态
     for (const noteEntry of this.recordedNotes) {
