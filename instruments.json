@@ -181,20 +181,25 @@
       ],
       "volume": 10
     },
-    "rhodesMarkII": {
-      "name": "Rhodes Mark II",
+    "RealisticPiano": {
+      "name": "Realistic Piano",
       "synth": {
         "type": "PolySynth",
         "options": {
+          "maxPolyphony": 32,
           "oscillator": {
             "type": "custom",
-            "partials": [1, 0.8, 0.6, 0.5, 0.3, 0.2]
+            "partials": [
+              1.0, 0.65, 0.45, 0.35, 0.25,
+              0.18, 0.13, 0.09, 0.06, 0.04,
+              0.03, 0.02, 0.015, 0.01, 0.005
+            ]
           },
           "envelope": {
-            "attack": 0.01,
-            "decay": 1.0,
-            "sustain": 0.7,
-            "release": 1.7
+            "attack": 0.004,
+            "decay": 1.8,
+            "sustain": 0.35,
+            "release": 2.2
           }
         }
       },
@@ -203,33 +208,37 @@
           "type": "Filter",
           "options": {
             "type": "lowpass",
-            "frequency": 4000,
-            "Q": 1.3
+            "frequency": 4500,
+            "Q": 0.9
           }
         },
         {
-          "type": "Distortion",
+          "type": "Compressor",
           "options": {
-            "distortion": 0.2
-          }
-        },
-        {
-          "type": "Tremolo",
-          "options": {
-            "rate": 4.0,
-            "depth": 0.15
+            "ratio": 3.5,
+            "threshold": -18,
+            "attack": 0.003,
+            "release": 0.25,
+            "wet": 1.0
           }
         },
         {
           "type": "Reverb",
           "options": {
-            "roomSize": 0.6,
-            "decay": 2.0,
-            "wet": 0.3
+            "roomSize": 0.65,
+            "decay": 2.8,
+            "wet": 0.28
+          }
+        },
+        {
+          "type": "StereoWidener",
+          "options": {
+            "width": 0.25,
+            "wet": 0.35
           }
         }
       ],
-      "volume": 10
+      "volume": 8
     }
   }
 }

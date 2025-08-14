@@ -7,9 +7,9 @@
 }
 
 body {
-    background-color: #333;
-    background-image: linear-gradient(rgba(80, 80, 80, 0.5) 1px, transparent 1px),
-                      linear-gradient(90deg, rgba(80, 80, 80, 0.5) 1px, transparent 1px);
+    background-color: #444;
+    background-image: linear-gradient(rgba(100, 100, 100, 0.5) 1px, transparent 1px),
+                      linear-gradient(90deg, rgba(100, 100, 100, 0.5) 1px, transparent 1px);
     background-size: 30px 30px;
     background-position: 0 0;
     color: #333;
@@ -18,7 +18,7 @@ body {
     align-items: center;
     min-height: 100vh;
     padding: 20px;
-    animation: grid-flow 15s linear infinite;
+    animation: grid-flow 10s linear infinite;
 }
 
 @keyframes grid-flow {
