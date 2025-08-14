@@ -480,6 +480,19 @@ export class MidiEditor {
           scrolled = true;
         }
         
+        // 如果发生了滚动，更新框选框的位置
+        if (scrolled) {
+          // 更新框选结束位置为当前鼠标位置
+          const currentMouseX = this.lastMouseX + container.scrollLeft;
+          const currentMouseY = this.lastMouseY + container.scrollTop;
+          
+          this.selectionEndX = currentMouseX;
+          this.selectionEndY = currentMouseY;
+          
+          // 重绘
+          this.draw();
+        }
+        
         // 如果没有滚动，清除定时器
         if (!scrolled) {
           clearInterval(this.scrollTimer);

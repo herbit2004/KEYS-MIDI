@@ -46,6 +46,9 @@ export class MainController {
     // 初始化状态显示
     this.visualManager.updateStatus(this.keyMapper.octaveShift, this.keyMapper.keyTurning);
     
+    // 设置VisualManager的主控制器引用
+    this.visualManager.setMainController(this);
+    
     // 加载音色配置并初始化音色
     this.loadInstruments();
   }
