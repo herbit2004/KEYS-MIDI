@@ -20,7 +20,7 @@ export class MainController {
     this.instrumentConfig = new InstrumentConfig();
     
     // 初始化MIDI编辑器
-    this.midiEditor = new MidiEditor(this.audioEngine, this.keyMapper);
+    this.midiEditor = new MidiEditor(this.audioEngine, this.keyMapper, document.getElementById('snap-toggle'));
     
     // 延音踏板状态
     this.sustainPedalPressed = false;

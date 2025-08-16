@@ -37,7 +37,52 @@
             <div id="help-modal" class="help-modal">
                 <div class="help-modal-content">
                     <span class="close-button">&times;</span>
-                    <!-- 使用说明内容将通过JavaScript动态加载 -->
+                    <div class="help-panel" id="help-panel">
+            <h3>使用说明:</h3>
+            
+            <h4>键盘演奏</h4>
+            <ul>
+                <li>使用 <kbd>q</kbd> <kbd>2</kbd> <kbd>w</kbd> <kbd>3</kbd> <kbd>e</kbd> 等键演奏</li>
+                <li>支持多键同时按下演奏和弦</li>
+                <li>按住<kbd>空格键</kbd>作为延音踏板</li>
+            </ul>
+            
+            <h4>转调控制</h4>
+            <ul>
+                <li><kbd>↑</kbd> 升高八度 | <kbd>↓</kbd> 降低八度</li>
+                <li><kbd>←</kbd> 升高半音 | <kbd>→</kbd> 降低半音</li>
+            </ul>
+            
+            <h4>MIDI编辑器</h4>
+            <ul>
+                <li>点击<kbd>录制</kbd>按钮开始录制演奏</li>
+                <li>点击<kbd>播放</kbd>按钮回放录制内容</li>
+                <li>点击<kbd>保存</kbd>按钮导出MIDI文件</li>
+                <li>点击<kbd>导入</kbd>按钮加载MIDI文件</li>
+                <li>点击<kbd>全屏</kbd>按钮进入/退出全屏编辑模式</li>
+                <li>在画布上点击音符可选中，按住<kbd>Ctrl</kbd>可多选</li>
+                <li>拖拽选中音符可移动位置或调整长度</li>
+                <li>使用<kbd>Ctrl+C</kbd>/<kbd>Ctrl+X</kbd>/<kbd>Ctrl+V</kbd>复制/剪切/粘贴音符</li>
+                <li>选中音符后使用方向键微调位置</li>
+                <li>按<kbd>Delete</kbd>键删除选中音符</li>
+                <li>选中音符后在音符上滚动鼠标滚轮可调整音符力度</li>
+                <li>按住<kbd>Ctrl</kbd>滚动滚轮可缩放时间轴</li>
+                <li>按住<kbd>Ctrl+Shift</kbd>滚动滚轮可调整画布高度</li>
+                <li>在空白区域拖拽可框选多个音符</li>
+                <li>点击播放头可改变播放位置</li>
+                <li>通过BPM输入框调整播放速度</li>
+                <li>通过拍/小节输入框调整每小节拍数</li>
+                <li>通过节拍器开关控制节拍器启停</li>
+                <li>通过自动吸附开关控制音符吸附到网格</li>
+            </ul>
+            
+            <h4>音色与效果器</h4>
+            <ul>
+                <li>通过顶部<kbd>TONE</kbd>下拉菜单切换音色</li>
+                <li>点击旋钮选中后，滚动鼠标滚轮调整参数</li>
+                <li>支持调整延迟时间、延迟反馈、混响衰减、混响强度和全局音量</li>
+            </ul>
+        </div>
                 </div>
             </div>
         </div>
@@ -72,31 +117,71 @@
         <!-- MIDI编辑器区域 -->
         <div class="midi-editor-container">
             <div class="midi-editor-controls">
-            <button id="record-button-editor" class="midi-editor-button">
-                <img src="icons/record.svg" alt="录制">
-            </button>
-            <button id="stop-button-editor" class="midi-editor-button" style="display: none;">
-                <img src="icons/stop.svg" alt="停止">
-            </button>
-            <button id="play-button-editor" class="midi-editor-button">
-                <img src="icons/play.svg" alt="播放">
-            </button>
-            <button id="pause-button-editor" class="midi-editor-button" style="display: none;">
-                <img src="icons/pause.svg" alt="暂停">
-            </button>
-            <button id="save-button-editor" class="midi-editor-button export-import-button">
-                <img src="icons/export.svg" alt="保存">
-            </button>
-            <button id="load-button-editor" class="midi-editor-button export-import-button">
-                <img src="icons/import.svg" alt="导入">
-            </button>
-            <button id="fullscreen-button" class="midi-editor-button">
-                <img src="icons/fullscreen.svg" alt="全屏">
-            </button>
-            <!-- 预加载fullscreen-exit.svg用于JavaScript切换 -->
-            <img src="icons/fullscreen-exit.svg" alt="" style="display: none;">
-            <input type="file" id="load-file-input" accept=".json" style="display: none;">
-        </div>
+                <!-- 播放控制按钮组 -->
+                <div class="control-group">
+                    <button id="record-button-editor" class="midi-editor-button">
+                        <img src="icons/record.svg" alt="录制">
+                    </button>
+                    <button id="stop-button-editor" class="midi-editor-button" style="display: none;">
+                        <img src="icons/stop.svg" alt="停止">
+                    </button>
+                    <button id="play-button-editor" class="midi-editor-button">
+                        <img src="icons/play.svg" alt="播放">
+                    </button>
+                    <button id="pause-button-editor" class="midi-editor-button" style="display: none;">
+                        <img src="icons/pause.svg" alt="暂停">
+                    </button>
+                </div>
+                
+                <!-- BPM、拍/小节、节拍器和自动吸附控制组 -->
+                <div class="control-group">
+                    <!-- BPM 输入框 -->
+                    <div class="bpm-control">
+                        <label for="bpm-input">BPM:</label>
+                        <input type="number" id="bpm-input" class="bpm-input" min="20" max="300" value="120">
+                    </div>
+                    <!-- 每小节拍数输入框 -->
+                    <div class="beats-per-measure-control">
+                        <label for="beats-per-measure-input">拍/小节:</label>
+                        <input type="number" id="beats-per-measure-input" class="beats-per-measure-input" min="0" max="10" value="4">
+                    </div>
+                    <!-- 节拍器开关 -->
+                    <div class="metronome-control">
+                        <label for="metronome-toggle">节拍器:</label>
+                        <label class="switch">
+                            <input type="checkbox" id="metronome-toggle" class="metronome-toggle">
+                            <span class="slider"></span>
+                        </label>
+                    </div>
+                    <!-- 自动吸附开关 -->
+                    <div class="snap-control">
+                        <label for="snap-toggle">自动吸附:</label>
+                        <label class="switch">
+                            <input type="checkbox" id="snap-toggle" class="snap-toggle">
+                            <span class="slider"></span>
+                        </label>
+                    </div>
+                </div>
+                
+                <!-- 文件操作组 -->
+                <div class="control-group">
+                    <button id="save-button-editor" class="midi-editor-button export-import-button">
+                        <img src="icons/export.svg" alt="保存">
+                    </button>
+                    <button id="load-button-editor" class="midi-editor-button export-import-button">
+                        <img src="icons/import.svg" alt="导入">
+                    </button>
+                </div>
+                
+                <!-- 全屏按钮 -->
+                <button id="fullscreen-button" class="midi-editor-button fullscreen-button">
+                    <img src="icons/fullscreen.svg" alt="全屏">
+                </button>
+                
+                <!-- 预加载fullscreen-exit.svg用于JavaScript切换 -->
+                <img src="icons/fullscreen-exit.svg" alt="" style="display: none;">
+                <input type="file" id="load-file-input" accept=".json" style="display: none;">
+            </div>
             <div class="midi-editor-wrapper">
                 <div class="midi-editor-track">
                     <div class="canvas-container">
@@ -108,6 +193,7 @@
             <!-- MIDI编辑器信息显示区域 -->
             <div class="midi-editor-info">
                 <div class="playhead-info">播放头位置: <span id="playhead-position">0.00</span>s / <span id="track-duration">0.00</span>s</div>
+                <div class="bpm-info">BPM: <span id="bpm-display">120</span></div>
                 <div class="selected-notes-info" id="selected-notes-info">
                     <!-- 选中音符信息将在这里显示 -->
                 </div>
@@ -163,49 +249,7 @@
             </div>
         </div>
         
-        <!-- 使用说明 -->
-        <div class="instructions">
-            <h3>使用说明:</h3>
-            
-            <h4>键盘演奏</h4>
-            <ul>
-                <li>使用 <kbd>q</kbd> <kbd>2</kbd> <kbd>w</kbd> <kbd>3</kbd> <kbd>e</kbd> 等键演奏</li>
-                <li>支持多键同时按下演奏和弦</li>
-                <li>按住<kbd>空格键</kbd>作为延音踏板</li>
-            </ul>
-            
-            <h4>转调控制</h4>
-            <ul>
-                <li><kbd>↑</kbd> 升高八度 | <kbd>↓</kbd> 降低八度</li>
-                <li><kbd>←</kbd> 升高半音 | <kbd>→</kbd> 降低半音</li>
-            </ul>
-            
-            <h4>MIDI编辑器</h4>
-            <ul>
-                <li>点击<kbd>录制</kbd>按钮开始录制演奏</li>
-                <li>点击<kbd>播放</kbd>按钮回放录制内容</li>
-                <li>点击<kbd>保存</kbd>按钮导出MIDI文件</li>
-                <li>点击<kbd>导入</kbd>按钮加载MIDI文件</li>
-                <li>点击<kbd>全屏</kbd>按钮进入/退出全屏编辑模式</li>
-                <li>在画布上点击音符可选中，按住<kbd>Ctrl</kbd>可多选</li>
-                <li>拖拽选中音符可移动位置或调整长度</li>
-                <li>使用<kbd>Ctrl+C</kbd>/<kbd>Ctrl+X</kbd>/<kbd>Ctrl+V</kbd>复制/剪切/粘贴音符</li>
-                <li>选中音符后使用方向键微调位置</li>
-                <li>按<kbd>Delete</kbd>键删除选中音符</li>
-                <li>选中音符后在音符上滚动鼠标滚轮可调整音符力度</li>
-                <li>按住<kbd>Ctrl</kbd>滚动滚轮可缩放时间轴</li>
-                <li>按住<kbd>Ctrl+Shift</kbd>滚动滚轮可调整画布高度</li>
-                <li>在空白区域拖拽可框选多个音符</li>
-                <li>点击播放头可改变播放位置</li>
-            </ul>
-            
-            <h4>音色与效果器</h4>
-            <ul>
-                <li>通过顶部<kbd>TONE</kbd>下拉菜单切换音色</li>
-                <li>点击旋钮选中后，滚动鼠标滚轮调整参数</li>
-                <li>支持调整延迟时间、延迟反馈、混响衰减、混响强度和全局音量</li>
-            </ul>
-        </div>
+
         
 
     </div>

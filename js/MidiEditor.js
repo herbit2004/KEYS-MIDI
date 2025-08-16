@@ -1,6 +1,6 @@
 // MIDI编辑器模块
 export class MidiEditor {
-  constructor(audioEngine, keyMapper) {
+  constructor(audioEngine, keyMapper, snapToggle) {
     this.audioEngine = audioEngine;
     this.keyMapper = keyMapper;
     
@@ -17,6 +17,27 @@ export class MidiEditor {
     this.pausedTime = 0;
     this.recordedNotes = [];
     this.playheadPosition = 0;
+    
+    // BPM相关变量
+    this.bpm = 120; // 默认BPM
+    this.pixelsPerBeat = 50; // 默认每拍50像素
+    
+    // 每小节拍数变量
+    this.beatsPerMeasure = 4; // 默认每小节4拍
+    
+    // 节拍器相关变量
+    this.isMetronomeEnabled = false; // 节拍器默认关闭
+    this.lastBeatTime = 0; // 上一次节拍时间
+    this.currentBeat = 0; // 当前节拍计数
+    
+    // 计算pixelsPerSecond
+    this.pixelsPerSecond = this.calculatePixelsPerSecond();
+    
+    // 更新BPM显示
+    this.updateBpmDisplay();
+    
+    // 更新每小节拍数显示
+    this.updateBeatsPerMeasureDisplay();
     
     // 预览播放头位置
     this.previewPlayheadPosition = -1; // -1表示不显示预览播放头
@@ -51,7 +72,7 @@ export class MidiEditor {
     this.dragType = null; // 'move', 'resize-left', 'resize-right'
     
     // 时间轴缩放
-    this.pixelsPerSecond = 100; // 默认100像素/秒
+    this.pixelsPerNote = this.canvas.height / 128;
     this.pixelsPerNote = this.canvas.height / 128;
     
     // 录制时调整canvas大小
@@ -69,6 +90,17 @@ export class MidiEditor {
     // 绑定事件
     this.bindEvents();
     
+    // 自动吸附功能开关
+    this.snapToggle = snapToggle;
+    this.isSnapEnabled = false; // 默认关闭自动吸附
+    
+    // 监听自动吸附开关变化
+    if (this.snapToggle) {
+      this.snapToggle.addEventListener('change', (e) => {
+        this.isSnapEnabled = e.target.checked;
+      });
+    }
+    
     // 初始化canvas
     this.canvas.height = 1600;
     this.resizeCanvas();
@@ -76,6 +108,38 @@ export class MidiEditor {
     
     // 开始动画循环
     this.animate();
+  }
+  
+  // 计算pixelsPerSecond
+  calculatePixelsPerSecond() {
+    // 1分钟 = 60秒
+    // 1拍 = 60秒 / BPM
+    // pixelsPerSecond = pixelsPerBeat / (60 / BPM) = pixelsPerBeat * BPM / 60
+    return this.pixelsPerBeat * this.bpm / 60;
+  }
+  
+  // 计算pixelsPerBeat
+  calculatePixelsPerBeat() {
+    // 1分钟 = 60秒
+    // 1拍 = 60秒 / BPM
+    // pixelsPerBeat = pixelsPerSecond * (60 / BPM) = pixelsPerSecond * 60 / BPM
+    return this.pixelsPerSecond * 60 / this.bpm;
+  }
+  
+  // 更新BPM显示
+  updateBpmDisplay() {
+    const bpmDisplay = document.getElementById('bpm-display');
+    if (bpmDisplay) {
+      bpmDisplay.textContent = this.bpm;
+    }
+  }
+  
+  // 更新每小节拍数显示
+  updateBeatsPerMeasureDisplay() {
+    const beatsPerMeasureInput = document.getElementById('beats-per-measure-input');
+    if (beatsPerMeasureInput) {
+      beatsPerMeasureInput.value = this.beatsPerMeasure;
+    }
   }
   
   // 绑定事件
@@ -315,6 +379,20 @@ export class MidiEditor {
       }
     });
     
+    // 监听document上的mouseup事件，以处理鼠标在窗口外释放的情况
+    document.addEventListener('mouseup', (e) => {
+      if (this.isSelecting) {
+        // 完成框选
+        this.finishSelection();
+      }
+      
+      // 清理自动滚动定时器
+      if (this.scrollTimer) {
+        clearInterval(this.scrollTimer);
+        this.scrollTimer = null;
+      }
+    });
+    
     // 鼠标离开canvas区域
     this.canvas.addEventListener('mouseleave', () => {
       if (this.isSelecting) {
@@ -325,7 +403,9 @@ export class MidiEditor {
           this.scrollTimer = null;
         }
       } else {
+        // 不在框选状态下才更新播放头位置
         this.finishDrag();
+        
         // 隐藏预览播放头
         this.previewPlayheadPosition = -1;
         this.draw();
@@ -345,24 +425,24 @@ export class MidiEditor {
         const mouseY = e.clientY - rect.top;
         
         // 计算鼠标位置对应的时间和音高
-        const mouseTime = mouseX / this.pixelsPerSecond;
+        const mouseTime = mouseX / this.pixelsPerBeat;
         const mouseNote = 127 - (mouseY / this.pixelsPerNote);
         
         // 根据滚动方向调整缩放比例
         if (delta > 0) {
-          this.pixelsPerSecond *= zoomFactor;
+          this.pixelsPerBeat *= zoomFactor;
         } else {
-          this.pixelsPerSecond /= zoomFactor;
+          this.pixelsPerBeat /= zoomFactor;
         }
         
         // 限制缩放范围
-        this.pixelsPerSecond = Math.max(20, Math.min(500, this.pixelsPerSecond));
+        this.pixelsPerBeat = Math.max(20, Math.min(500, this.pixelsPerBeat));
         
         // 重新计算canvas尺寸
         this.resizeCanvas();
         
         // 调整滚动位置以保持鼠标位置不变
-        const newMouseX = mouseTime * this.pixelsPerSecond;
+        const newMouseX = mouseTime * this.pixelsPerBeat;
         const newMouseY = (127 - mouseNote) * this.pixelsPerNote;
         
         const container = this.canvas.parentElement;
@@ -371,7 +451,7 @@ export class MidiEditor {
         
         this.draw();
         
-        console.log(`时间轴缩放: ${this.pixelsPerSecond} pixels/second`);
+        console.log(`时间轴缩放: ${this.pixelsPerBeat} pixels/beat`);
       }
       
       // Ctrl+Shift+滚轮调节高度
@@ -444,6 +524,57 @@ export class MidiEditor {
     // 添加全屏按钮事件监听器
     document.getElementById('fullscreen-button').addEventListener('click', () => {
       this.toggleFullscreen();
+    });
+    
+    // 添加BPM输入框事件监听器
+    const bpmInput = document.getElementById('bpm-input');
+    bpmInput.addEventListener('change', (e) => {
+      this.bpm = parseInt(e.target.value);
+      this.pixelsPerSecond = this.calculatePixelsPerSecond();
+      this.updateBpmDisplay();
+      console.log(`BPM设置为: ${this.bpm}`);
+    });
+    
+    // 添加鼠标滚轮调节BPM功能
+    bpmInput.addEventListener('wheel', (e) => {
+      e.preventDefault();
+      const delta = e.deltaY > 0 ? -1 : 1;
+      this.bpm = Math.max(20, Math.min(300, this.bpm + delta));
+      bpmInput.value = this.bpm;
+      this.pixelsPerSecond = this.calculatePixelsPerSecond();
+      this.updateBpmDisplay();
+      console.log(`BPM调整为: ${this.bpm}`);
+    });
+    
+    // 添加每小节拍数输入框事件监听器
+    const beatsPerMeasureInput = document.getElementById('beats-per-measure-input');
+    beatsPerMeasureInput.addEventListener('change', (e) => {
+      this.beatsPerMeasure = parseInt(e.target.value);
+      this.updateBeatsPerMeasureDisplay();
+      this.draw();
+      console.log(`每小节拍数设置为: ${this.beatsPerMeasure}`);
+    });
+    
+    // 添加鼠标滚轮调节每小节拍数功能
+    beatsPerMeasureInput.addEventListener('wheel', (e) => {
+      e.preventDefault();
+      const delta = e.deltaY > 0 ? -1 : 1;
+      this.beatsPerMeasure = Math.max(0, Math.min(10, this.beatsPerMeasure + delta));
+      beatsPerMeasureInput.value = this.beatsPerMeasure;
+      this.updateBeatsPerMeasureDisplay();
+      this.draw();
+      console.log(`每小节拍数调整为: ${this.beatsPerMeasure}`);
+    });
+    
+    // 添加节拍器开关事件监听器
+    const metronomeToggle = document.getElementById('metronome-toggle');
+    metronomeToggle.addEventListener('change', (e) => {
+      this.isMetronomeEnabled = e.target.checked;
+      if (!this.isMetronomeEnabled) {
+        this.currentBeat = 0;
+        this.lastBeatTime = 0;
+      }
+      console.log(`节拍器状态: ${this.isMetronomeEnabled}`);
     });
   }
   
@@ -527,8 +658,10 @@ export class MidiEditor {
     // 在录制模式下，确保canvas宽度至少能容纳播放头位置，并略微提前以避免死锁
     if (this.isRecording) {
       const playheadTime = this.getPlayheadTime();
-      // 略微提前于播放头位置计算canvas宽度，预留2秒的空间
-      const playheadWidth = (playheadTime + 2) * this.pixelsPerSecond;
+      // 将秒数转换为拍数
+      const playheadBeats = playheadTime * this.bpm / 60;
+      // 略微提前于播放头位置计算canvas宽度，预留2拍的空间
+      const playheadWidth = (playheadBeats + 2) * this.pixelsPerBeat;
       minWidth = Math.max(minWidth, playheadWidth);
     } else if (this.recordedNotes.length > 0) {
       // 如果有录制的音符，计算容纳所有音符所需的宽度
@@ -539,7 +672,7 @@ export class MidiEditor {
         }
       }
       // 计算所需宽度，额外增加10%的空间
-      const requiredWidth = maxEndTime * this.pixelsPerSecond * 1.1;
+      const requiredWidth = maxEndTime * this.pixelsPerBeat * 1.1;
       minWidth = Math.max(minWidth, requiredWidth);
     }
     
@@ -598,6 +731,14 @@ export class MidiEditor {
   // 停止录制
   stopRecording() {
     this.isRecording = false;
+    
+    // 停止所有正在播放的音符
+    for (const noteEntry of this.recordedNotes) {
+      if (noteEntry.played) {
+        this.audioEngine.stopNote(noteEntry.note);
+        noteEntry.played = false;
+      }
+    }
     
     // 移除播放头的录制状态样式
     this.playhead.classList.remove('recording');
@@ -664,7 +805,7 @@ export class MidiEditor {
       return;
     }
     
-    // 创建要保存的数据对象
+    // 创建要保存的数据对象，只包含音符信息
     const data = {
       recordedNotes: this.recordedNotes,
       timestamp: new Date().toISOString()
@@ -708,12 +849,16 @@ export class MidiEditor {
           // 清空当前录制内容
           this.recordedNotes = [];
           
+          // 不使用导入文件中的BPM信息，保持当前BPM设置
+        // 重新计算pixelsPerBeat以确保正确显示
+        this.pixelsPerBeat = this.calculatePixelsPerBeat();
+          
           // 加载新内容
           for (const note of data.recordedNotes) {
             this.recordedNotes.push({
               note: note.note,
-              startTime: note.startTime,
-              endTime: note.endTime,
+              startTime: note.startTime,  // 以拍数记录的开始时间
+              endTime: note.endTime,      // 以拍数记录的结束时间
               velocity: note.velocity || 100, // 如果没有velocity属性，则默认为100
               played: false
             });
@@ -790,14 +935,16 @@ export class MidiEditor {
   recordNoteOn(note, time) {
     if (this.isRecording) {
       const elapsedTime = time - this.startTime;
+      // 将秒数转换为拍数
+      const startBeats = elapsedTime * this.bpm / 60;
       this.recordedNotes.push({
         note: note,
-        startTime: elapsedTime,
+        startTime: startBeats,  // 以拍数记录开始时间
         endTime: null,
         velocity: 100  // 默认力度值为100
       });
       
-      console.log(`记录音符按下: ${note} at ${elapsedTime}s`);
+      console.log(`记录音符按下: ${note} at ${elapsedTime}s (${startBeats} beats)`);
     }
   }
   
@@ -805,6 +952,8 @@ export class MidiEditor {
   recordNoteOff(note, time) {
     if (this.isRecording) {
       const elapsedTime = time - this.startTime;
+      // 将秒数转换为拍数
+      const endBeats = elapsedTime * this.bpm / 60;
       
       if (this.isSpacePressed) {
         // 查找最近未结束的同音高音符
@@ -821,8 +970,8 @@ export class MidiEditor {
         for (let i = this.recordedNotes.length - 1; i >= 0; i--) {
           const entry = this.recordedNotes[i];
           if (entry.note === note && entry.endTime === null) {
-            entry.endTime = elapsedTime;
-            console.log(`记录音符松开: ${note} at ${elapsedTime}s`);
+            entry.endTime = endBeats;  // 以拍数记录结束时间
+            console.log(`记录音符松开: ${note} at ${elapsedTime}s (${endBeats} beats)`);
             break;
           }
         }
@@ -882,7 +1031,7 @@ export class MidiEditor {
           }
           break;
         case 'ArrowLeft':
-          // 批量向左移动时间
+          // 批量向左移动时间（以拍数为单位）
           for (const note of this.selectedNotes) {
             if (note.startTime > 0) {
               note.startTime = Math.max(0, note.startTime - step);
@@ -891,7 +1040,7 @@ export class MidiEditor {
           }
           break;
         case 'ArrowRight':
-          // 批量向右移动时间
+          // 批量向右移动时间（以拍数为单位）
           for (const note of this.selectedNotes) {
             note.startTime += step;
             note.endTime += step;
@@ -916,8 +1065,10 @@ export class MidiEditor {
       if (this.pendingReleases) {
         this.pendingReleases.forEach((entry, note) => {
           if (entry && entry.endTime === null) {
-            entry.endTime = Tone.now() - (this.startTime || 0);
-            console.log(`延音释放处理音符: ${note}`);
+            const elapsedTime = Tone.now() - (this.startTime || 0);
+            // 将秒数转换为拍数
+            entry.endTime = elapsedTime * this.bpm / 60;
+            console.log(`延音释放处理音符: ${note} at ${elapsedTime}s (${entry.endTime} beats)`);
           }
         });
         this.pendingReleases.clear();
@@ -929,7 +1080,7 @@ export class MidiEditor {
   moveSelectedNoteTime(deltaTime) {
     if (!this.selectedNote) return;
     
-    // 更新时间
+    // 更新时间（以拍数为单位）
     this.selectedNote.startTime = Math.max(0, this.selectedNote.startTime + deltaTime);
     this.selectedNote.endTime = Math.max(this.selectedNote.startTime, this.selectedNote.endTime + deltaTime);
     
@@ -970,13 +1121,13 @@ export class MidiEditor {
   copySelectedNotes() {
     if (this.selectedNotes.length === 0) return;
     
-    // 将选中的音符信息存储到剪贴板
+    // 将选中的音符信息存储到剪贴板（保持拍数单位）
     this.clipboard = [];
     for (const note of this.selectedNotes) {
       this.clipboard.push({
         note: note.note,
-        startTime: note.startTime,
-        endTime: note.endTime,
+        startTime: note.startTime,  // 以拍数记录的开始时间
+        endTime: note.endTime,      // 以拍数记录的结束时间
         velocity: note.velocity
       });
     }
@@ -1001,8 +1152,8 @@ export class MidiEditor {
   pasteNotes() {
     if (!this.clipboard || this.clipboard.length === 0) return;
     
-    // 获取当前播放头时间
-    const playheadTime = this.getPlayheadTime();
+    // 获取当前播放头时间（以拍数为单位）
+    const playheadTime = this.getPlayheadTime() * this.bpm / 60;  // 转换为拍数
     
     // 找到剪贴板中最早的音符时间
     let earliestTime = Infinity;
@@ -1012,7 +1163,7 @@ export class MidiEditor {
       }
     }
     
-    // 计算时间偏移量
+    // 计算时间偏移量（以拍数为单位）
     const timeOffset = playheadTime - earliestTime;
     
     // 清空当前选中列表
@@ -1022,8 +1173,8 @@ export class MidiEditor {
     for (const note of this.clipboard) {
       const newNote = {
         note: note.note,
-        startTime: note.startTime + timeOffset,
-        endTime: note.endTime + timeOffset,
+        startTime: note.startTime + timeOffset,  // 以拍数记录的开始时间
+        endTime: note.endTime + timeOffset,      // 以拍数记录的结束时间
         velocity: note.velocity
       };
       
@@ -1045,41 +1196,53 @@ export class MidiEditor {
       if (this.pendingReleases.has(note)) {
         const pendingEntry = this.pendingReleases.get(note);
         if (pendingEntry.endTime === null) {
-          pendingEntry.endTime = time - this.startTime;
+          // 将endTime转换为拍数
+          pendingEntry.endTime = (time - this.startTime) * this.bpm / 60;
           console.log(`覆盖延音音符: ${note}`);
           this.pendingReleases.delete(note);
         }
       }
 
       const elapsedTime = time - this.startTime;
+      // 将startTime转换为拍数
+      const startTimeBeats = elapsedTime * this.bpm / 60;
       this.recordedNotes.push({
         note: note,
-        startTime: elapsedTime,
+        startTime: startTimeBeats,  // 以拍数记录的开始时间
         endTime: null,
         velocity: 100  // 默认力度值为100
       });
       
-      console.log(`记录音符按下: ${note} at ${elapsedTime}s`);
+      console.log(`记录音符按下: ${note} at ${elapsedTime}s (${startTimeBeats} beats)`);
     }
   }
   
   // 设置播放头位置
-  setPlayheadPosition(x) {
+  setPlayheadPosition(x, isUserAction = false) {
     this.playheadPosition = Math.max(0, Math.min(x, this.canvas.width));
     this.playhead.style.left = `${this.playheadPosition}px`;
     
     // 自动滚动以跟随播放头
     this.autoScrollToPlayhead();
     
+    // 只有在用户手动调整播放头位置时才重置节拍器状态
+    if (isUserAction) {
+      this.currentBeat = 0;
+      this.lastBeatTime = 0;
+    }
+    
     // 如果正在暂停，更新pausedTime以反映新的播放头位置
     if (this.isPaused) {
-      this.pausedTime = this.playheadPosition / this.pixelsPerSecond;
+      const beats = this.playheadPosition / this.pixelsPerBeat;
+      this.pausedTime = beats * 60 / this.bpm;
     }
   }
   
   // 获取播放头位置对应的时间
   getPlayheadTime() {
-    return this.playheadPosition / this.pixelsPerSecond;
+    // 返回以秒为单位的时间
+    const beats = this.playheadPosition / this.pixelsPerBeat;
+    return beats * 60 / this.bpm;
   }
   
   // 自动滚动以跟随播放头
@@ -1106,13 +1269,13 @@ export class MidiEditor {
   
   // 获取指定位置的音符
   getNoteAtPosition(x, y) {
-    // 将像素坐标转换为时间/音高坐标
-    const time = x / this.pixelsPerSecond;
+    // 将像素坐标转换为时间/音高坐标（使用拍数）
+    const beats = x / this.pixelsPerBeat;
     const note = 127 - Math.floor(y / this.pixelsPerNote);
     
     // 查找匹配的音符
     for (const noteEntry of this.recordedNotes) {
-      if (time >= noteEntry.startTime && time <= noteEntry.endTime && note === noteEntry.note) {
+      if (beats >= noteEntry.startTime && beats <= noteEntry.endTime && note === noteEntry.note) {
         return noteEntry;
       }
     }
@@ -1130,11 +1293,11 @@ export class MidiEditor {
       this.selectedNotes.push(noteEntry);
     }
     
-    // 计算拖拽偏移量（使用第一个选中的音符作为参考）
-    const firstNote = this.selectedNotes[0];
-    const noteX = firstNote.startTime * this.pixelsPerSecond;
-    const noteWidth = (firstNote.endTime - firstNote.startTime) * this.pixelsPerSecond;
-    const noteY = (127 - firstNote.note) * this.pixelsPerNote;
+    // 计算拖拽偏移量（使用被按住的音符作为参考）
+    const referenceNote = noteEntry; // 使用被按住的音符作为参考
+    const noteX = referenceNote.startTime * this.pixelsPerBeat;
+    const noteWidth = (referenceNote.endTime - referenceNote.startTime) * this.pixelsPerBeat;
+    const noteY = (127 - referenceNote.note) * this.pixelsPerNote;
     
     // 如果有多个音符被选中，则默认为整体移动
     if (this.selectedNotes.length > 1) {
@@ -1182,18 +1345,31 @@ export class MidiEditor {
   
   // 移动音符
   moveNote(x, y) {
-    // 计算第一个选中音符的新时间位置
-    const firstNote = this.selectedNotes[0];
-    const newStartTime = (x - this.dragOffsetX) / this.pixelsPerSecond;
-    const duration = firstNote.endTime - firstNote.startTime;
-    const newEndTime = newStartTime + duration;
+    // 计算被按住音符的新时间位置
+    const referenceNote = this.selectedNotes.find(note => note === this.pendingDeselect) || this.selectedNotes[0];
+    // 将像素位置转换为拍数
+    let newStartTime = (x - this.dragOffsetX) / this.pixelsPerBeat;
+    const duration = referenceNote.endTime - referenceNote.startTime;
+    let newEndTime = newStartTime + duration;
+    
+    // 如果启用了自动吸附功能，则对时间位置进行吸附
+    if (this.isSnapEnabled) {
+      // 计算最近的拍数位置
+      const snappedStartBeats = Math.round(newStartTime);
+      const snapOffset = snappedStartBeats - newStartTime;
+      // 只有当偏移量小于0.15拍时才进行吸附
+      if (Math.abs(snapOffset) < 0.15) {
+        newStartTime = snappedStartBeats;
+        newEndTime = newStartTime + duration;
+      }
+    }
     
     // 计算时间偏移量
-    const timeOffset = newStartTime - firstNote.startTime;
+    const timeOffset = newStartTime - referenceNote.startTime;
     
     // 计算新的音高偏移量
     const newNote = 127 - Math.floor(y / this.pixelsPerNote);
-    const pitchOffset = newNote - firstNote.note;
+    const pitchOffset = newNote - referenceNote.note;
     
     // 批量更新所有选中音符的位置
     for (const note of this.selectedNotes) {
@@ -1211,11 +1387,24 @@ export class MidiEditor {
   
   // 调整音符左边缘
   resizeNoteLeft(x) {
-    // 只调整第一个选中音符的左边缘
-    const firstNote = this.selectedNotes[0];
-    const newStartTime = x / this.pixelsPerSecond;
-    if (newStartTime < firstNote.endTime) {
-      const timeOffset = newStartTime - firstNote.startTime;
+    // 只调整被按住的音符的左边缘
+    const referenceNote = this.selectedNotes.find(note => note === this.pendingDeselect) || this.selectedNotes[0];
+    // 将像素位置转换为拍数
+    let newStartTime = x / this.pixelsPerBeat;
+    
+    // 如果启用了自动吸附功能，则对时间位置进行吸附
+    if (this.isSnapEnabled) {
+      // 计算最近的拍数位置
+      const snappedStartBeats = Math.round(newStartTime);
+      const snapOffset = snappedStartBeats - newStartTime;
+      // 只有当偏移量小于0.15拍时才进行吸附
+      if (Math.abs(snapOffset) < 0.15) {
+        newStartTime = snappedStartBeats;
+      }
+    }
+    
+    if (newStartTime < referenceNote.endTime) {
+      const timeOffset = newStartTime - referenceNote.startTime;
       
       // 批量调整所有选中音符的开始时间
       for (const note of this.selectedNotes) {
@@ -1226,11 +1415,24 @@ export class MidiEditor {
   
   // 调整音符右边缘
   resizeNoteRight(x) {
-    // 只调整第一个选中音符的右边缘
-    const firstNote = this.selectedNotes[0];
-    const newEndTime = x / this.pixelsPerSecond;
-    if (newEndTime > firstNote.startTime) {
-      const timeOffset = newEndTime - firstNote.endTime;
+    // 只调整被按住的音符的右边缘
+    const referenceNote = this.selectedNotes.find(note => note === this.pendingDeselect) || this.selectedNotes[0];
+    // 将像素位置转换为拍数
+    let newEndTime = x / this.pixelsPerBeat;
+    
+    // 如果启用了自动吸附功能，则对时间位置进行吸附
+    if (this.isSnapEnabled) {
+      // 计算最近的拍数位置
+      const snappedEndBeats = Math.round(newEndTime);
+      const snapOffset = snappedEndBeats - newEndTime;
+      // 只有当偏移量小于0.15拍时才进行吸附
+      if (Math.abs(snapOffset) < 0.15) {
+        newEndTime = snappedEndBeats;
+      }
+    }
+    
+    if (newEndTime > referenceNote.startTime) {
+      const timeOffset = newEndTime - referenceNote.endTime;
       
       // 批量调整所有选中音符的结束时间
       for (const note of this.selectedNotes) {
@@ -1256,7 +1458,7 @@ export class MidiEditor {
     
     // 更新播放头位置，只有在没有发生拖拽的情况下才更新
     if (this.pendingPlayheadPosition !== undefined && !this.hasDragged) {
-      this.setPlayheadPosition(this.pendingPlayheadPosition);
+      this.setPlayheadPosition(this.pendingPlayheadPosition, true);
     }
     this.pendingPlayheadPosition = undefined;
     
@@ -1276,60 +1478,73 @@ export class MidiEditor {
   }
   
   // 完成框选
-  finishSelection() {
-    // 重置框选状态
-    this.isSelecting = false;
-    
-    // 计算框选区域
-    const startX = Math.min(this.selectionStartX, this.selectionEndX);
-    const startY = Math.min(this.selectionStartY, this.selectionEndY);
-    const endX = Math.max(this.selectionStartX, this.selectionEndX);
-    const endY = Math.max(this.selectionStartY, this.selectionEndY);
-    
-    // 将像素坐标转换为时间/音高坐标
-    const startTime = startX / this.pixelsPerSecond;
-    const endTime = endX / this.pixelsPerSecond;
-    const startNote = 127 - Math.floor(endY / this.pixelsPerNote); // 注意：y坐标是反向的
-    const endNote = 127 - Math.floor(startY / this.pixelsPerNote);
-    
-    // 查找框选区域内的音符
-    const selectedNotesInRegion = [];
-    for (const noteEntry of this.recordedNotes) {
-      // 检查音符是否在框选区域内
-      // 音符与选择区域有重叠就算选中
-      if (noteEntry.note >= startNote && noteEntry.note <= endNote &&
-          noteEntry.endTime >= startTime && noteEntry.startTime <= endTime) {
-        selectedNotesInRegion.push(noteEntry);
+    finishSelection() {
+      // 重置框选状态
+      this.isSelecting = false;
+      
+      // 清除待处理的播放头位置
+      this.pendingPlayheadPosition = undefined;
+      
+      // 计算框选区域
+      const startX = Math.min(this.selectionStartX, this.selectionEndX);
+      const startY = Math.min(this.selectionStartY, this.selectionEndY);
+      const endX = Math.max(this.selectionStartX, this.selectionEndX);
+      const endY = Math.max(this.selectionStartY, this.selectionEndY);
+      
+      // 将像素坐标转换为时间/音高坐标（使用拍数）
+      const startBeats = startX / this.pixelsPerBeat;
+      const endBeats = endX / this.pixelsPerBeat;
+      const startNote = 127 - Math.floor(endY / this.pixelsPerNote); // 注意：y坐标是反向的
+      const endNote = 127 - Math.floor(startY / this.pixelsPerNote);
+      
+      // 查找框选区域内的音符
+      const selectedNotesInRegion = [];
+      for (const noteEntry of this.recordedNotes) {
+        // 检查音符是否在框选区域内
+        // 音符与选择区域有重叠就算选中
+        if (noteEntry.note >= startNote && noteEntry.note <= endNote &&
+            noteEntry.endTime >= startBeats && noteEntry.startTime <= endBeats) {
+          selectedNotesInRegion.push(noteEntry);
+        }
       }
-    }
-    
-    // 将框选区域内的音符添加到选中列表中（不重复添加）
-    for (const note of selectedNotesInRegion) {
-      if (this.selectedNotes.indexOf(note) === -1) {
-        this.selectedNotes.push(note);
+      
+      // 将框选区域内的音符添加到选中列表中（不重复添加）
+      for (const note of selectedNotesInRegion) {
+        if (this.selectedNotes.indexOf(note) === -1) {
+          this.selectedNotes.push(note);
+        }
       }
+      
+      // 重置选择框坐标
+      this.selectionStartX = 0;
+      this.selectionStartY = 0;
+      this.selectionEndX = 0;
+      this.selectionEndY = 0;
+      
+      // 恢复默认鼠标样式
+      this.canvas.style.cursor = 'default';
+      
+      // 重绘
+      this.draw();
     }
-    
-    // 重置选择框坐标
-    this.selectionStartX = 0;
-    this.selectionStartY = 0;
-    this.selectionEndX = 0;
-    this.selectionEndY = 0;
-    
-    // 恢复默认鼠标样式
-    this.canvas.style.cursor = 'default';
-    
-    // 重绘
-    this.draw();
-  }
   
   // 动画循环
   animate() {
     // 更新播放头位置
     if (this.isRecording) {
       const elapsedTime = Tone.now() - this.startTime;
-      const position = elapsedTime * this.pixelsPerSecond;
+      // 将秒数转换为拍数
+      const beats = elapsedTime * this.bpm / 60;
+      const position = beats * this.pixelsPerBeat;
       this.setPlayheadPosition(position);
+      
+      // 播放录制的音符
+      this.playRecordedNotes(elapsedTime);
+      
+      // 播放节拍器
+      if (this.isMetronomeEnabled) {
+        this.playMetronomeBeat(elapsedTime);
+      }
       
       // 定期重新调整canvas大小以适应不断增长的录制内容
       // 每0.1秒检查一次是否需要调整canvas大小，确保更流畅的体验
@@ -1339,11 +1554,18 @@ export class MidiEditor {
       }
     } else if (this.isPlaying) {
       const elapsedTime = Tone.now() - this.startTime;
-      const position = elapsedTime * this.pixelsPerSecond;
+      // 将秒数转换为拍数
+      const beats = elapsedTime * this.bpm / 60;
+      const position = beats * this.pixelsPerBeat;
       this.setPlayheadPosition(position);
       
       // 播放录制的音符
       this.playRecordedNotes(elapsedTime);
+      
+      // 播放节拍器
+      if (this.isMetronomeEnabled) {
+        this.playMetronomeBeat(elapsedTime);
+      }
       
       // 检查是否播放完所有音符，如果是则自动暂停
       if (this.recordedNotes.length > 0) {
@@ -1356,7 +1578,7 @@ export class MidiEditor {
         }
         
         // 如果播放头已经超过了最后一个音符的结束时间，则暂停
-        if (elapsedTime > maxEndTime) {
+        if (elapsedTime > maxEndTime * 60 / this.bpm) {
           this.pause();
         }
       }
@@ -1373,9 +1595,12 @@ export class MidiEditor {
   
   // 播放录制的音符
   playRecordedNotes(currentTime) {
+    // 将当前时间（秒）转换为拍数
+    const currentBeats = currentTime * this.bpm / 60;
+    
     for (const noteEntry of this.recordedNotes) {
-      // 检查是否应该播放这个音符
-      if (noteEntry.startTime <= currentTime && noteEntry.endTime > currentTime) {
+      // 检查是否应该播放这个音符（使用拍数进行比较）
+      if (noteEntry.startTime <= currentBeats && noteEntry.endTime > currentBeats) {
         // 检查是否已经播放过
         if (!noteEntry.played) {
           // 播放音符，使用音符的力度值
@@ -1383,11 +1608,11 @@ export class MidiEditor {
           noteEntry.played = true;
           console.log(`播放录制的音符: ${noteEntry.note}`);
         }
-      } else if (noteEntry.endTime <= currentTime && noteEntry.played) {
+      } else if (noteEntry.endTime <= currentBeats && noteEntry.played) {
         // 停止音符
         this.audioEngine.stopNote(noteEntry.note);
         noteEntry.played = false;
-      } else if (noteEntry.startTime > currentTime && noteEntry.played) {
+      } else if (noteEntry.startTime > currentBeats && noteEntry.played) {
         // 重置未来的音符状态
         noteEntry.played = false;
       }
@@ -1460,6 +1685,7 @@ export class MidiEditor {
   updateInfoDisplay() {
     // 更新播放头位置和音轨总长信息
     const playheadTime = this.getPlayheadTime();
+    const playheadBeats = playheadTime * this.bpm / 60;
     
     // 计算音轨总长
     let trackDuration = 0;
@@ -1470,17 +1696,18 @@ export class MidiEditor {
         }
       }
     }
+    const trackBeats = trackDuration * this.bpm / 60;
     
     // 更新播放头位置和音轨总长显示
     const playheadPositionElement = document.getElementById('playhead-position');
     const trackDurationElement = document.getElementById('track-duration');
     
     if (playheadPositionElement) {
-      playheadPositionElement.textContent = playheadTime.toFixed(2);
+      playheadPositionElement.textContent = `${playheadTime.toFixed(2)}s (${playheadBeats.toFixed(2)} beats)`;
     }
     
     if (trackDurationElement) {
-      trackDurationElement.textContent = trackDuration.toFixed(2);
+      trackDurationElement.textContent = `${trackDuration.toFixed(2)}s (${trackBeats.toFixed(2)} beats)`;
     }
     
     // 更新选中音符信息
@@ -1493,7 +1720,10 @@ export class MidiEditor {
         // 显示单个音符的信息
         const note = this.selectedNotes[0];
         const noteName = this.noteNumberToNoteName(note.note);
-        selectedNotesInfoElement.textContent = `开始时间: ${note.startTime.toFixed(2)}s, 结束时间: ${note.endTime.toFixed(2)}s, 音高: ${noteName}, 力度: ${note.velocity}`;
+        // 将拍数转换为秒数进行显示
+        const startTimeSeconds = note.startTime * 60 / this.bpm;
+        const endTimeSeconds = note.endTime * 60 / this.bpm;
+        selectedNotesInfoElement.textContent = `开始时间: ${startTimeSeconds.toFixed(2)}s (${note.startTime.toFixed(2)} beats), 结束时间: ${endTimeSeconds.toFixed(2)}s (${note.endTime.toFixed(2)} beats), 音高: ${noteName}, 力度: ${note.velocity}`;
       } else {
         // 显示多个音符的统计信息
         let earliestStartTime = Infinity;
@@ -1508,7 +1738,12 @@ export class MidiEditor {
           }
         }
         
-        selectedNotesInfoElement.textContent = `选中${this.selectedNotes.length}个音符, 开始时间: ${earliestStartTime.toFixed(2)}s, 结束时间: ${latestEndTime.toFixed(2)}s`;
+        // 将拍数转换为秒数进行显示
+        const earliestStartTimeSeconds = earliestStartTime * 60 / this.bpm;
+        const latestEndTimeSeconds = latestEndTime * 60 / this.bpm;
+        const earliestStartBeats = earliestStartTime;
+        const latestEndBeats = latestEndTime;
+        selectedNotesInfoElement.textContent = `选中${this.selectedNotes.length}个音符, 开始时间: ${earliestStartTimeSeconds.toFixed(2)}s (${earliestStartBeats.toFixed(2)} beats), 结束时间: ${latestEndTimeSeconds.toFixed(2)}s (${latestEndBeats.toFixed(2)} beats)`;
       }
     }
   }
@@ -1548,15 +1783,29 @@ export class MidiEditor {
     }
     
     // 绘制时间轴线
-    this.ctx.strokeStyle = '#666';  // 更浅的颜色
-    this.ctx.lineWidth = 0.5;       // 更细的线
+    // 拍线：更浅更细
+    this.ctx.strokeStyle = '#444';  // 更浅的颜色
+    this.ctx.lineWidth = 0.25;      // 更细的线
     
-    // 每秒绘制一条垂直线
-    for (let i = 0; i < width; i += this.pixelsPerSecond) {
+    // 每拍绘制一条垂直线
+    for (let i = 0; i < width; i += this.pixelsPerBeat) {
       this.ctx.beginPath();
       this.ctx.moveTo(i, 0);
       this.ctx.lineTo(i, height);
       this.ctx.stroke();
+    }
+    
+    // 小节线：与拍线相同颜色和粗细（当beatsPerMeasure > 0时）
+    if (this.beatsPerMeasure > 0) {
+      const pixelsPerMeasure = this.pixelsPerBeat * this.beatsPerMeasure;
+      this.ctx.strokeStyle = '#444';  // 与拍线相同颜色
+      this.ctx.lineWidth = 0.25;      // 与拍线相同粗细
+      for (let i = 0; i < width; i += pixelsPerMeasure) {
+        this.ctx.beginPath();
+        this.ctx.moveTo(i, 0);
+        this.ctx.lineTo(i, height);
+        this.ctx.stroke();
+      }
     }
     
     // 绘制音高标签
@@ -1579,9 +1828,10 @@ export class MidiEditor {
     
     for (const noteEntry of this.recordedNotes) {
       if (noteEntry.startTime !== null && noteEntry.endTime !== null) {
-        const x = noteEntry.startTime * this.pixelsPerSecond;
+        // 将拍数转换为像素位置
+        const x = noteEntry.startTime * this.pixelsPerBeat;
         const y = height - (noteEntry.note * noteHeight);
-        const width = (noteEntry.endTime - noteEntry.startTime) * this.pixelsPerSecond;
+        const width = (noteEntry.endTime - noteEntry.startTime) * this.pixelsPerBeat;
         
         // 根据力度值计算填充颜色的透明度
         const alpha = noteEntry.velocity / 100;  // 0-100映射到0-1的透明度
@@ -1605,9 +1855,9 @@ export class MidiEditor {
     const noteHeight = height / 128;
     
     for (const note of this.selectedNotes) {
-      const x = note.startTime * this.pixelsPerSecond;
+      const x = note.startTime * this.pixelsPerBeat;
       const y = height - (note.note * noteHeight);
-      const widthValue = (note.endTime - note.startTime) * this.pixelsPerSecond;
+      const widthValue = (note.endTime - note.startTime) * this.pixelsPerBeat;
       
       // 绘制高亮边框
       this.ctx.strokeStyle = '#ffcc00';
@@ -1631,9 +1881,9 @@ export class MidiEditor {
     const height = this.canvas.height;
     const noteHeight = height / 128;
     
-    const x = this.hoveredNote.startTime * this.pixelsPerSecond;
+    const x = this.hoveredNote.startTime * this.pixelsPerBeat;
     const y = height - (this.hoveredNote.note * noteHeight);
-    const widthValue = (this.hoveredNote.endTime - this.hoveredNote.startTime) * this.pixelsPerSecond;
+    const widthValue = (this.hoveredNote.endTime - this.hoveredNote.startTime) * this.pixelsPerBeat;
     
     // 绘制半透明高光
     this.ctx.fillStyle = 'rgba(255, 255, 255, 0.3)';
@@ -1683,5 +1933,55 @@ export class MidiEditor {
   handleWindowResize() {
     this.resizeCanvas();
     this.draw();
+  }
+  
+  // 播放节拍器提示音
+  playMetronomeBeat(currentTime) {
+    // 计算当前时间对应的拍数
+    const currentBeats = currentTime * this.bpm / 60;
+    
+    // 计算当前节拍数（基于每小节拍数）
+    // 如果beatsPerMeasure为0，则每拍都是强拍
+    const beatInMeasure = this.beatsPerMeasure > 0 ? 
+      Math.floor(currentBeats) % this.beatsPerMeasure : 
+      0;
+    
+    // 确定是否应该播放节拍提示音
+    // 每当进入新的拍数时播放
+    const currentBeat = Math.floor(currentBeats);
+    
+    if (currentBeat > this.currentBeat) {
+      // 更新节拍计数
+      this.currentBeat = currentBeat;
+      
+      // 确定播放哪种提示音
+      let isStrongBeat = false;
+      
+      if (this.beatsPerMeasure === 0) {
+        // 如果每小节拍数为0，总是播放弱拍音
+        isStrongBeat = false;
+      } else if (this.beatsPerMeasure === 1) {
+        // 如果每小节拍数为1，每拍都是强拍
+        isStrongBeat = true;
+      } else {
+        // 正常情况，每小节的第一拍是强拍
+        isStrongBeat = (beatInMeasure === 0);
+      }
+      
+      // 播放相应的提示音
+      // 强拍使用较高的音（例如C5），弱拍使用较低的音（例如C4）
+      const metronomeNote = isStrongBeat ? 72 : 60; // C5 vs C4
+      const metronomeVelocity = isStrongBeat ? 100 : 60; // 强拍音量较大，弱拍音量较小
+      
+      // 与音符触发保持相同时间基准
+      const frequency = Tone.Midi(metronomeNote).toFrequency();
+      this.audioEngine.metronomeSynth.triggerAttackRelease(
+        frequency,
+        '8n',
+        Tone.context.currentTime + 0.001 // 使用Web Audio API绝对时间
+      );
+      
+      console.log(`节拍器: ${isStrongBeat ? '强拍' : '弱拍'} - 拍数: ${currentBeat}`);
+    }
   }
 }

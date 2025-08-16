@@ -19,6 +19,23 @@ export class AudioEngine {
     // 初始化采样钢琴
     // this.initSampledPiano();
     
+    // 创建节拍器专用的Polysynth合成器（不包含混响等效果）
+    this.metronomeSynth = new Tone.PolySynth(Tone.Synth, {
+      oscillator: {
+        type: "square",
+        partialCount: 3  // 限制泛音数量避免炸麦
+      },
+      envelope: {
+        attack: 0.0001,  // 更快的attack时间
+        decay: 0.15,     // 稍微延长衰减时间
+        sustain: 0.0,
+        release: 0.02    // 缩短释放时间使节拍更清晰
+      }
+    }).toDestination();
+    
+    // 设置节拍器音量（调小音量）
+    this.metronomeSynth.volume.value = -20; // 设置为-10dB，可根据需要进一步调整
+    
     // 建立默认连接
     this.connectEffects();
   }

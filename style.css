@@ -400,13 +400,117 @@ input[type="range"]::-moz-range-thumb {
 /* MIDI编辑器控制按钮样式 */
 .midi-editor-controls {
     display: flex;
-    gap: 10px;
+    gap: 15px;
     margin-bottom: 15px;
     background: rgba(30, 30, 30, 0.7);
     backdrop-filter: blur(3px);
     -webkit-backdrop-filter: blur(3px);
     border-radius: 8px;
     padding: 10px;
+    align-items: center;
+    flex-wrap: wrap;
+}
+
+.control-group {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+}
+
+.bpm-control, .beats-per-measure-control, .metronome-control {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    gap: 3px;
+    margin-right: 10px;
+}
+
+.bpm-control label, .beats-per-measure-control label, .metronome-control label {
+    font-size: 0.7rem;
+    color: #aaa;
+    text-align: center;
+    margin-right: 5px;
+}
+
+.bpm-input, .beats-per-measure-input {
+    width: 60px;
+    padding: 4px;
+    border: 1px solid #444;
+    border-radius: 4px;
+    font-size: 14px;
+    background-color: #252525;
+    color: white;
+    text-align: center;
+}
+
+/* 节拍器开关样式 */
+.switch {
+    position: relative;
+    display: inline-block;
+    width: 40px;
+    height: 20px;
+    cursor: pointer;
+}
+
+.switch input {
+    opacity: 0;
+    width: 0;
+    height: 0;
+}
+
+.slider {
+    position: absolute;
+    cursor: pointer;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: #444;
+    transition: .4s;
+    border-radius: 20px;
+}
+
+.slider:before {
+    position: absolute;
+    content: "";
+    height: 16px;
+    width: 16px;
+    left: 2px;
+    bottom: 2px;
+    background-color: white;
+    transition: .4s;
+    border-radius: 50%;
+}
+
+input:checked + .slider {
+    background-color: #00ccff;
+}
+
+input:checked + .slider:before {
+    transform: translateX(20px);
+}
+
+.metronome-toggle {
+    display: none;
+}
+
+.snap-toggle {
+    display: none;
+}
+
+.metronome-control, .snap-control {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    gap: 3px;
+    margin-right: 10px;
+}
+
+.metronome-control label, .snap-control label {
+    font-size: 0.7rem;
+    color: #aaa;
+    text-align: center;
+    margin-right: 5px;
 }
 
 .midi-editor-button {
@@ -422,8 +526,6 @@ input[type="range"]::-moz-range-thumb {
     justify-content: center;
     padding: 0;
     box-sizing: border-box;
-    /* 确保按钮在所有状态下都保持一致的显示属性 */
-    display: inline-flex;
 }
 
 .midi-editor-button:hover {
@@ -476,22 +578,22 @@ input[type="range"]::-moz-range-thumb {
 }
 
 /* 特定样式用于全屏按钮 */
-#fullscreen-button {
+.fullscreen-button {
     border-radius: 0;
     background: transparent;
     margin-left: auto; /* 将按钮推到容器右侧 */
 }
 
-#fullscreen-button img {
+.fullscreen-button img {
     transition: all 0.2s ease;
 }
 
-#fullscreen-button:hover img {
+.fullscreen-button:hover img {
     transform: scale(1.15);
     filter: brightness(0) saturate(100%) invert(29%) sepia(89%) saturate(1492%) hue-rotate(180deg) brightness(101%) contrast(101%); /* 蓝色效果 */
 }
 
-#fullscreen-button:active img {
+.fullscreen-button:active img {
     transform: scale(1.1);
 }
 
@@ -566,6 +668,11 @@ input[type="range"]::-moz-range-thumb {
     text-align: right;
     flex-grow: 1;
     margin-left: 20px;
+}
+
+.bpm-info {
+    margin-left: 20px;
+    white-space: nowrap;
 }
 
 .midi-editor-wrapper {
