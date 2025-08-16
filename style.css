@@ -529,7 +529,7 @@ input:checked + .slider:before {
 }
 
 .midi-editor-button:hover {
-    background: rgba(0, 204, 255, 0.2);
+    background: transparent;
     transform: scale(1.05);
 }
 
