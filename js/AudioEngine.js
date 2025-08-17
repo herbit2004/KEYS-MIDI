@@ -33,8 +33,8 @@ export class AudioEngine {
       }
     }).toDestination();
     
-    // 设置节拍器音量（调小音量）
-    this.metronomeSynth.volume.value = -20; // 设置为-10dB，可根据需要进一步调整
+    // 设置节拍器音量
+    this.metronomeSynth.volume.value = -25; // 设置为-25dB，可根据需要进一步调整
     
     // 建立默认连接
     this.connectEffects();

@@ -29,6 +29,10 @@ export class MidiEditor {
     this.isMetronomeEnabled = false; // 节拍器默认关闭
     this.lastBeatTime = 0; // 上一次节拍时间
     this.currentBeat = 0; // 当前节拍计数
+    this.metronomeVolume = -25; // 节拍器默认音量为-25dB
+    
+    // 自动吸附灵敏度变量
+    this.snapSensitivity = 0.15; // 默认灵敏度为15%拍
     
     // 计算pixelsPerSecond
     this.pixelsPerSecond = this.calculatePixelsPerSecond();
@@ -94,12 +98,186 @@ export class MidiEditor {
     this.snapToggle = snapToggle;
     this.isSnapEnabled = false; // 默认关闭自动吸附
     
-    // 监听自动吸附开关变化
-    if (this.snapToggle) {
-      this.snapToggle.addEventListener('change', (e) => {
-        this.isSnapEnabled = e.target.checked;
+    // 移除了监听自动吸附开关变化的逻辑，因为现在使用图标点击来切换状态
+    
+    // 监听节拍器音量滑块变化
+    const metronomeVolumeSlider = document.getElementById('metronome-volume');
+    const metronomeVolumeValue = document.getElementById('metronome-volume-value');
+    if (metronomeVolumeSlider) {
+      metronomeVolumeSlider.addEventListener('input', (e) => {
+        this.metronomeVolume = parseFloat(e.target.value);
+        this.audioEngine.metronomeSynth.volume.value = this.metronomeVolume;
+        // 更新显示值
+        if (metronomeVolumeValue) {
+          metronomeVolumeValue.textContent = `${this.metronomeVolume} dB`;
+        }
       });
     }
+    
+    // 监听自动吸附灵敏度滑块变化
+    const snapSensitivitySlider = document.getElementById('snap-sensitivity');
+    const snapSensitivityValue = document.getElementById('snap-sensitivity-value');
+    if (snapSensitivitySlider) {
+      snapSensitivitySlider.addEventListener('input', (e) => {
+        this.snapSensitivity = parseFloat(e.target.value) / 100;
+        // 更新显示值
+        if (snapSensitivityValue) {
+          snapSensitivityValue.textContent = e.target.value;
+        }
+      });
+    }
+    
+    // 监听节拍器控制区域的鼠标悬停事件
+    const metronomeControl = document.querySelector('.metronome-control');
+    const metronomeContainer = document.getElementById('metronome-volume-container');
+    const metronomeIcon = document.getElementById('metronome-icon');
+    if (metronomeControl && metronomeContainer && metronomeIcon) {
+      let metronomeHoverTimeout;
+      
+      // 切换节拍器状态
+      const toggleMetronome = () => {
+        this.isMetronomeEnabled = !this.isMetronomeEnabled;
+        if (this.isMetronomeEnabled) {
+          metronomeIcon.classList.add('active');
+        } else {
+          metronomeIcon.classList.remove('active');
+        }
+      };
+      
+      // 点击节拍器图标切换状态
+      metronomeIcon.addEventListener('click', toggleMetronome);
+      
+      // 鼠标进入节拍器控制区域
+      metronomeControl.addEventListener('mouseenter', () => {
+        clearTimeout(metronomeHoverTimeout);
+        
+        // 先隐藏其他容器
+        const snapContainer = document.getElementById('snap-sensitivity-container');
+        if (snapContainer && snapContainer.style.display === 'block') {
+          snapContainer.style.opacity = '0';
+          snapContainer.style.transition = 'opacity 0.2s ease';
+          setTimeout(() => {
+            snapContainer.style.display = 'none';
+          }, 200);
+        }
+        
+        // 显示节拍器滑块容器
+        metronomeContainer.style.display = 'block';
+        metronomeContainer.style.opacity = '0';
+        metronomeContainer.style.transition = 'opacity 0.2s ease';
+        // 强制重绘以确保动画效果
+        metronomeContainer.offsetHeight;
+        metronomeContainer.style.opacity = '1';
+      });
+      
+      // 鼠标离开节拍器控制区域
+      metronomeControl.addEventListener('mouseleave', () => {
+        metronomeHoverTimeout = setTimeout(() => {
+          if (metronomeContainer.style.display === 'block') {
+            metronomeContainer.style.opacity = '0';
+            metronomeContainer.style.transition = 'opacity 0.2s ease';
+            setTimeout(() => {
+              metronomeContainer.style.display = 'none';
+            }, 200);
+          }
+        }, 200);
+      });
+      
+      // 鼠标进入节拍器滑块容器
+      metronomeContainer.addEventListener('mouseenter', () => {
+        clearTimeout(metronomeHoverTimeout);
+      });
+      
+      // 鼠标离开节拍器滑块容器
+      metronomeContainer.addEventListener('mouseleave', () => {
+        metronomeHoverTimeout = setTimeout(() => {
+          if (metronomeContainer.style.display === 'block') {
+            metronomeContainer.style.opacity = '0';
+            metronomeContainer.style.transition = 'opacity 0.2s ease';
+            setTimeout(() => {
+              metronomeContainer.style.display = 'none';
+            }, 200);
+          }
+        }, 200);
+      });
+    }
+    
+    // 监听自动吸附控制区域的鼠标悬停事件
+    const snapControl = document.querySelector('.snap-control');
+    const snapContainer = document.getElementById('snap-sensitivity-container');
+    const snapIcon = document.getElementById('snap-icon');
+    if (snapControl && snapContainer && snapIcon) {
+      let snapHoverTimeout;
+      
+      // 切换自动吸附状态
+      const toggleSnap = () => {
+        this.isSnapEnabled = !this.isSnapEnabled;
+        if (this.isSnapEnabled) {
+          snapIcon.classList.add('active');
+        } else {
+          snapIcon.classList.remove('active');
+        }
+      };
+      
+      // 点击自动吸附图标切换状态
+      snapIcon.addEventListener('click', toggleSnap);
+      
+      // 鼠标进入自动吸附控制区域
+      snapControl.addEventListener('mouseenter', () => {
+        clearTimeout(snapHoverTimeout);
+        
+        // 先隐藏其他容器
+        const metronomeContainer = document.getElementById('metronome-volume-container');
+        if (metronomeContainer && metronomeContainer.style.display === 'block') {
+          metronomeContainer.style.opacity = '0';
+          metronomeContainer.style.transition = 'opacity 0.2s ease';
+          setTimeout(() => {
+            metronomeContainer.style.display = 'none';
+          }, 200);
+        }
+        
+        // 显示自动吸附滑块容器
+        snapContainer.style.display = 'block';
+        snapContainer.style.opacity = '0';
+        snapContainer.style.transition = 'opacity 0.2s ease';
+        // 强制重绘以确保动画效果
+        snapContainer.offsetHeight;
+        snapContainer.style.opacity = '1';
+      });
+      
+      // 鼠标离开自动吸附控制区域
+      snapControl.addEventListener('mouseleave', () => {
+        snapHoverTimeout = setTimeout(() => {
+          if (snapContainer.style.display === 'block') {
+            snapContainer.style.opacity = '0';
+            snapContainer.style.transition = 'opacity 0.2s ease';
+            setTimeout(() => {
+              snapContainer.style.display = 'none';
+            }, 200);
+          }
+        }, 200);
+      });
+      
+      // 鼠标进入自动吸附滑块容器
+      snapContainer.addEventListener('mouseenter', () => {
+        clearTimeout(snapHoverTimeout);
+      });
+      
+      // 鼠标离开自动吸附滑块容器
+      snapContainer.addEventListener('mouseleave', () => {
+        snapHoverTimeout = setTimeout(() => {
+          if (snapContainer.style.display === 'block') {
+            snapContainer.style.opacity = '0';
+            snapContainer.style.transition = 'opacity 0.2s ease';
+            setTimeout(() => {
+              snapContainer.style.display = 'none';
+            }, 200);
+          }
+        }, 200);
+      });
+    }
+    
+    // 移除了点击其他地方关闭滑块容器的事件监听器，因为现在使用鼠标悬停机制
     
     // 初始化canvas
     this.canvas.height = 1600;
@@ -203,8 +381,30 @@ export class MidiEditor {
       }
     });
     
-    // 阻止canvas内部点击事件冒泡，避免触发全局点击事件
+    // 点击canvas内部时关闭滑块容器
     this.canvas.addEventListener('click', (e) => {
+      const metronomeContainer = document.getElementById('metronome-volume-container');
+      const snapContainer = document.getElementById('snap-sensitivity-container');
+      
+      // 关闭节拍器滑块容器
+      if (metronomeContainer && metronomeContainer.style.display === 'block') {
+        metronomeContainer.style.opacity = '0';
+        metronomeContainer.style.transition = 'opacity 0.2s ease';
+        setTimeout(() => {
+          metronomeContainer.style.display = 'none';
+        }, 200);
+      }
+      
+      // 关闭自动吸附滑块容器
+      if (snapContainer && snapContainer.style.display === 'block') {
+        snapContainer.style.opacity = '0';
+        snapContainer.style.transition = 'opacity 0.2s ease';
+        setTimeout(() => {
+          snapContainer.style.display = 'none';
+        }, 200);
+      }
+      
+      // 阻止事件冒泡，避免触发全局点击事件
       e.stopPropagation();
     });
     
@@ -566,16 +766,7 @@ export class MidiEditor {
       console.log(`每小节拍数调整为: ${this.beatsPerMeasure}`);
     });
     
-    // 添加节拍器开关事件监听器
-    const metronomeToggle = document.getElementById('metronome-toggle');
-    metronomeToggle.addEventListener('change', (e) => {
-      this.isMetronomeEnabled = e.target.checked;
-      if (!this.isMetronomeEnabled) {
-        this.currentBeat = 0;
-        this.lastBeatTime = 0;
-      }
-      console.log(`节拍器状态: ${this.isMetronomeEnabled}`);
-    });
+    // 移除了节拍器开关事件监听器，因为现在使用图标点击来切换状态
   }
   
   // 自动滚动逻辑
@@ -1357,8 +1548,8 @@ export class MidiEditor {
       // 计算最近的拍数位置
       const snappedStartBeats = Math.round(newStartTime);
       const snapOffset = snappedStartBeats - newStartTime;
-      // 只有当偏移量小于0.15拍时才进行吸附
-      if (Math.abs(snapOffset) < 0.15) {
+      // 使用新的灵敏度变量
+      if (Math.abs(snapOffset) < this.snapSensitivity) {
         newStartTime = snappedStartBeats;
         newEndTime = newStartTime + duration;
       }
@@ -1397,8 +1588,8 @@ export class MidiEditor {
       // 计算最近的拍数位置
       const snappedStartBeats = Math.round(newStartTime);
       const snapOffset = snappedStartBeats - newStartTime;
-      // 只有当偏移量小于0.15拍时才进行吸附
-      if (Math.abs(snapOffset) < 0.15) {
+      // 使用新的灵敏度变量
+      if (Math.abs(snapOffset) < this.snapSensitivity) {
         newStartTime = snappedStartBeats;
       }
     }
@@ -1425,8 +1616,8 @@ export class MidiEditor {
       // 计算最近的拍数位置
       const snappedEndBeats = Math.round(newEndTime);
       const snapOffset = snappedEndBeats - newEndTime;
-      // 只有当偏移量小于0.15拍时才进行吸附
-      if (Math.abs(snapOffset) < 0.15) {
+      // 使用新的灵敏度变量
+      if (Math.abs(snapOffset) < this.snapSensitivity) {
         newEndTime = snappedEndBeats;
       }
     }
@@ -1975,11 +2166,33 @@ export class MidiEditor {
       
       // 与音符触发保持相同时间基准
       const frequency = Tone.Midi(metronomeNote).toFrequency();
+      // 使用新的音量变量
+      this.audioEngine.metronomeSynth.volume.value = this.metronomeVolume;
       this.audioEngine.metronomeSynth.triggerAttackRelease(
         frequency,
         '8n',
         Tone.context.currentTime + 0.001 // 使用Web Audio API绝对时间
       );
+      
+      // 在节拍器图标和翻转图标之间切换，并触发动画效果
+      const metronomeIcon = document.getElementById('metronome-icon');
+      if (metronomeIcon) {
+        // 移除可能存在的旧动画类
+        metronomeIcon.classList.remove('metronome-beat');
+        
+        // 强制重绘以确保动画重新开始
+        metronomeIcon.offsetHeight;
+        
+        // 切换图标
+        if (metronomeIcon.src.includes('metronome.svg')) {
+          metronomeIcon.src = 'icons/metronome-flipped.svg';
+        } else {
+          metronomeIcon.src = 'icons/metronome.svg';
+        }
+        
+        // 添加动画类
+        metronomeIcon.classList.add('metronome-beat');
+      }
       
       console.log(`节拍器: ${isStrongBeat ? '强拍' : '弱拍'} - 拍数: ${currentBeat}`);
     }

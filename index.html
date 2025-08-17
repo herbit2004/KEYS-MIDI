@@ -146,21 +146,29 @@
                         <input type="number" id="beats-per-measure-input" class="beats-per-measure-input" min="0" max="10" value="4">
                     </div>
                     <!-- 节拍器开关 -->
-                    <div class="metronome-control">
-                        <label for="metronome-toggle">节拍器:</label>
-                        <label class="switch">
-                            <input type="checkbox" id="metronome-toggle" class="metronome-toggle">
-                            <span class="slider"></span>
-                        </label>
-                    </div>
-                    <!-- 自动吸附开关 -->
-                    <div class="snap-control">
-                        <label for="snap-toggle">自动吸附:</label>
-                        <label class="switch">
-                            <input type="checkbox" id="snap-toggle" class="snap-toggle">
-                            <span class="slider"></span>
-                        </label>
-                    </div>
+                <div class="metronome-control">
+                    <button class="midi-editor-button metronome-snap-button">
+                        <img src="icons/metronome.svg" alt="节拍器" id="metronome-icon" class="control-icon">
+                    </button>
+                    <!-- 节拍器音量控制栏 -->
+                <div class="control-slider-container" id="metronome-volume-container" style="display: none;">
+                    <div class="slider-description">节拍器音量</div>
+                    <div class="slider-value" id="metronome-volume-value">-25 dB</div>
+                    <input type="range" id="metronome-volume" class="control-slider" min="-60" max="0" value="-25" step="1">
+                </div>
+                </div>
+                <!-- 自动吸附开关 -->
+                <div class="snap-control">
+                    <button class="midi-editor-button metronome-snap-button">
+                        <img src="icons/snap.svg" alt="自动吸附" id="snap-icon" class="control-icon">
+                    </button>
+                    <!-- 自动吸附灵敏度控制栏 -->
+                <div class="control-slider-container" id="snap-sensitivity-container" style="display: none;">
+                    <div class="slider-description">吸附灵敏度</div>
+                    <div class="slider-value" id="snap-sensitivity-value">15</div>
+                    <input type="range" id="snap-sensitivity" class="control-slider" min="0" max="50" value="15" step="1">
+                </div>
+                </div>
                 </div>
                 
                 <!-- 文件操作组 -->
