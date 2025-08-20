@@ -167,6 +167,16 @@
                     <div class="slider-description">吸附灵敏度</div>
                     <div class="slider-value" id="snap-sensitivity-value">15</div>
                     <input type="range" id="snap-sensitivity" class="control-slider" min="0" max="50" value="15" step="1">
+                    <!-- 新增吸附精度选择 -->
+                    <div class="snap-precision-control">
+                        <div class="slider-description">吸附精度</div>
+                        <div class="slider-value" id="snap-precision-value">1/1</div>
+                        <input type="range" id="snap-precision" class="control-slider" min="1" max="10" value="1" step="1">
+                    </div>
+                    <!-- 一键吸附触发按钮 -->
+                    <button id="snap-all-button" class="midi-editor-button" style="margin-top: 10px; width: 100%;">一键吸附触发</button>
+                    <!-- 一键吸附时长按钮 -->
+                    <button id="snap-duration-button" class="midi-editor-button" style="margin-top: 10px; width: 100%;">一键吸附时长</button>
                 </div>
                 </div>
                 </div>

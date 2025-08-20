@@ -34,6 +34,9 @@ export class MidiEditor {
     // 自动吸附灵敏度变量
     this.snapSensitivity = 0.15; // 默认灵敏度为15%拍
     
+    // 自动吸附精度变量
+    this.snapPrecision = 1; // 默认精度为1拍
+    
     // 计算pixelsPerSecond
     this.pixelsPerSecond = this.calculatePixelsPerSecond();
     
@@ -124,6 +127,35 @@ export class MidiEditor {
         if (snapSensitivityValue) {
           snapSensitivityValue.textContent = e.target.value;
         }
+      });
+    }
+    
+    // 监听自动吸附精度滑块变化
+    const snapPrecisionSlider = document.getElementById('snap-precision');
+    const snapPrecisionValue = document.getElementById('snap-precision-value');
+    if (snapPrecisionSlider) {
+      snapPrecisionSlider.addEventListener('input', (e) => {
+        this.snapPrecision = parseInt(e.target.value);
+        // 更新显示值为分数形式
+        if (snapPrecisionValue) {
+          snapPrecisionValue.textContent = `1/${e.target.value}`;
+        }
+      });
+    }
+    
+    // 监听一键吸附按钮点击事件
+    const snapAllButton = document.getElementById('snap-all-button');
+    if (snapAllButton) {
+      snapAllButton.addEventListener('click', () => {
+        this.snapAllNotes();
+      });
+    }
+    
+    // 监听一键吸附时长按钮点击事件
+    const snapDurationButton = document.getElementById('snap-duration-button');
+    if (snapDurationButton) {
+      snapDurationButton.addEventListener('click', () => {
+        this.snapDuration();
       });
     }
     
@@ -1180,6 +1212,10 @@ export class MidiEditor {
     // 处理复制、剪切、粘贴操作
     if (e.ctrlKey || e.metaKey) { // Ctrl键或Cmd键
       switch (e.code) {
+        case 'KeyA': // Ctrl+A 全选
+          e.preventDefault();
+          this.selectAllNotes();
+          break;
         case 'KeyC': // Ctrl+C 复制
           e.preventDefault();
           this.copySelectedNotes();
@@ -1380,6 +1416,21 @@ export class MidiEditor {
     console.log('从剪贴板粘贴音符');
   }
 
+  // 全选音符
+  selectAllNotes() {
+    // 清空当前选中列表
+    this.selectedNotes = [];
+    
+    // 将所有录制的音符添加到选中列表
+    for (const note of this.recordedNotes) {
+      this.selectedNotes.push(note);
+    }
+    
+    this.draw();
+    
+    console.log('全选所有音符');
+  }
+
   // 处理音符按下时的延音覆盖
   recordNoteOn(note, time) {
     if (this.isRecording) {
@@ -1545,11 +1596,11 @@ export class MidiEditor {
     
     // 如果启用了自动吸附功能，则对时间位置进行吸附
     if (this.isSnapEnabled) {
-      // 计算最近的拍数位置
-      const snappedStartBeats = Math.round(newStartTime);
+      // 计算最近的拍数位置，考虑吸附精度
+      const snappedStartBeats = Math.round(newStartTime * this.snapPrecision) / this.snapPrecision;
       const snapOffset = snappedStartBeats - newStartTime;
-      // 使用新的灵敏度变量
-      if (Math.abs(snapOffset) < this.snapSensitivity) {
+      // 使用新的灵敏度变量，考虑吸附精度
+      if (Math.abs(snapOffset) < (this.snapSensitivity / this.snapPrecision)) {
         newStartTime = snappedStartBeats;
         newEndTime = newStartTime + duration;
       }
@@ -1585,11 +1636,11 @@ export class MidiEditor {
     
     // 如果启用了自动吸附功能，则对时间位置进行吸附
     if (this.isSnapEnabled) {
-      // 计算最近的拍数位置
-      const snappedStartBeats = Math.round(newStartTime);
+      // 计算最近的拍数位置，考虑吸附精度
+      const snappedStartBeats = Math.round(newStartTime * this.snapPrecision) / this.snapPrecision;
       const snapOffset = snappedStartBeats - newStartTime;
-      // 使用新的灵敏度变量
-      if (Math.abs(snapOffset) < this.snapSensitivity) {
+      // 使用新的灵敏度变量，考虑吸附精度
+      if (Math.abs(snapOffset) < (this.snapSensitivity / this.snapPrecision)) {
         newStartTime = snappedStartBeats;
       }
     }
@@ -1613,11 +1664,11 @@ export class MidiEditor {
     
     // 如果启用了自动吸附功能，则对时间位置进行吸附
     if (this.isSnapEnabled) {
-      // 计算最近的拍数位置
-      const snappedEndBeats = Math.round(newEndTime);
+      // 计算最近的拍数位置，考虑吸附精度
+      const snappedEndBeats = Math.round(newEndTime * this.snapPrecision) / this.snapPrecision;
       const snapOffset = snappedEndBeats - newEndTime;
-      // 使用新的灵敏度变量
-      if (Math.abs(snapOffset) < this.snapSensitivity) {
+      // 使用新的灵敏度变量，考虑吸附精度
+      if (Math.abs(snapOffset) < (this.snapSensitivity / this.snapPrecision)) {
         newEndTime = snappedEndBeats;
       }
     }
@@ -1665,6 +1716,68 @@ export class MidiEditor {
     this.dragStartX = 0;
     this.dragStartY = 0;
     
+    this.draw();
+  }
+  
+  // 一键吸附所有选中的音符
+  snapAllNotes() {
+    // 检查是否有选中的音符
+    if (this.selectedNotes.length === 0) {
+      console.log('没有选中的音符');
+      return;
+    }
+    
+    // 遍历所有选中的音符，对每个音符进行独立吸附
+    for (const note of this.selectedNotes) {
+      // 计算最近的拍数位置，考虑吸附精度
+      const snappedStartBeats = Math.round(note.startTime * this.snapPrecision) / this.snapPrecision;
+      const snapOffset = snappedStartBeats - note.startTime;
+      
+      // 使用新的灵敏度变量，考虑吸附精度
+      if (Math.abs(snapOffset) < (this.snapSensitivity / this.snapPrecision)) {
+        // 计算时间偏移量
+        const timeOffset = snappedStartBeats - note.startTime;
+        
+        // 更新音符的开始和结束时间
+        note.startTime = Math.max(0, note.startTime + timeOffset);
+        note.endTime = note.endTime + timeOffset;
+      }
+    }
+    
+    // 重绘
+    this.draw();
+  }
+  
+  // 一键吸附时长
+  snapDuration() {
+    // 检查是否有选中的音符
+    if (this.selectedNotes.length === 0) {
+      console.log('没有选中的音符');
+      return;
+    }
+    
+    // 获取一个刻度的长度（以拍为单位）
+    const oneBeat = 1 / this.snapPrecision;
+    
+    // 遍历所有选中的音符，对每个音符的时长进行独立吸附
+    for (const note of this.selectedNotes) {
+      // 计算当前音符的时长
+      const duration = note.endTime - note.startTime;
+      
+      // 计算量化后的时长（以刻度为单位）
+      const snappedDuration = Math.round(duration * this.snapPrecision) / this.snapPrecision;
+      
+      // 检查吸附后的时长是否至少为一个刻度长度
+      if (snappedDuration >= oneBeat) {
+        // 更新音符的结束时间
+        note.endTime = note.startTime + snappedDuration;
+      } else {
+        // 如果吸附后的时长小于一个刻度长度，则保持原时长不变
+        console.log('音符时长过短，不进行吸附');
+      }
+    }
+    
+    // 重绘
     this.draw();
   }
   

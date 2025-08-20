@@ -576,6 +576,13 @@ input:checked + .slider:before {
     box-shadow: 0 0 5px rgba(0, 204, 255, 0.5);
 }
 
+/* 吸附精度控制样式 */
+.snap-precision-control {
+    margin-top: 15px;
+    padding-top: 10px;
+    border-top: 1px solid #444;
+}
+
 /* 滑块描述 */
 .slider-description {
     font-size: 0.7rem;
@@ -699,6 +706,31 @@ input:checked + .slider:before {
 
 .fullscreen-button:active img {
     transform: scale(1.1);
+}
+
+/* 一键吸附按钮样式 */
+#snap-all-button, #snap-duration-button {
+    background: rgba(255, 255, 255, 0.1);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    border-radius: 3px;
+    color: #cccccc;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    padding: 3px 8px;
+    font-size: 0.7rem;
+    font-weight: 400;
+    height: 28px;
+    width: 120px;
+    margin: 2px 0;
+}
+
+#snap-all-button:hover, #snap-duration-button:hover {
+    background: rgba(255, 255, 255, 0.15);
+    transform: scale(1.02);
+}
+
+#snap-all-button:active, #snap-duration-button:active {
+    transform: scale(0.98);
 }
 
 /* MIDI编辑器区域样式 */
