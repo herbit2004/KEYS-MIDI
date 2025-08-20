@@ -963,6 +963,16 @@ export class MidiEditor {
       }
     }
     
+    // 为所有未完成录制的音符设置结束时间为当前时间
+    const elapsedTime = Tone.now() - this.startTime;
+    const endBeats = elapsedTime * this.bpm / 60;
+    for (const noteEntry of this.recordedNotes) {
+      if (noteEntry.endTime === null) {
+        noteEntry.endTime = endBeats;
+        console.log(`自动完成音符: ${noteEntry.note} 在结束录制时`);
+      }
+    }
+    
     // 移除播放头的录制状态样式
     this.playhead.classList.remove('recording');
     
@@ -1155,19 +1165,41 @@ export class MidiEditor {
   }
   
   // 记录音符按下
+  // 记录音符按下（合并后的实现）
   recordNoteOn(note, time) {
     if (this.isRecording) {
-      const elapsedTime = time - this.startTime;
-      // 将秒数转换为拍数
-      const startBeats = elapsedTime * this.bpm / 60;
-      this.recordedNotes.push({
-        note: note,
-        startTime: startBeats,  // 以拍数记录开始时间
-        endTime: null,
-        velocity: 100  // 默认力度值为100
-      });
+      // 检查是否有未结束的延音音符
+      if (this.pendingReleases.has(note)) {
+        const pendingEntry = this.pendingReleases.get(note);
+        if (pendingEntry.endTime === null) {
+          // 将endTime转换为拍数
+          pendingEntry.endTime = (time - this.startTime) * this.bpm / 60;
+          console.log(`覆盖延音音符: ${note}`);
+          this.pendingReleases.delete(note);
+        }
+      }
+
+      // 检查是否已经存在相同音符的未结束记录
+      const existingNoteIndex = this.recordedNotes.findIndex(
+        entry => entry.note === note && entry.endTime === null
+      );
       
-      console.log(`记录音符按下: ${note} at ${elapsedTime}s (${startBeats} beats)`);
+      // 如果不存在相同音符的未结束记录，则创建新记录
+      if (existingNoteIndex === -1) {
+        const elapsedTime = time - this.startTime;
+        // 将startTime转换为拍数
+        const startTimeBeats = elapsedTime * this.bpm / 60;
+        this.recordedNotes.push({
+          note: note,
+          startTime: startTimeBeats,  // 以拍数记录的开始时间
+          endTime: null,
+          velocity: 100  // 默认力度值为100
+        });
+        
+        console.log(`记录音符按下: ${note} at ${elapsedTime}s (${startTimeBeats} beats)`);
+      } else {
+        console.log(`跳过重复音符按下: ${note}（已有未结束记录）`);
+      }
     }
   }
   
@@ -1431,33 +1463,6 @@ export class MidiEditor {
     console.log('全选所有音符');
   }
 
-  // 处理音符按下时的延音覆盖
-  recordNoteOn(note, time) {
-    if (this.isRecording) {
-      // 检查是否有未结束的延音音符
-      if (this.pendingReleases.has(note)) {
-        const pendingEntry = this.pendingReleases.get(note);
-        if (pendingEntry.endTime === null) {
-          // 将endTime转换为拍数
-          pendingEntry.endTime = (time - this.startTime) * this.bpm / 60;
-          console.log(`覆盖延音音符: ${note}`);
-          this.pendingReleases.delete(note);
-        }
-      }
-
-      const elapsedTime = time - this.startTime;
-      // 将startTime转换为拍数
-      const startTimeBeats = elapsedTime * this.bpm / 60;
-      this.recordedNotes.push({
-        note: note,
-        startTime: startTimeBeats,  // 以拍数记录的开始时间
-        endTime: null,
-        velocity: 100  // 默认力度值为100
-      });
-      
-      console.log(`记录音符按下: ${note} at ${elapsedTime}s (${startTimeBeats} beats)`);
-    }
-  }
   
   // 设置播放头位置
   setPlayheadPosition(x, isUserAction = false) {
@@ -2130,22 +2135,45 @@ export class MidiEditor {
     const height = this.canvas.height;
     const noteHeight = height / 128;
     
+    // 获取当前播放头位置（以拍数为单位）
+    let currentPlayheadBeats = 0;
+    if (this.isRecording || this.isPlaying) {
+      const elapsedTime = Tone.now() - this.startTime;
+      currentPlayheadBeats = elapsedTime * this.bpm / 60;
+    } else if (this.isPaused) {
+      currentPlayheadBeats = this.pausedTime * this.bpm / 60;
+    } else {
+      currentPlayheadBeats = this.playheadPosition / this.pixelsPerBeat;
+    }
+    
     for (const noteEntry of this.recordedNotes) {
-      if (noteEntry.startTime !== null && noteEntry.endTime !== null) {
+      if (noteEntry.startTime !== null) {
         // 将拍数转换为像素位置
         const x = noteEntry.startTime * this.pixelsPerBeat;
         const y = height - (noteEntry.note * noteHeight);
-        const width = (noteEntry.endTime - noteEntry.startTime) * this.pixelsPerBeat;
+        
+        // 确定音符宽度
+        let noteWidth;
+        if (noteEntry.endTime !== null) {
+          // 已完成录制的音符
+          noteWidth = (noteEntry.endTime - noteEntry.startTime) * this.pixelsPerBeat;
+        } else if (this.isRecording) {
+          // 正在录制的音符，使用播放头位置作为结束时间
+          noteWidth = Math.max(0, currentPlayheadBeats - noteEntry.startTime) * this.pixelsPerBeat;
+        } else {
+          // 未完成录制且不在录制状态的音符，显示为一个小点
+          noteWidth = 2;
+        }
         
         // 根据力度值计算填充颜色的透明度
         const alpha = noteEntry.velocity / 100;  // 0-100映射到0-1的透明度
         this.ctx.fillStyle = `rgba(0, 204, 255, ${alpha})`;  // 使用velocity调整透明度
-        this.ctx.fillRect(x, y - noteHeight, width, noteHeight);
+        this.ctx.fillRect(x, y - noteHeight, noteWidth, noteHeight);
         
         // 绘制边框
         this.ctx.strokeStyle = '#0088aa';
         this.ctx.lineWidth = 1;
-        this.ctx.strokeRect(x, y - noteHeight, width, noteHeight);
+        this.ctx.strokeRect(x, y - noteHeight, noteWidth, noteHeight);
       }
     }
   }
