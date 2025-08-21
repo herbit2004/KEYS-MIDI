@@ -42,21 +42,33 @@
             
             <h4>键盘演奏</h4>
             <ul>
-                <li>使用 <kbd>q</kbd> <kbd>2</kbd> <kbd>w</kbd> <kbd>3</kbd> <kbd>e</kbd> 等键演奏</li>
+                <li>默认映射：使用 <kbd>tab</kbd> <kbd>1</kbd> <kbd>q</kbd> <kbd>2</kbd> <kbd>w</kbd> <kbd>e</kbd> <kbd>4</kbd> <kbd>r</kbd> <kbd>5</kbd> <kbd>t</kbd> <kbd>6</kbd> <kbd>y</kbd> <kbd>u</kbd> <kbd>8</kbd> <kbd>i</kbd> <kbd>9</kbd> <kbd>o</kbd> <kbd>p</kbd> <kbd>-</kbd> <kbd>[</kbd> <kbd>=</kbd> <kbd>]</kbd> <kbd>backspace</kbd> <kbd>\</kbd> <kbd>z</kbd> <kbd>s</kbd> <kbd>x</kbd> <kbd>d</kbd> <kbd>c</kbd> <kbd>v</kbd> <kbd>g</kbd> <kbd>b</kbd> <kbd>h</kbd> <kbd>n</kbd> <kbd>j</kbd> <kbd>m</kbd> <kbd>,</kbd> <kbd>l</kbd> <kbd>.</kbd> <kbd>;</kbd> <kbd>/</kbd> 等键演奏</li>
+                <li>替代映射：使用 <kbd>z</kbd> <kbd>s</kbd> <kbd>x</kbd> <kbd>d</kbd> <kbd>c</kbd> <kbd>v</kbd> <kbd>g</kbd> <kbd>b</kbd> <kbd>h</kbd> <kbd>n</kbd> <kbd>j</kbd> <kbd>m</kbd> <kbd>,</kbd> <kbd>l</kbd> <kbd>.</kbd> <kbd>;</kbd> <kbd>/</kbd> <kbd>tab</kbd> <kbd>1</kbd> <kbd>q</kbd> <kbd>2</kbd> <kbd>w</kbd> <kbd>e</kbd> <kbd>3</kbd> <kbd>r</kbd> <kbd>4</kbd> <kbd>t</kbd> <kbd>5</kbd> <kbd>y</kbd> <kbd>u</kbd> <kbd>6</kbd> <kbd>i</kbd> <kbd>7</kbd> <kbd>o</kbd> <kbd>8</kbd> <kbd>p</kbd> <kbd>[</kbd> <kbd>=</kbd> <kbd>]</kbd> <kbd>\</kbd> <kbd>backspace</kbd> 等键演奏</li>
                 <li>支持多键同时按下演奏和弦</li>
                 <li>按住<kbd>空格键</kbd>作为延音踏板</li>
+                <li>支持两种键盘映射模式，可通过映射选择按钮切换</li>
             </ul>
             
             <h4>转调控制</h4>
             <ul>
                 <li><kbd>↑</kbd> 升高八度 | <kbd>↓</kbd> 降低八度</li>
                 <li><kbd>←</kbd> 升高半音 | <kbd>→</kbd> 降低半音</li>
+                <li>通过界面中的<kbd>+</kbd>/<kbd>-</kbd>按钮调整八度和半音转调</li>
+                <li>使用<kbd>RESET</kbd>按钮重置所有转调设置</li>
+            </ul>
+            
+            <h4>音色控制</h4>
+            <ul>
+                <li>通过顶部<kbd>TONE</kbd>下拉菜单切换音色，支持钢琴、吉他等多种音色</li>
+                <li>界面中提供了多种音色选择</li>
             </ul>
             
             <h4>MIDI编辑器</h4>
             <ul>
                 <li>点击<kbd>录制</kbd>按钮开始录制演奏</li>
                 <li>点击<kbd>播放</kbd>按钮回放录制内容</li>
+                <li>点击<kbd>停止</kbd>按钮停止播放或录制</li>
+                <li>点击<kbd>暂停</kbd>按钮暂停播放</li>
                 <li>点击<kbd>保存</kbd>按钮导出MIDI文件</li>
                 <li>点击<kbd>导入</kbd>按钮加载MIDI文件</li>
                 <li>点击<kbd>全屏</kbd>按钮进入/退出全屏编辑模式</li>
@@ -74,11 +86,12 @@
                 <li>通过拍/小节输入框调整每小节拍数</li>
                 <li>通过节拍器开关控制节拍器启停</li>
                 <li>通过自动吸附开关控制音符吸附到网格</li>
+                <li>支持调整节拍器音量和吸附灵敏度</li>
+                <li>支持一键吸附触发和一键吸附时长功能</li>
             </ul>
             
-            <h4>音色与效果器</h4>
+            <h4>效果器控制</h4>
             <ul>
-                <li>通过顶部<kbd>TONE</kbd>下拉菜单切换音色</li>
                 <li>点击旋钮选中后，滚动鼠标滚轮调整参数</li>
                 <li>支持调整延迟时间、延迟反馈、混响衰减、混响强度和全局音量</li>
             </ul>
@@ -90,29 +103,6 @@
 
         
         <!-- 键盘控制区域 -->
-    <div class="keyboard-controls">
-        <div class="tone-selector">
-            <select id="tone-select" class="tone-select">
-                <option value="piano">Piano</option>
-                <option value="guitar">Guitar</option>
-                <option value="electricGuitar">Electric Guitar</option>
-                <option value="acousticBass">Acoustic Bass</option>
-                <option value="uprightBass">Upright Bass</option>
-            </select>
-            <div class="knob-label">TONE</div>
-        </div>
-        <div class="octave-controls">
-            <button id="octave-down" class="octave-button">OCT-</button>
-            <div class="octave-display">OCTAVE <span id="octave-shift">0</span></div>
-            <button id="octave-up" class="octave-button">OCT+</button>
-        </div>
-        <div class="transpose-controls">
-            <button id="transpose-down" class="transpose-button">TR-</button>
-            <div class="transpose-display">TRANSPOSE <span id="key-turning">0</span></div>
-            <button id="transpose-up" class="transpose-button">TR+</button>
-        </div>
-        <button id="reset" class="reset-button">RESET</button>
-    </div>
         
         <!-- MIDI编辑器区域 -->
         <div class="midi-editor-container">
@@ -220,6 +210,46 @@
         
         <!-- 键盘区域 -->
         <div class="keyboard-container">
+            <!-- 映射选择功能 -->
+            <div class="mapping-selector">
+                <!-- 音色选择器 -->
+                <div class="tone-selector">
+                    <select id="tone-select" class="tone-select">
+                        <option value="piano">Piano</option>
+                        <option value="guitar">Guitar</option>
+                        <option value="electricGuitar">Electric Guitar</option>
+                        <option value="acousticBass">Acoustic Bass</option>
+                        <option value="uprightBass">Upright Bass</option>
+                    </select>
+                    <div class="knob-label">TONE</div>
+                </div>
+                
+                <!-- 八度控制 -->
+                <div class="octave-controls">
+                    <button id="octave-down" class="octave-button">-</button>
+                    <div class="octave-display">OCT<span id="octave-shift">0</span></div>
+                    <button id="octave-up" class="octave-button">+</button>
+                </div>
+                
+                <!-- 转调控制 -->
+                <div class="transpose-controls">
+                    <button id="transpose-down" class="transpose-button">-</button>
+                    <div class="transpose-display">TR<span id="key-turning">0</span></div>
+                    <button id="transpose-up" class="transpose-button">+</button>
+                </div>
+                
+                <!-- 重置按钮 -->
+                <button id="reset" class="reset-button">RESET</button>
+                
+                <!-- 映射选择 -->
+                <div class="choice-chips">
+                    <input type="radio" id="default-mapping" name="key-mapping" value="default" checked>
+                    <label for="default-mapping" class="chip">映射一</label>
+                    
+                    <input type="radio" id="alternative-mapping" name="key-mapping" value="alternative">
+                    <label for="alternative-mapping" class="chip">映射二</label>
+                </div>
+            </div>
             <canvas id="keyboard" width="880" height="200"></canvas>
         </div>
         

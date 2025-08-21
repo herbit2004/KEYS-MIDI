@@ -14,7 +14,7 @@ export class MainController {
       // 更新状态显示
       document.getElementById('octave-shift').textContent = octaveShift;
       document.getElementById('key-turning').textContent = keyTurning;
-    });
+    }, this.keyMapper);
     
     // 初始化音色配置加载器
     this.instrumentConfig = new InstrumentConfig();
@@ -42,6 +42,9 @@ export class MainController {
 
     // 绑定帮助窗口事件
     this.bindHelpEvents();
+    
+    // 绑定映射选择事件
+    this.bindMappingEvents();
     
     // 初始化状态显示
     this.visualManager.updateStatus(this.keyMapper.octaveShift, this.keyMapper.keyTurning);
@@ -78,6 +81,12 @@ export class MainController {
   bindKeyboardEvents() {
     document.addEventListener('keydown', (event) => {
       const key = event.key.toLowerCase();
+      
+      // 禁用Tab键的默认行为，防止焦点切换，但仍允许琴键映射
+      if (key === 'tab') {
+        event.preventDefault();
+        // 不阻止事件传播，允许琴键映射处理
+      }
       
       // 处理延音踏板（空格键）
       if (key === ' ') {
@@ -197,6 +206,22 @@ export class MainController {
     document.getElementById('reset').addEventListener('click', () => {
       this.keyMapper.resetTranspose();
       this.visualManager.updateStatus(this.keyMapper.octaveShift, this.keyMapper.keyTurning);
+    });
+  }
+  
+  // 绑定映射选择事件
+  bindMappingEvents() {
+    // 获取所有映射选择的radio按钮
+    const mappingRadios = document.querySelectorAll('input[name="key-mapping"]');
+    mappingRadios.forEach(radio => {
+      radio.addEventListener('change', (event) => {
+        if (event.target.checked) {
+          const selectedMapping = event.target.value;
+          this.keyMapper.switchKeyMap(selectedMapping);
+          // 重新绘制键盘以更新显示的字符
+          this.visualManager.drawKeyboard();
+        }
+      });
     });
   }
 

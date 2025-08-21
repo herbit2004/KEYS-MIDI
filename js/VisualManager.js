@@ -1,12 +1,15 @@
 // 可视化管理模块
 export class VisualManager {
-  constructor(updateStatusCallback) {
+  constructor(updateStatusCallback, keyMapper) {
     // 获取canvas元素
     this.canvas = document.getElementById('keyboard');
     this.ctx = this.canvas.getContext('2d');
     
     // 状态更新回调
     this.updateStatusCallback = updateStatusCallback;
+    
+    // KeyMapper实例
+    this.keyMapper = keyMapper;
     
     // 按键状态
     this.pressedKeys = new Set();
@@ -55,7 +58,7 @@ export class VisualManager {
     this.canvas.height = 200; // 保持固定高度
     
     // 计算白键宽度
-    const whiteKeyCount = 21; // 白键数量
+    const whiteKeyCount = 24; // 白键数量
     this.whiteKeyWidth = width / whiteKeyCount;
     this.blackKeyWidth = this.whiteKeyWidth * 0.6; // 黑键宽度为白键的60%
     
@@ -76,8 +79,16 @@ export class VisualManager {
   }
 
   // 绘制白键
-  drawWhiteKeys() {
-    const whiteKeys = ['q', 'w', 'e', 'r', 't', 'y', 'u', 'i', 'o', 'p', '[', ']', 'z', 'x', 'c', 'v', 'b', 'n', 'm', ',', '.', '/'];
+drawWhiteKeys() {
+  // 根据当前映射类型选择白键
+  let whiteKeys;
+  if (this.keyMapper && this.keyMapper.currentKeyMap === this.keyMapper.alternativeKeyMap) {
+    // 替代映射的白键
+    whiteKeys = ['z', 'x', 'c', 'v', 'b', 'n', 'm', ',', '.', '/', 'tab', 'q', 'w', 'e', 'r', 't', 'y', 'u', 'i', 'o', 'p', '[', ']', '\\'];
+  } else {
+    // 默认映射的白键
+    whiteKeys = ['tab', 'q', 'w', 'e', 'r', 't', 'y', 'u', 'i', 'o', 'p', '[', ']', '\\', 'z', 'x', 'c', 'v', 'b', 'n', 'm', ',', '.', '/'];
+  }
     
     for (let i = 0; i < whiteKeys.length; i++) {
       const x = i * this.whiteKeyWidth;
@@ -111,25 +122,52 @@ export class VisualManager {
   }
 
   // 绘制黑键
-  drawBlackKeys() {
-    // 黑键位置映射
-    const blackKeyPositions = [
-      { key: '2', position: 0.7 },
-      { key: '3', position: 1.7 },
-      { key: '5', position: 3.7 },
-      { key: '6', position: 4.7 },
-      { key: '7', position: 5.7 },
-      { key: '9', position: 7.7 },
-      { key: '0', position: 8.7 },
-      { key: '=', position: 10.7 },
-      { key: 'a', position: 11.7 },
-      { key: 's', position: 12.7 },
-      { key: 'f', position: 14.7 },
-      { key: 'g', position: 15.7 },
-      { key: 'j', position: 17.7 },
-      { key: 'k', position: 18.7 },
-      { key: 'l', position: 19.7 }
+drawBlackKeys() {
+  // 根据当前映射类型选择黑键
+  let blackKeyPositions;
+  if (this.keyMapper && this.keyMapper.currentKeyMap === this.keyMapper.alternativeKeyMap) {
+    // 替代映射的黑键
+    blackKeyPositions = [
+      { key: 's', position: 0.7 },
+      { key: 'd', position: 1.7 },
+      { key: 'g', position: 3.7 },
+      { key: 'h', position: 4.7 },
+      { key: 'j', position: 5.7 },
+      { key: 'l', position: 7.7 },
+      { key: ';', position: 8.7 },
+      { key: '1', position: 10.7 },
+      { key: '2', position: 11.7 },
+      { key: '3', position: 12.7 },
+      { key: '5', position: 14.7 },
+      { key: '6', position: 15.7 },
+      { key: '8', position: 17.7 },
+      { key: '9', position: 18.7 },
+      { key: '0', position: 19.7 },
+      { key: '=', position: 21.7 },
+      { key: 'backspace', position: 22.7 }
     ];
+  } else {
+    // 默认映射的黑键
+    blackKeyPositions = [
+      { key: '1', position: 0.7 },
+      { key: '2', position: 1.7 },
+      { key: '4', position: 3.7 },
+      { key: '5', position: 4.7 },
+      { key: '6', position: 5.7 },
+      { key: '8', position: 7.7 },
+      { key: '9', position: 8.7 },
+      { key: '-', position: 10.7 },
+      { key: '=', position: 11.7 },
+      { key: 'backspace', position: 12.7 },
+      { key: 's', position: 14.7 },
+      { key: 'd', position: 15.7 },
+      { key: 'g', position: 17.7 },
+      { key: 'h', position: 18.7 },
+      { key: 'j', position: 19.7 },
+      { key: 'l', position: 21.7 },
+      { key: ';', position: 22.7 }
+    ];
+  }
     
     for (const { key, position } of blackKeyPositions) {
       const x = position * this.whiteKeyWidth;
@@ -335,24 +373,51 @@ export class VisualManager {
   getBlackKeyAtPosition(x, y) {
     if (y > this.blackKeyHeight) return null;
     
-    // 黑键位置映射
-    const blackKeyPositions = [
-      { key: '2', position: 0.7 },
-      { key: '3', position: 1.7 },
-      { key: '5', position: 3.7 },
-      { key: '6', position: 4.7 },
-      { key: '7', position: 5.7 },
-      { key: '9', position: 7.7 },
-      { key: '0', position: 8.7 },
-      { key: '=', position: 10.7 },
-      { key: 'a', position: 11.7 },
-      { key: 's', position: 12.7 },
-      { key: 'f', position: 14.7 },
-      { key: 'g', position: 15.7 },
-      { key: 'j', position: 17.7 },
-      { key: 'k', position: 18.7 },
-      { key: 'l', position: 19.7 }
-    ];
+    // 根据当前映射类型选择黑键
+    let blackKeyPositions;
+    if (this.keyMapper && this.keyMapper.currentKeyMap === this.keyMapper.alternativeKeyMap) {
+      // 替代映射的黑键
+      blackKeyPositions = [
+        { key: 's', position: 0.7 },
+        { key: 'd', position: 1.7 },
+        { key: 'g', position: 3.7 },
+        { key: 'h', position: 4.7 },
+        { key: 'j', position: 5.7 },
+        { key: 'l', position: 7.7 },
+        { key: ';', position: 8.7 },
+        { key: '1', position: 10.7 },
+        { key: '2', position: 11.7 },
+        { key: '3', position: 12.7 },
+        { key: '5', position: 14.7 },
+        { key: '6', position: 15.7 },
+        { key: '8', position: 17.7 },
+        { key: '9', position: 18.7 },
+        { key: '0', position: 19.7 },
+        { key: '=', position: 21.7 },
+        { key: 'BAK', position: 22.7 }
+      ];
+    } else {
+      // 默认映射的黑键
+      blackKeyPositions = [
+        { key: '1', position: 0.7 },
+        { key: '2', position: 1.7 },
+        { key: '4', position: 3.7 },
+        { key: '5', position: 4.7 },
+        { key: '6', position: 5.7 },
+        { key: '8', position: 7.7 },
+        { key: '9', position: 8.7 },
+        { key: '-', position: 10.7 },
+        { key: '=', position: 11.7 },
+        { key: 'backspace', position: 12.7 },
+        { key: 's', position: 14.7 },
+        { key: 'd', position: 15.7 },
+        { key: 'g', position: 17.7 },
+        { key: 'h', position: 18.7 },
+        { key: 'j', position: 19.7 },
+        { key: 'l', position: 21.7 },
+        { key: ';', position: 22.7 }
+      ];
+    }
     
     for (const { key, position } of blackKeyPositions) {
       const keyX = position * this.whiteKeyWidth;
@@ -368,7 +433,16 @@ export class VisualManager {
   getWhiteKeyAtPosition(x, y) {
     if (y > this.whiteKeyHeight) return null;
     
-    const whiteKeys = ['q', 'w', 'e', 'r', 't', 'y', 'u', 'i', 'o', 'p', '[', ']', 'z', 'x', 'c', 'v', 'b', 'n', 'm', ',', '.', '/'];
+    // 根据当前映射类型选择白键
+    let whiteKeys;
+    if (this.keyMapper && this.keyMapper.currentKeyMap === this.keyMapper.alternativeKeyMap) {
+      // 替代映射的白键
+      whiteKeys = ['z', 'x', 'c', 'v', 'b', 'n', 'm', ',', '.', '/', 'tab', 'q', 'w', 'e', 'r', 't', 'y', 'u', 'i', 'o', 'p', '[', ']', '\\'];
+    } else {
+      // 默认映射的白键
+      whiteKeys = ['tab', 'q', 'w', 'e', 'r', 't', 'y', 'u', 'i', 'o', 'p', '[', ']', '\\', 'z', 'x', 'c', 'v', 'b', 'n', 'm', ',', '.', '/'];
+    }
+    
     const keyIndex = Math.floor(x / this.whiteKeyWidth);
     
     if (keyIndex >= 0 && keyIndex < whiteKeys.length) {

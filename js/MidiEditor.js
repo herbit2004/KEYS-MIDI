@@ -1305,7 +1305,7 @@ export class MidiEditor {
             note.endTime += step;
           }
           break;
-        case 'Backspace':
+        case 'Delete':
             // 删除所有选中的音符
             this.deleteSelectedNotes();
             break;
