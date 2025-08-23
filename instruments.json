@@ -44,8 +44,142 @@
           "sustain": 0.8
         }
       },
-      "effects": [],
+      "effects": [
+        {
+          "type": "Reverb",
+          "options": {
+            "roomSize": 0.4,
+            "dampening": 4000,
+            "wet": 0.4
+          }
+        }
+      ],
       "volume": 10
+    },
+
+    "sampledGuitar": {
+      "name": "采样吉他",
+      "synth": {
+        "type": "Sampler",
+        "options": {
+          "urls": {
+            "A2": "A2.wav",
+            "A4": "A4.wav",
+            "B3": "B3.wav",
+            "D3": "D3.wav",
+            "D5": "D5.wav",
+            "E2": "E2.wav",
+            "E4": "E4.wav",
+            "G3": "G3.wav"
+          },
+          "baseUrl": "samples/sampleGuitar/",
+          "release": 1.5,
+          "attack": 0.01,
+          "decay": 0.2,
+          "sustain": 0.7
+        }
+      },
+      "effects": [
+        {
+          "type": "Reverb",
+          "options": {
+            "roomSize": 0.4,
+            "dampening": 4000,
+            "wet": 0.4
+          }
+        }
+      ],
+      "volume": 15
+    },
+
+    "sampledBass": {
+      "name": "采样贝斯",
+      "synth": {
+        "type": "Sampler",
+        "options": {
+          "urls": {
+            "A0": "266459__kubriel__21.wav",
+            "C1": "266456__kubriel__24.wav",
+            "E1": "266460__kubriel__28.wav",
+            "A1": "266480__kubriel__33.wav",
+            "C2": "266485__kubriel__36.wav",
+            "E2": "266487__kubriel__40.wav",
+            "A2": "266477__kubriel__45.wav",
+            "C3": "266476__kubriel__48.wav",
+            "E3": "266491__kubriel__52.wav",
+            "A3": "266498__kubriel__57.wav"
+          },
+          "baseUrl": "samples/sampleBass/",
+          "release": 2.0,
+          "attack": 0.01,
+          "decay": 0.3,
+          "sustain": 0.8
+        }
+      },
+      "effects": [
+        {
+          "type": "Reverb",
+          "options": {
+            "roomSize": 0.4,
+            "dampening": 4000,
+            "wet": 0.4
+          }
+        }
+      ],
+      "volume": 18
+    },
+
+    "sampledString": {
+      "name": "采样弦乐",
+      "synth": {
+        "type": "Sampler",
+        "options": {
+          "urls": {
+            "A0": "A0.wav",
+            "A1": "A1.wav",
+            "A2": "A2.wav",
+            "A3": "A3.wav",
+            "A4": "A4.wav",
+            "A5": "A5.wav",
+            "C0": "C0.wav",
+            "C1": "C1.wav",
+            "C2": "C2.wav",
+            "C3": "C3.wav",
+            "C4": "C4.wav",
+            "C5": "C5.wav",
+            "C6": "C6.wav",
+            "D#0": "D#0.wav",
+            "D#1": "D#1.wav",
+            "D#2": "D#2.wav",
+            "D#3": "D#3.wav",
+            "D#4": "D#4.wav",
+            "D#5": "D#5.wav",
+            "D#6": "D#6.wav",
+            "F#0": "F#0.wav",
+            "F#1": "F#1.wav",
+            "F#2": "F#2.wav",
+            "F#3": "F#3.wav",
+            "F#4": "F#4.wav",
+            "F#5": "F#5.wav"
+          },
+          "baseUrl": "samples/sampleString/",
+          "release": 1.0,
+          "attack": 0.1,
+          "decay": 0,
+          "sustain": 0.3
+        }
+      },
+      "effects": [
+        {
+          "type": "Reverb",
+          "options": {
+            "roomSize": 0.4,
+            "dampening": 4000,
+            "wet": 0.4
+          }
+        }
+      ],
+      "volume": 14
     },
 
     "piano": {
