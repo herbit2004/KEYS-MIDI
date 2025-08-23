@@ -1,5 +1,53 @@
 {
   "instruments": {
+    "sampledPiano": {
+      "name": "采样钢琴",
+      "synth": {
+        "type": "Sampler",
+        "options": {
+          "urls": {
+            "A0": "A0v16.wav",
+            "A1": "A1v16.wav",
+            "A2": "A2v16.wav",
+            "A3": "A3v16.wav",
+            "A4": "A4v16.wav",
+            "A5": "A5v16.wav",
+            "A6": "A6v16.wav",
+            "A7": "A7v16.wav",
+            "C1": "C1v16.wav",
+            "C2": "C2v16.wav",
+            "C3": "C3v16.wav",
+            "C4": "C4v16.wav",
+            "C5": "C5v16.wav",
+            "C6": "C6v16.wav",
+            "C7": "C7v16.wav",
+            "C8": "C8v16.wav",
+            "D#1": "D#1v16.wav",
+            "D#2": "D#2v16.wav",
+            "D#3": "D#3v16.wav",
+            "D#4": "D#4v16.wav",
+            "D#5": "D#5v16.wav",
+            "D#6": "D#6v16.wav",
+            "D#7": "D#7v16.wav",
+            "F#1": "F#1v16.wav",
+            "F#2": "F#2v16.wav",
+            "F#3": "F#3v16.wav",
+            "F#4": "F#4v16.wav",
+            "F#5": "F#5v16.wav",
+            "F#6": "F#6v16.wav",
+            "F#7": "F#7v16.wav"
+          },
+          "baseUrl": "samples/samplePiano/",
+          "release": 1.2,
+          "attack": 0.01,
+          "decay": 0.1,
+          "sustain": 0.8
+        }
+      },
+      "effects": [],
+      "volume": 10
+    },
+
     "piano": {
       "name": "piano",
       "synth": {
@@ -182,11 +230,12 @@
       },
       "effects": [
         {
-          "type": "Resonance",
+          "type": "Filter",
           "options": {
+            "type": "peaking",
             "frequency": 110,
-            "depth": 0.7,
-            "wet": 0.4
+            "Q": 8,
+            "gain": 6
           }
         },
         {
@@ -234,13 +283,13 @@
         "options": {
           "oscillator": {
             "type": "custom",
-            "partials": [1, 0.7, 0.4, 0.2, 0.1, 0.05],
+            "partials": [1, 0.6, 0.3, 0.15, 0.08, 0.04],
             "phase": 0
           },
           "envelope": {
             "attack": 0.05,
             "decay": 1.2,
-            "sustain": 0.4,
+            "sustain": 0.3,
             "release": 0.8
           }
         }
@@ -250,26 +299,34 @@
           "type": "Filter",
           "options": {
             "type": "lowpass",
-            "frequency": 600,
-            "Q": 0.7,
-            "gain": 6
+            "frequency": 500,
+            "Q": 0.7
+          }
+        },
+        {
+          "type": "Compressor",
+          "options": {
+            "threshold": -12,
+            "ratio": 3,
+            "attack": 0.01,
+            "release": 0.1
           }
         },
         {
           "type": "Reverb",
           "options": {
-            "roomSize": 0.4,
+            "roomSize": 0.3,
             "dampening": 3000,
-            "wet": 0.15
+            "wet": 0.1
           }
         },
         {
           "type": "EQ3",
           "options": {
-            "low": 10,
-            "mid": -4,
-            "high": -8,
-            "lowFrequency": 100
+            "low": 3,
+            "mid": -2,
+            "high": -6,
+            "lowFrequency": 120
           }
         }
       ],
