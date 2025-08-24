@@ -1,6 +1,11 @@
 // 音频引擎模块
+import { LoadingManager } from './LoadingManager.js';
+
 export class AudioEngine {
   constructor() {
+    // 初始化加载管理器
+    this.loadingManager = new LoadingManager();
+    
     // 初始化合成器和音色专属效果器
     this.initSynths();
     
@@ -146,30 +151,118 @@ export class AudioEngine {
     });
   }
 
+  // 懒加载音色
+  async loadInstrumentLazy(instrumentId) {
+    // 检查是否已加载
+    if (this.loadingManager.isInstrumentLoaded(instrumentId)) {
+      console.log(`音色 ${instrumentId} 已加载，直接返回`);
+      this.currentSynth = this.synths[instrumentId];
+      this.connectEffects();
+      return this.synths[instrumentId];
+    }
+
+    // 检查是否正在加载
+    if (this.loadingManager.isInstrumentLoading(instrumentId)) {
+      console.log(`音色 ${instrumentId} 正在加载中，等待完成`);
+      // 等待加载完成
+      while (this.loadingManager.isInstrumentLoading(instrumentId)) {
+        await new Promise(resolve => setTimeout(resolve, 100));
+      }
+      this.currentSynth = this.synths[instrumentId];
+      this.connectEffects();
+      return this.synths[instrumentId];
+    }
+
+    // 标记为正在加载
+    this.loadingManager.markInstrumentLoading(instrumentId);
+
+    try {
+      const instrumentConfig = this.instrumentConfigs[instrumentId];
+      if (!instrumentConfig) {
+        throw new Error(`找不到音色配置: ${instrumentId}`);
+      }
+
+      // 显示加载通知
+      this.loadingManager.showLoadingNotification(instrumentId, instrumentConfig.name);
+
+      // 创建音色
+      const instrument = this.createInstrumentFromConfig(instrumentConfig);
+      this.synths[instrumentId] = instrument;
+
+      // 如果是采样器，等待加载完成
+      if (instrumentConfig.synth.type === 'Sampler') {
+        await this.loadSamplerWithProgress(instrumentId, instrumentConfig);
+      }
+
+      // 标记为已加载
+      this.loadingManager.markInstrumentLoaded(instrumentId);
+
+      // 显示加载成功
+      this.loadingManager.showLoadingSuccess(instrumentId, instrumentConfig.name);
+
+      // 设置当前音色（如果是第一次加载）
+      if (!this.currentSynth) {
+        this.currentSynth = instrument;
+        this.connectEffects();
+      }
+
+      console.log(`音色 ${instrumentId} 懒加载完成`);
+      return instrument;
+
+    } catch (error) {
+      console.error(`音色 ${instrumentId} 懒加载失败:`, error);
+      this.loadingManager.markInstrumentLoading(instrumentId); // 移除加载状态
+      throw error;
+    }
+  }
+
+  // 采样器加载
+  async loadSamplerWithProgress(instrumentId, instrumentConfig) {
+    const sampler = this.synths[instrumentId].synth;
+    const urls = instrumentConfig.synth.options.urls;
+    const totalFiles = Object.keys(urls).length;
+
+    console.log(`开始加载采样器 ${instrumentId}:`, {
+      totalFiles,
+      notes: Object.keys(urls)
+    });
+
+    // 等待Tone.js Sampler加载完成
+    return new Promise((resolve, reject) => {
+      const checkInterval = setInterval(() => {
+        // 检查sampler是否已加载
+        if (sampler.loaded) {
+          const loadedCount = Object.keys(sampler.loaded).length;
+          if (loadedCount >= totalFiles) {
+            clearInterval(checkInterval);
+            resolve();
+          }
+        }
+      }, 100);
+
+      // 设置超时
+      setTimeout(() => {
+        clearInterval(checkInterval);
+        console.warn(`采样器 ${instrumentId} 加载超时`);
+        resolve(); // 不抛出错误，允许部分加载
+      }, 30000); // 30秒超时
+    });
+  }
+
   // 从配置文件初始化所有音色
   async initSynthsWithConfig(config) {
     this.synths = {};
-    
-    // 按JSON中的顺序创建所有音色
-    for (const instrumentId in config.instruments) {
-      const instrumentConfig = config.instruments[instrumentId];
-      try {
-        this.synths[instrumentId] = this.createInstrumentFromConfig(instrumentConfig);
-        console.log(`音色 ${instrumentId} 创建成功`);
-      } catch (error) {
-        console.error(`创建音色 ${instrumentId} 时出错:`, error);
-      }
-    }
+    this.instrumentConfigs = config.instruments;
     
     // 设置默认音色（JSON中的第一个音色）
-    if (Object.keys(this.synths).length > 0) {
-      const firstInstrumentId = Object.keys(this.synths)[0];
+    if (Object.keys(this.instrumentConfigs).length > 0) {
+      const firstInstrumentId = Object.keys(this.instrumentConfigs)[0];
       this.currentInstrument = firstInstrumentId;
-      this.currentSynth = this.synths[firstInstrumentId];
-      console.log(`设置默认音色: ${firstInstrumentId}`);
       
-      // 连接默认音色的效果链
-      this.connectEffects();
+      // 懒加载默认音色
+      await this.loadInstrumentLazy(firstInstrumentId);
+      
+      console.log(`设置默认音色: ${firstInstrumentId}`);
     }
   }
 
@@ -371,16 +464,19 @@ export class AudioEngine {
   }
 
   // 更换音色
-  changeInstrument(instrument) {
-    if (this.synths[instrument]) {
+  async changeInstrument(instrument) {
+    try {
+      // 懒加载音色
+      await this.loadInstrumentLazy(instrument);
+      
       // 更新当前音色
       this.currentInstrument = instrument;
       this.currentSynth = this.synths[instrument];
       
       // 重新连接效果链
       this.connectEffects();
-    } else {
-      console.warn(`音色 ${instrument} 未找到`);
+    } catch (error) {
+      console.error(`切换音色 ${instrument} 失败:`, error);
     }
   }
 }

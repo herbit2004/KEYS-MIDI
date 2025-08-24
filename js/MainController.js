@@ -52,6 +52,11 @@ export class MainController {
     // 设置VisualManager的主控制器引用
     this.visualManager.setMainController(this);
     
+    // 监听音色加载完成事件
+    document.addEventListener('instrumentLoaded', () => {
+      this.updateToneSelectOptions();
+    });
+    
     // 加载音色配置并初始化音色
     this.loadInstruments();
   }
@@ -62,13 +67,16 @@ export class MainController {
       // 加载音色配置
       await this.instrumentConfig.loadConfig();
       
+      // 立即更新前端音色选择列表（在音色初始化之前）
+      this.updateToneSelectOptions();
+      
       // 获取音色配置
       const config = this.instrumentConfig;
       
       // 从配置初始化音色
       await this.audioEngine.initSynthsWithConfig(config);
       
-      // 更新前端音色选择列表
+      // 再次更新前端音色选择列表（音色初始化后）
       this.updateToneSelectOptions();
       
       console.log('音色配置加载完成');
@@ -230,9 +238,13 @@ export class MainController {
     // 音色切换
     const toneSelect = document.getElementById('tone-select');
     if (toneSelect) {
-      toneSelect.addEventListener('change', (event) => {
+      toneSelect.addEventListener('change', async (event) => {
         const instrument = event.target.value;
-        this.audioEngine.changeInstrument(instrument);
+        await this.audioEngine.changeInstrument(instrument);
+        
+        // 更新音色列表显示（移除云朵图标）
+        this.updateToneSelectOptions();
+        
         // 选择音色后移除焦点，避免显示选中状态
         toneSelect.blur();
       });
@@ -267,22 +279,40 @@ export class MainController {
   // 更新前端音色选择列表
   updateToneSelectOptions() {
     const toneSelect = document.getElementById('tone-select');
-    if (!toneSelect) return;
+    if (!toneSelect) {
+      console.warn('找不到音色选择器元素');
+      return;
+    }
 
     // 清空现有选项
     toneSelect.innerHTML = '';
 
     // 添加新的选项
     const instrumentNames = this.instrumentConfig.getAllInstrumentNames();
+    console.log('获取到的音色名称:', instrumentNames);
+    
     for (const instrumentId in instrumentNames) {
       const option = document.createElement('option');
       option.value = instrumentId;
-      option.textContent = instrumentNames[instrumentId];
+      
+      // 检查音色是否已加载（确保loadingManager已初始化）
+      if (this.audioEngine.loadingManager && this.audioEngine.loadingManager.isInstrumentLoaded(instrumentId)) {
+        // 已加载的音色：正常显示
+        option.textContent = instrumentNames[instrumentId];
+      } else {
+        // 未加载的音色：添加云朵图标前缀
+        option.textContent = `☁ ${instrumentNames[instrumentId]}`;
+      }
+      
       toneSelect.appendChild(option);
     }
 
     // 设置当前选中的音色
-    toneSelect.value = this.audioEngine.currentInstrument;
+    if (this.audioEngine.currentInstrument) {
+      toneSelect.value = this.audioEngine.currentInstrument;
+    }
+    
+    console.log('音色列表更新完成，共添加了', Object.keys(instrumentNames).length, '个音色');
   }
 
   // 绑定全局效果器控制事件
