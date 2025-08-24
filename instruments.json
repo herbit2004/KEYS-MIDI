@@ -56,6 +56,84 @@
       ],
       "volume": 10
     },
+    
+    "sampledRhodes": {
+      "name": "采样电钢琴",
+      "synth": {
+        "type": "Sampler",
+        "options": {
+          "urls": {
+            "A1": "A0.wav",
+            "A#1": "A#0.wav",
+            "B1": "B0.wav",
+            "C2": "C1.wav",
+            "C#2": "C#1.wav",
+            "D2": "D1.wav",
+            "D#2": "D#1.wav",
+            "E1": "E0.wav",
+            "F1": "F0.wav",
+            "F#1": "F#0.wav",
+            "G1": "G0.wav",
+            "G#1": "G#0.wav",
+            "A2": "A1.wav",
+            "A#2": "A#1.wav",
+            "B2": "B1.wav",
+            "C3": "C2.wav",
+            "C#3": "C#2.wav",
+            "D3": "D2.wav",
+            "D#3": "D#2.wav",
+            "E2": "E1.wav",
+            "F2": "F1.wav",
+            "F#2": "F#1.wav",
+            "G2": "G1.wav",
+            "G#2": "G#1.wav",
+            "A3": "A2.wav",
+            "A#3": "A#2.wav",
+            "B3": "B2.wav",
+            "C4": "C3.wav",
+            "C#4": "C#3.wav",
+            "D4": "D3.wav",
+            "D#4": "D#3.wav",
+            "E3": "E2.wav",
+            "F3": "F2.wav",
+            "F#3": "F#2.wav",
+            "G3": "G2.wav",
+            "G#3": "G#2.wav",
+            "D6": "D5.wav",
+            "D#6": "D#5.wav",
+            "E6": "E5.wav",
+            "F6": "F5.wav",
+            "F#6": "F#5.wav",
+            "G6": "G5.wav",
+            "G#6": "G#5.wav",
+            "A6": "A5.wav",
+            "A#6": "A#5.wav",
+            "B6": "B5.wav",
+            "C7": "C6.wav",
+            "C#7": "C#6.wav",
+            "D7": "D6.wav",
+            "D#7": "D#6.wav",
+            "E7": "E6.wav"
+          },
+          "baseUrl": "samples/sampleRhodes/",
+          "release": 2.0,
+          "attack": 0.01,
+          "decay": 0.3,
+          "sustain": 0.6
+        }
+      },
+      "effects": [
+        {
+          "type": "Reverb",
+          "options": {
+            "roomSize": 0.4,
+            "dampening": 4000,
+            "wet": 0.4
+          }
+        }
+      ],
+      "volume": 20
+    },
 
     "sampledGuitar": {
       "name": "采样吉他",
@@ -135,32 +213,32 @@
         "type": "Sampler",
         "options": {
           "urls": {
-            "A0": "A0.wav",
-            "A1": "A1.wav",
-            "A2": "A2.wav",
-            "A3": "A3.wav",
-            "A4": "A4.wav",
-            "A5": "A5.wav",
-            "C0": "C0.wav",
-            "C1": "C1.wav",
-            "C2": "C2.wav",
-            "C3": "C3.wav",
-            "C4": "C4.wav",
-            "C5": "C5.wav",
-            "C6": "C6.wav",
-            "D#0": "D#0.wav",
-            "D#1": "D#1.wav",
-            "D#2": "D#2.wav",
-            "D#3": "D#3.wav",
-            "D#4": "D#4.wav",
-            "D#5": "D#5.wav",
-            "D#6": "D#6.wav",
-            "F#0": "F#0.wav",
-            "F#1": "F#1.wav",
-            "F#2": "F#2.wav",
-            "F#3": "F#3.wav",
-            "F#4": "F#4.wav",
-            "F#5": "F#5.wav"
+            "A1": "A0.wav",
+            "A2": "A1.wav",
+            "A3": "A2.wav",
+            "A4": "A3.wav",
+            "A5": "A4.wav",
+            "A6": "A5.wav",
+            "C1": "C0.wav",
+            "C2": "C1.wav",
+            "C3": "C2.wav",
+            "C4": "C3.wav",
+            "C5": "C4.wav",
+            "C6": "C5.wav",
+            "C7": "C6.wav",
+            "D#1": "D#0.wav",
+            "D#2": "D#1.wav",
+            "D#3": "D#2.wav",
+            "D#4": "D#3.wav",
+            "D#5": "D#4.wav",
+            "D#6": "D#5.wav",
+            "D#7": "D#6.wav",
+            "F#1": "F#0.wav",
+            "F#2": "F#1.wav",
+            "F#3": "F#2.wav",
+            "F#4": "F#3.wav",
+            "F#5": "F#4.wav",
+            "F#6": "F#5.wav"
           },
           "baseUrl": "samples/sampleString/",
           "release": 1.0,
@@ -180,6 +258,45 @@
         }
       ],
       "volume": 14
+    },
+
+    "sampledTrumpet": {
+      "name": "采样小号",
+      "synth": {
+        "type": "Sampler",
+        "options": {
+          "urls": {
+            "A3": "212983__vlad99__a0-1.wav",
+            "A4": "212982__vlad99__a1-1.wav",
+            "B3": "212981__vlad99__b0-1.wav",
+            "C4": "212980__vlad99__c1-1.wav",
+            "C5": "212987__vlad99__c2-1.wav",
+            "D4": "212986__vlad99__d1-1.wav",
+            "D5": "212985__vlad99__d2-1.wav",
+            "E5": "212984__vlad99__e2-1.wav",
+            "F4": "212989__vlad99__f1-1.wav",
+            "F5": "212988__vlad99__f2-1.wav",
+            "G3": "212991__vlad99__g0-1.wav",
+            "G4": "212990__vlad99__g1-1.wav"
+          },
+          "baseUrl": "samples/sampleTrumpet/",
+          "release": 1.5,
+          "attack": 0.05,
+          "decay": 0.2,
+          "sustain": 0.8
+        }
+      },
+      "effects": [
+        {
+          "type": "Reverb",
+          "options": {
+            "roomSize": 0.4,
+            "dampening": 4000,
+            "wet": 0.4
+          }
+        }
+      ],
+      "volume": 25
     },
 
     "piano": {
