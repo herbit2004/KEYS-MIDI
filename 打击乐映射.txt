@@ -1,0 +1,47 @@
+35	Acoustic Bass Drum	底鼓（Kick Drum），常用于节奏强拍
+36	Bass Drum 1	低音大鼓，比 35 号更厚重，适合电子乐底鼓
+37	Side Stick	军鼓边击，模拟鼓棒击打军鼓边缘的声音
+38	Acoustic Snare	原声军鼓，最常用的军鼓音色
+39	Hand Clap	拍手声，用于节奏填充或强调
+40	Electric Snare	电子军鼓，适合电子乐或现代音乐风格
+41	Low Floor Tom	低音落地通鼓，位于鼓组最下方
+42	Closed Hi-Hat	闭合镲，用于稳定节奏（如八分音符或十六分音符）
+43	High Floor Tom	高音落地通鼓，音色比 41 号更明亮
+44	Pedal Hi-Hat	踩镲，模拟脚踏控制镲片开合的声音
+45	Low Tom	低音通鼓，位于鼓组中部
+46	Open Hi-Hat	开放镲，用于节奏收尾或重音位置
+47	Low-Mid Tom	低中音通鼓，音色介于 45 号和 48 号之间
+48	Hi-Mid Tom	高中音通鼓，音色比 47 号更明亮
+49	Crash Cymbal 1	吊镲 1，用于强音或高潮部分
+50	High Tom	高音通鼓，位于鼓组顶部
+51	Ride Cymbal 1	叮叮镲 1，用于稳定节奏（如四分音符或八分音符）
+52	Chinese Cymbal	中国镲，音色尖锐，适合特殊节奏效果
+53	Ride Bell	钟铃，常用于点缀节奏
+54	Tambourine	手铃鼓，模拟摇晃或击打手铃的声音
+55	Splash Cymbal	飞溅镲，音色短暂且明亮，用于快速节奏
+56	Cowbell	牛铃，常用于拉丁风格或节奏填充
+57	Crash Cymbal 2	吊镲 2，音色比 49 号更柔和
+58	Vibraslap	回响梆子，模拟敲击金属片的声音
+59	Ride Cymbal 2	叮叮镲 2，音色比 51 号更柔和
+60	Hi Bongo	高音邦戈鼓，常用于拉丁或非洲节奏
+61	Low Bongo	低音邦戈鼓，与 60 号形成高低音配合
+62	Mute Hi Conga	闷音康加鼓，音色较暗
+63	Open Hi Conga	开放康加鼓，音色明亮
+64	Low Conga	低音康加鼓，音色低沉
+65	High Timbale	高音蒂姆巴尔鼓，用于古巴或拉丁节奏
+66	Low Timbale	低音蒂姆巴尔鼓，与 65 号形成高低音配合
+67	High Agogo	高音阿哥哥铃，用于节奏点缀
+68	Low Agogo	低音阿哥哥铃，与 67 号配合使用
+69	Cabasa	沙球，模拟摇晃沙锤的声音
+70	Maracas	沙锤，常用于拉丁或热带风格
+71	Short Whistle	短哨声，用于特殊节奏效果
+72	Long Whistle	长哨声，与 71 号形成对比
+73	Short Guiro	短刮板，模拟刮擦木板的声音
+74	Long Guiro	长刮板，与 73 号配合使用
+75	Claves	响棒，用于拉丁节奏的基础打击
+76	Hi Wood Block	高音木鱼，音色清脆
+77	Low Wood Block	低音木鱼，音色较暗
+78	Mute Cuica	闷音鸟鸣桶，模拟闷音效果
+79	Open Cuica	开放鸟鸣桶，音色明亮
+80	Mute Triangle	闷音三角铁，音色柔和
+81	Open Triangle	开放三角铁，用于节奏收尾或重音位置

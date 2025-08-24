@@ -1051,6 +1051,39 @@ input:checked + .slider:before {
     font-size: 1.1rem;
 }
 
+.help-modal-content h5 {
+    color: #ffffff;
+    margin: 12px 0 6px 0;
+    font-size: 1rem;
+    font-weight: 600;
+}
+
+.help-section {
+    margin-bottom: 25px;
+    padding: 15px;
+    background-color: rgba(255, 255, 255, 0.05);
+    border-radius: 8px;
+    border-left: 3px solid #00ccff;
+}
+
+.help-content {
+    margin-top: 10px;
+}
+
+.help-content ul {
+    margin-top: 8px;
+}
+
+.help-content li {
+    margin-bottom: 8px;
+    line-height: 1.5;
+}
+
+.help-content strong {
+    color: #ffffff;
+    font-weight: 600;
+}
+
 .help-modal-content ul {
     list-style-type: none;
     padding-left: 10px;

@@ -106,17 +106,17 @@ export class LoadingManager {
     `;
 
     notification.innerHTML = `
-      <div class="loading-spinner" style="
+        <div class="loading-spinner" style="
         width: 12px;
         height: 12px;
         border: 1.5px solid rgba(255, 255, 255, 0.3);
         border-top: 1.5px solid rgba(255, 255, 255, 0.8);
-        border-radius: 50%;
-        animation: spin 1s linear infinite;
+          border-radius: 50%;
+          animation: spin 1s linear infinite;
         flex-shrink: 0;
-      "></div>
+        "></div>
       <span class="loading-text" style="
-        overflow: hidden;
+          overflow: hidden;
         text-overflow: ellipsis;
       ">${instrumentName} 加载中...</span>
     `;
@@ -149,14 +149,14 @@ export class LoadingManager {
 
     const spinner = notification.querySelector('.loading-spinner');
     const text = notification.querySelector('.loading-text');
-
+    
     // 更新为成功状态
-    spinner.style.animation = 'none';
-    spinner.innerHTML = '✓';
-    spinner.style.border = 'none';
-    spinner.style.color = 'white';
+      spinner.style.animation = 'none';
+      spinner.innerHTML = '✓';
+      spinner.style.border = 'none';
+      spinner.style.color = 'white';
     spinner.style.fontSize = '12px';
-    spinner.style.fontWeight = 'bold';
+      spinner.style.fontWeight = 'bold';
 
     text.textContent = `${instrumentName} 加载完成`;
 
@@ -172,7 +172,7 @@ export class LoadingManager {
       notification.classList.add('removing');
       setTimeout(() => {
         if (notification.parentNode) {
-          notification.remove();
+        notification.remove();
         }
       }, 300);
     }, 1500);

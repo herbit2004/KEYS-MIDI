@@ -582,6 +582,80 @@
         }
       ],
       "volume": 20
+    },
+    
+    "sampledPercussion": {
+      "name": "采样打击乐",
+      "synth": {
+        "type": "Sampler",
+        "options": {
+          "urls": {
+            "B1": "AcousticBassDrum/HV4.wav",
+            "C2": "ElectricBassDrum/Kick04.wav",
+            "C#2": "SideStick/01.wav",
+            "D2": "AcousticSnare/HV7.wav",
+            "D#2": "HandClap/01_02.wav",
+            "E2": "ElectricSnare/Snare09.wav",
+            "F2": "LowTom/01.wav",
+            "F#2": "ClosedHiHat/01.wav",
+            "G2": "HighTom/01.wav",
+            "G#2": "PedalHiHat/01.wav",
+            "A2": "LowTom/01.wav",
+            "A#2": "OpenHiHat/01.wav",
+            "B2": "MidTom/01.wav",
+            "C3": "MidTom/01.wav",
+            "C#3": "CrashCymbal1/02.wav",
+            "D3": "HighTom/01.wav",
+            "D#3": "RideCymbal1/HV1.wav",
+            "E3": "ChinaCymbal/01.wav",
+            "F3": "RideBell/01.wav",
+            "F#3": "Tambourine/01_01.wav",
+            "G3": "SplashCymbal/01.wav",
+            "G#3": "Cowbell/02.wav",
+            "A3": "CrashCymbal2/01.wav",
+            "A#3": "Vibraslap/01.wav",
+            "B3": "RideCymbal2/HV1.wav",
+            "C4": "HighBongo/1_01.wav",
+            "C#4": "LowBongo/2_01.wav",
+            "D4": "MutedConga/High_v2_01_01.wav",
+            "D#4": "HighConga/v2_01_01.wav",
+            "E4": "Conga/v2_01_01.wav",
+            "F4": "HighBongo/1_01.wav",
+            "F#4": "LowBongo/2_01.wav",
+            "G4": "Agogo/High01_01.wav",
+            "G#4": "Agogo/Low01_01.wav",
+            "A4": "Cabasa/01_01.wav",
+            "A#4": "Maracas/01_01.wav",
+            "B4": "Whistle/Short.wav",
+            "C5": "Whistle/Long.wav",
+            "C#5": "Guiro/Short.wav",
+            "D5": "Guiro/Long.wav",
+            "D#5": "Claves/01.wav",
+            "E5": "WoodBlock/01.wav",
+            "F5": "WoodBlock/01.wav",
+            "F#5": "MutedConga/High_v2_01_01.wav",
+            "G5": "HighConga/v2_01_01.wav",
+            "G#5": "MutedTriangle/01_01.wav",
+            "A5": "Triangle/01_01.wav"
+          },
+          "baseUrl": "samples/samplesPercussion/",
+          "release": 0.5,
+          "attack": 0.01,
+          "decay": 0.1,
+          "sustain": 0.3
+        }
+      },
+      "effects": [
+        {
+          "type": "Reverb",
+          "options": {
+            "roomSize": 0.3,
+            "dampening": 3000,
+            "wet": 0.2
+          }
+        }
+      ],
+      "volume": 8
     }
   }
 }
