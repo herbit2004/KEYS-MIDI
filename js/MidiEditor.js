@@ -2060,8 +2060,9 @@ export class MidiEditor {
           this.ctx.fillStyle = hexToRgba(noteColor, alpha);
           this.ctx.fillRect(x, y - noteHeight, noteWidth, noteHeight);
           
-          // 绘制边框
-          this.ctx.strokeStyle = noteColor;
+          // 绘制边框 - 使用比填充色深一点的颜色
+          const darkerColor = this.getDarkerColor(noteColor);
+          this.ctx.strokeStyle = darkerColor;
           this.ctx.lineWidth = 1;
           this.ctx.strokeRect(x, y - noteHeight, noteWidth, noteHeight);
         }
@@ -2132,6 +2133,28 @@ export class MidiEditor {
     // 直接从配置中获取颜色，不依赖于音色加载
     const instrument = this.instrumentConfig.instruments[instrumentId];
     return instrument?.color || '#00ccff';
+  }
+
+  // 获取比给定颜色深一点的颜色
+  getDarkerColor(hexColor) {
+    // 解析十六进制颜色
+    const r = parseInt(hexColor.slice(1, 3), 16);
+    const g = parseInt(hexColor.slice(3, 5), 16);
+    const b = parseInt(hexColor.slice(5, 7), 16);
+    
+    // 将颜色变暗（减少亮度）
+    const darkenFactor = 0.7; // 70% 的亮度
+    const darkerR = Math.floor(r * darkenFactor);
+    const darkerG = Math.floor(g * darkenFactor);
+    const darkerB = Math.floor(b * darkenFactor);
+    
+    // 转换回十六进制
+    const toHex = (c) => {
+      const hex = c.toString(16);
+      return hex.length === 1 ? '0' + hex : hex;
+    };
+    
+    return `#${toHex(darkerR)}${toHex(darkerG)}${toHex(darkerB)}`;
   }
 
   // 获取或创建轨道
@@ -2588,7 +2611,7 @@ export class MidiEditor {
       
       // 更新样式
       button.style.backgroundColor = color;
-      button.style.borderColor = isVisible ? '#fff' : '#666';
+      button.style.borderColor = isVisible ? this.getDarkerColor(color) : '#666';
       button.style.opacity = isVisible ? '1' : '0.5';
       
       // 更新类名
@@ -2614,7 +2637,7 @@ export class MidiEditor {
             left: 50%;
             transform: translate(-50%, -50%) rotate(45deg);
             width: 2px;
-            height: 14px;
+            height: 16px;
             background-color: #000;
             transition: all 0.2s ease;
           `;
@@ -2633,11 +2656,11 @@ export class MidiEditor {
       button.className = `instrument-visibility-button ${isVisible ? 'visible' : 'hidden'}`;
       button.dataset.instrumentId = instrumentId;
       button.style.cssText = `
-        width: 20px;
-        height: 20px;
+        width: 24px;
+        height: 24px;
         border-radius: 50%;
         background-color: ${color};
-        border: 2px solid ${isVisible ? '#fff' : '#666'};
+        border: 2px solid ${isVisible ? this.getDarkerColor(color) : '#666'};
         cursor: pointer;
         position: relative;
         transition: all 0.3s ease;
@@ -2655,7 +2678,7 @@ export class MidiEditor {
             left: 50%;
             transform: translate(-50%, -50%) rotate(45deg);
             width: 2px;
-            height: 14px;
+            height: 16px;
             background-color: #000;
             transition: all 0.2s ease;
           "></div>
@@ -2699,8 +2722,13 @@ export class MidiEditor {
   // 切换音色可见性
   toggleInstrumentVisibility(instrumentId) {
     if (this.visibleInstruments.has(instrumentId)) {
+      // 隐藏音色
       this.visibleInstruments.delete(instrumentId);
+      
+      // 释放该音色正在播放的音符
+      this.stopInstrumentNotes(instrumentId);
     } else {
+      // 显示音色
       this.visibleInstruments.add(instrumentId);
     }
     
@@ -2709,6 +2737,22 @@ export class MidiEditor {
     
     // 重绘画布
     this.draw();
+  }
+
+  // 停止指定音色的所有正在播放的音符
+  stopInstrumentNotes(instrumentId) {
+    // 遍历所有轨道，找到指定音色的正在播放的音符
+    for (const track of this.tracks) {
+      if (track.instrument === instrumentId) {
+        for (const noteEntry of track.notes) {
+          if (noteEntry.played) {
+            // 停止该音符
+            this.audioEngine.stopNote(noteEntry.midiNote, instrumentId);
+            noteEntry.played = false;
+          }
+        }
+      }
+    }
   }
 
 

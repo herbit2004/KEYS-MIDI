@@ -2,7 +2,7 @@
   "instruments": {
     "sampledPiano": {
       "name": "采样钢琴",
-      "color": "#4CAF50",
+      "color": "#426fec",
       "synth": {
         "type": "Sampler",
         "options": {
@@ -60,7 +60,7 @@
     
     "sampledRhodes": {
       "name": "采样电钢琴",
-      "color": "#FF9800",
+      "color": "#9b66f2",
       "synth": {
         "type": "Sampler",
         "options": {
@@ -139,7 +139,7 @@
 
     "sampledGuitar": {
       "name": "采样吉他",
-      "color": "#8BC34A",
+      "color": "#dd5e30",
       "synth": {
         "type": "Sampler",
         "options": {
@@ -175,7 +175,7 @@
 
     "sampledBass": {
       "name": "采样贝斯",
-      "color": "#795548",
+      "color": "#088060",
       "synth": {
         "type": "Sampler",
         "options": {
@@ -213,7 +213,7 @@
 
     "sampledString": {
       "name": "采样弦乐",
-      "color": "#E91E63",
+      "color": "#78c647",
       "synth": {
         "type": "Sampler",
         "options": {
@@ -267,7 +267,7 @@
 
     "sampledTrumpet": {
       "name": "采样小号",
-      "color": "#FFC107",
+      "color": "#A2B9C7",
       "synth": {
         "type": "Sampler",
         "options": {
@@ -304,300 +304,10 @@
       ],
       "volume": 25
     },
-
-    "piano": {
-      "name": "piano",
-      "color": "#2196F3",
-      "synth": {
-        "type": "PolySynth",
-        "options": {
-          "oscillator": {
-            "type": "custom",
-            "partials": [1.8, 1.2, 0.85, 0.6, 0.4, 0.25, 0.15, 0.08, 0.04]
-          },
-          "envelope": {
-            "attack": 0.01,
-            "decay": 3.5,
-            "sustain": 0.4,
-            "release": 2.5
-          }
-        }
-      },
-      "effects": [
-        {
-          "type": "Filter",
-          "options": {
-            "type": "lowpass",
-            "frequency": 3200,
-            "Q": 1.5,
-            "rolloff": -12
-          }
-        },
-        {
-          "type": "EQ3",
-          "options": {
-            "low": 5.0,
-            "mid": -1.0,
-            "high": 0.0,
-            "lowFrequency": 200
-          }
-        },
-        {
-          "type": "Tremolo",
-          "options": {
-            "rate": 4.5,
-            "depth": 0.15,
-            "wet": 0.25
-          }
-        },
-        {
-          "type": "Reverb",
-          "options": {
-            "roomSize": 0.6,
-            "dampening": 4000,
-            "decay": 2.2,
-            "wet": 0.3
-          }
-        }
-      ],
-      "volume": 10
-    },
-    "guitar": {
-      "name": "guitar",
-      "color": "#9C27B0",
-      "synth": {
-        "type": "PolySynth",
-        "options": {
-          "oscillator": {
-            "type": "custom",
-            "partials": [
-              1.0,  0.85, 0.75, 0.65, 0.55,
-              0.45, 0.35, 0.25, 0.18, 0.13, 
-              0.09, 0.06, 0.04, 0.03, 0.02,
-              0.015, 0.01, 0.007
-            ]
-          },
-          "envelope": {
-            "attack": 0.01,
-            "decay": 2.5,
-            "sustain": 0.25,
-            "release": 2.2
-          }
-        }
-      },
-      "effects": [
-        {
-          "type": "Filter",
-          "options": {
-            "type": "lowpass",
-            "frequency": 3200,
-            "Q": 1.5,
-            "rolloff": -12
-          }
-        },
-        {
-          "type": "EQ3",
-          "options": {
-            "low": 6.0,
-            "mid": -1.0,
-            "high": 0.0,
-            "lowFrequency": 250
-          }
-        },
-        {
-          "type": "Tremolo",
-          "options": {
-            "rate": 4.5,
-            "depth": 0.15,
-            "wet": 0.25
-          }
-        },
-        {
-          "type": "Reverb",
-          "options": {
-            "roomSize": 0.6,
-            "dampening": 4000,
-            "decay": 2.0,
-            "wet": 0.3
-          }
-        }
-      ],
-      "volume": 10
-    },
-    "electricGuitar": {
-      "name": "electricGuitar",
-      "color": "#F44336",
-      "synth": {
-        "type": "PolySynth",
-        "options": {
-          "oscillator": {
-            "type": "custom",
-            "partials": [1, 1.2, 0.8, 0.6, 0.4, 0.3, 0.25, 0.2, 0.15]
-          },
-          "envelope": {
-            "attack": 0.01,
-            "decay": 0.3,
-            "sustain": 0.4,
-            "release": 0.4
-          }
-        }
-      },
-      "effects": [
-        {
-          "type": "Distortion",
-          "options": {
-            "distortion": 0.4,
-            "wet": 0.5
-          }
-        },
-        {
-          "type": "Filter",
-          "options": {
-            "type": "peaking",
-            "frequency": 800,
-            "Q": 1.0,
-            "gain": 6
-          }
-        },
-        {
-          "type": "Chorus",
-          "options": {
-            "rate": 3.5,
-            "depth": 0.7,
-            "wet": 0.4
-          }
-        }
-      ],
-      "volume": 10
-    },
-    "acousticBass": {
-      "name": "acousticBass",
-      "color": "#607D8B",
-      "synth": {
-        "type": "PolySynth",
-        "options": {
-          "oscillator": {
-            "type": "custom",
-            "partials": [1, 0.95, 0.8, 0.6, 0.4, 0.25, 0.15, 0.08],
-            "phase": 0
-          },
-          "envelope": {
-            "attack": 0.005,
-            "decay": 1.8,
-            "sustain": 0.4,
-            "release": 1.5
-          }
-        }
-      },
-      "effects": [
-        {
-          "type": "Filter",
-          "options": {
-            "type": "peaking",
-            "frequency": 110,
-            "Q": 8,
-            "gain": 6
-          }
-        },
-        {
-          "type": "Filter",
-          "options": {
-            "type": "bandpass",
-            "frequency": 180,
-            "Q": 1.2,
-            "gain": 4
-          }
-        },
-        {
-          "type": "Vibrato",
-          "options": {
-            "type": "sine",
-            "rate": 4.2,
-            "depth": 0.02,
-            "wet": 0.3
-          }
-        },
-        {
-          "type": "Reverb",
-          "options": {
-            "roomSize": 0.7,
-            "dampening": 2500,
-            "wet": 0.18
-          }
-        },
-        {
-          "type": "EQ3",
-          "options": {
-            "low": 8,
-            "mid": 2,
-            "high": -4,
-            "lowFrequency": 100
-          }
-        }
-      ],
-      "volume": 25
-    },
-    "uprightBass": {
-      "name": "uprightBass",
-      "color": "#3F51B5",
-      "synth": {
-        "type": "PolySynth",
-        "options": {
-          "oscillator": {
-            "type": "custom",
-            "partials": [1, 0.6, 0.3, 0.15, 0.08, 0.04],
-            "phase": 0
-          },
-          "envelope": {
-            "attack": 0.05,
-            "decay": 1.2,
-            "sustain": 0.3,
-            "release": 0.8
-          }
-        }
-      },
-      "effects": [
-        {
-          "type": "Filter",
-          "options": {
-            "type": "lowpass",
-            "frequency": 500,
-            "Q": 0.7
-          }
-        },
-        {
-          "type": "Compressor",
-          "options": {
-            "threshold": -12,
-            "ratio": 3,
-            "attack": 0.01,
-            "release": 0.1
-          }
-        },
-        {
-          "type": "Reverb",
-          "options": {
-            "roomSize": 0.3,
-            "dampening": 3000,
-            "wet": 0.1
-          }
-        },
-        {
-          "type": "EQ3",
-          "options": {
-            "low": 3,
-            "mid": -2,
-            "high": -6,
-            "lowFrequency": 120
-          }
-        }
-      ],
-      "volume": 20
-    },
     
     "sampledPercussion": {
       "name": "采样打击乐",
-      "color": "#FF5722",
+      "color": "#F54F4F",
       "synth": {
         "type": "Sampler",
         "options": {
@@ -668,6 +378,296 @@
         }
       ],
       "volume": 15
+    },
+
+    "piano": {
+      "name": "合成钢琴",
+      "color": "#4fa5f5",
+      "synth": {
+        "type": "PolySynth",
+        "options": {
+          "oscillator": {
+            "type": "custom",
+            "partials": [1.8, 1.2, 0.85, 0.6, 0.4, 0.25, 0.15, 0.08, 0.04]
+          },
+          "envelope": {
+            "attack": 0.01,
+            "decay": 3.5,
+            "sustain": 0.4,
+            "release": 2.5
+          }
+        }
+      },
+      "effects": [
+        {
+          "type": "Filter",
+          "options": {
+            "type": "lowpass",
+            "frequency": 3200,
+            "Q": 1.5,
+            "rolloff": -12
+          }
+        },
+        {
+          "type": "EQ3",
+          "options": {
+            "low": 5.0,
+            "mid": -1.0,
+            "high": 0.0,
+            "lowFrequency": 200
+          }
+        },
+        {
+          "type": "Tremolo",
+          "options": {
+            "rate": 4.5,
+            "depth": 0.15,
+            "wet": 0.25
+          }
+        },
+        {
+          "type": "Reverb",
+          "options": {
+            "roomSize": 0.6,
+            "dampening": 4000,
+            "decay": 2.2,
+            "wet": 0.3
+          }
+        }
+      ],
+      "volume": 10
+    },
+    "guitar": {
+      "name": "合成吉他",
+      "color": "#efd23e",
+      "synth": {
+        "type": "PolySynth",
+        "options": {
+          "oscillator": {
+            "type": "custom",
+            "partials": [
+              1.0,  0.85, 0.75, 0.65, 0.55,
+              0.45, 0.35, 0.25, 0.18, 0.13, 
+              0.09, 0.06, 0.04, 0.03, 0.02,
+              0.015, 0.01, 0.007
+            ]
+          },
+          "envelope": {
+            "attack": 0.01,
+            "decay": 2.5,
+            "sustain": 0.25,
+            "release": 2.2
+          }
+        }
+      },
+      "effects": [
+        {
+          "type": "Filter",
+          "options": {
+            "type": "lowpass",
+            "frequency": 3200,
+            "Q": 1.5,
+            "rolloff": -12
+          }
+        },
+        {
+          "type": "EQ3",
+          "options": {
+            "low": 6.0,
+            "mid": -1.0,
+            "high": 0.0,
+            "lowFrequency": 250
+          }
+        },
+        {
+          "type": "Tremolo",
+          "options": {
+            "rate": 4.5,
+            "depth": 0.15,
+            "wet": 0.25
+          }
+        },
+        {
+          "type": "Reverb",
+          "options": {
+            "roomSize": 0.6,
+            "dampening": 4000,
+            "decay": 2.0,
+            "wet": 0.3
+          }
+        }
+      ],
+      "volume": 10
+    },
+    "electricGuitar": {
+      "name": "合成电吉他",
+      "color": "#ef2083",
+      "synth": {
+        "type": "PolySynth",
+        "options": {
+          "oscillator": {
+            "type": "custom",
+            "partials": [1, 1.2, 0.8, 0.6, 0.4, 0.3, 0.25, 0.2, 0.15]
+          },
+          "envelope": {
+            "attack": 0.01,
+            "decay": 0.3,
+            "sustain": 0.4,
+            "release": 0.4
+          }
+        }
+      },
+      "effects": [
+        {
+          "type": "Distortion",
+          "options": {
+            "distortion": 0.4,
+            "wet": 0.5
+          }
+        },
+        {
+          "type": "Filter",
+          "options": {
+            "type": "peaking",
+            "frequency": 800,
+            "Q": 1.0,
+            "gain": 6
+          }
+        },
+        {
+          "type": "Chorus",
+          "options": {
+            "rate": 3.5,
+            "depth": 0.7,
+            "wet": 0.4
+          }
+        }
+      ],
+      "volume": 10
+    },
+    "acousticBass": {
+      "name": "合成贝斯",
+      "color": "#42657b",
+      "synth": {
+        "type": "PolySynth",
+        "options": {
+          "oscillator": {
+            "type": "custom",
+            "partials": [1, 0.95, 0.8, 0.6, 0.4, 0.25, 0.15, 0.08],
+            "phase": 0
+          },
+          "envelope": {
+            "attack": 0.005,
+            "decay": 1.8,
+            "sustain": 0.4,
+            "release": 1.5
+          }
+        }
+      },
+      "effects": [
+        {
+          "type": "Filter",
+          "options": {
+            "type": "peaking",
+            "frequency": 110,
+            "Q": 8,
+            "gain": 6
+          }
+        },
+        {
+          "type": "Filter",
+          "options": {
+            "type": "bandpass",
+            "frequency": 180,
+            "Q": 1.2,
+            "gain": 4
+          }
+        },
+        {
+          "type": "Vibrato",
+          "options": {
+            "type": "sine",
+            "rate": 4.2,
+            "depth": 0.02,
+            "wet": 0.3
+          }
+        },
+        {
+          "type": "Reverb",
+          "options": {
+            "roomSize": 0.7,
+            "dampening": 2500,
+            "wet": 0.18
+          }
+        },
+        {
+          "type": "EQ3",
+          "options": {
+            "low": 8,
+            "mid": 2,
+            "high": -4,
+            "lowFrequency": 100
+          }
+        }
+      ],
+      "volume": 25
+    },
+    "uprightBass": {
+      "name": "合成低音提琴",
+      "color": "#75460f",
+      "synth": {
+        "type": "PolySynth",
+        "options": {
+          "oscillator": {
+            "type": "custom",
+            "partials": [1, 0.6, 0.3, 0.15, 0.08, 0.04],
+            "phase": 0
+          },
+          "envelope": {
+            "attack": 0.05,
+            "decay": 1.2,
+            "sustain": 0.3,
+            "release": 0.8
+          }
+        }
+      },
+      "effects": [
+        {
+          "type": "Filter",
+          "options": {
+            "type": "lowpass",
+            "frequency": 500,
+            "Q": 0.7
+          }
+        },
+        {
+          "type": "Compressor",
+          "options": {
+            "threshold": -12,
+            "ratio": 3,
+            "attack": 0.01,
+            "release": 0.1
+          }
+        },
+        {
+          "type": "Reverb",
+          "options": {
+            "roomSize": 0.3,
+            "dampening": 3000,
+            "wet": 0.1
+          }
+        },
+        {
+          "type": "EQ3",
+          "options": {
+            "low": 3,
+            "mid": -2,
+            "high": -6,
+            "lowFrequency": 120
+          }
+        }
+      ],
+      "volume": 20
     }
   }
 }
