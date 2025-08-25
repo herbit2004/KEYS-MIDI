@@ -2157,6 +2157,8 @@ export class MidiEditor {
     return `#${toHex(darkerR)}${toHex(darkerG)}${toHex(darkerB)}`;
   }
 
+
+
   // 获取或创建轨道
   getOrCreateTrack(instrumentId) {
     let track = this.tracks.find(t => t.instrument === instrumentId);
@@ -2637,11 +2639,15 @@ export class MidiEditor {
             left: 50%;
             transform: translate(-50%, -50%) rotate(45deg);
             width: 2px;
-            height: 16px;
-            background-color: #000;
+            height: 18px;
+            background-color: #666;
             transition: all 0.2s ease;
           `;
           button.appendChild(newSlash);
+        } else {
+          // 更新现有斜杠的颜色和长度
+          slash.style.height = '18px';
+          slash.style.backgroundColor = '#666';
         }
       }
     });
@@ -2678,8 +2684,8 @@ export class MidiEditor {
             left: 50%;
             transform: translate(-50%, -50%) rotate(45deg);
             width: 2px;
-            height: 16px;
-            background-color: #000;
+            height: 18px;
+            background-color: #666;
             transition: all 0.2s ease;
           "></div>
         `;
