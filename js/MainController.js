@@ -377,7 +377,7 @@ export class MainController {
 
         // 更新显示值
         let displayValue = value;
-        if (param === 'delay-time' || param === 'reverb-decay') {
+        if (param === 'delay-time' || param === 'reverb-decay' || param === 'reverb-predelay') {
           displayValue = `${value}s`;
         } else if (param === 'master-volume') {
           displayValue = `${value}%`;
@@ -397,8 +397,14 @@ export class MainController {
           case 'delay-feedback':
             this.audioEngine.setGlobalDelay({ feedback: value });
             break;
+          case 'delay-wet':
+            this.audioEngine.setGlobalDelayWet(value);
+            break;
           case 'reverb-decay':
             this.audioEngine.setGlobalReverb({ decay: value });
+            break;
+          case 'reverb-predelay':
+            this.audioEngine.setGlobalReverbPredelay(value);
             break;
           case 'reverb-wet':
             this.audioEngine.setGlobalReverb({ wet: value });

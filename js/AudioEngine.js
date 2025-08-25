@@ -421,31 +421,26 @@ export class AudioEngine {
   setGlobalDelay(params) {
     const { delayTime, feedback, wet } = params;
     if (delayTime !== undefined) this.globalEffects.delay.delayTime.value = Math.max(0, Math.min(5, delayTime));
-    if (feedback !== undefined) {
-      const feedbackValue = Math.max(0, Math.min(1, feedback));
-      this.globalEffects.delay.feedback.value = feedbackValue;
-      
-      // 当反馈为0时，确保延迟效果完全关闭
-      if (feedbackValue === 0) {
-        this.globalEffects.delay.wet.value = 0;
-      } else if (wet !== undefined) {
-        // 反馈不为0时，应用指定的wet值
-        this.globalEffects.delay.wet.value = Math.max(0, Math.min(1, wet));
-      } else {
-        // 反馈不为0但没有指定wet时，使用默认wet值
-        this.globalEffects.delay.wet.value = 0.2;
-      }
-    } else if (wet !== undefined) {
-      // 只设置wet值，不改变feedback
-      this.globalEffects.delay.wet.value = Math.max(0, Math.min(1, wet));
-    }
+    if (feedback !== undefined) this.globalEffects.delay.feedback.value = Math.max(0, Math.min(1, feedback));
+    if (wet !== undefined) this.globalEffects.delay.wet.value = Math.max(0, Math.min(1, wet));
   }
 
   // 控制全局混响效果
   setGlobalReverb(params) {
-    const { decay, wet } = params;
+    const { decay, wet, predelay } = params;
     if (decay !== undefined) this.globalEffects.reverb.decay = Math.max(0, Math.min(5, decay));
     if (wet !== undefined) this.globalEffects.reverb.wet.value = Math.max(0, Math.min(1, wet));
+    if (predelay !== undefined) this.globalEffects.reverb.predelay = Math.max(0, Math.min(0.1, predelay));
+  }
+
+  // 控制全局延迟wet值
+  setGlobalDelayWet(wet) {
+    this.globalEffects.delay.wet.value = Math.max(0, Math.min(1, wet));
+  }
+
+  // 控制全局混响预延迟
+  setGlobalReverbPredelay(predelay) {
+    this.globalEffects.reverb.predelay = Math.max(0, Math.min(0.1, predelay));
   }
 
   // 控制全局音量
