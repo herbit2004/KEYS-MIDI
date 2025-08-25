@@ -3,6 +3,7 @@ export class MidiEditor {
   constructor(audioEngine, keyMapper, snapToggle) {
     this.audioEngine = audioEngine;
     this.keyMapper = keyMapper;
+    this.instrumentConfig = null; // 音色配置引用
     
     // 获取canvas元素
     this.canvas = document.getElementById('midi-editor');
@@ -15,7 +16,7 @@ export class MidiEditor {
     this.isPaused = false;
     this.startTime = 0;
     this.pausedTime = 0;
-    this.recordedNotes = [];
+    this.tracks = []; // 按音色分组的轨道数据
     this.playheadPosition = 0;
     
     // BPM相关变量
@@ -78,6 +79,10 @@ export class MidiEditor {
     this.dragOffsetY = 0;
     this.dragType = null; // 'move', 'resize-left', 'resize-right'
     
+    // 音色显示控制
+    this.visibleInstruments = new Set(); // 当前显示的音色集合
+    this.instrumentVisibilityPanel = null; // 音色显示控制面板
+    
     // 时间轴缩放
     this.pixelsPerNote = this.canvas.height / 128;
     this.pixelsPerNote = this.canvas.height / 128;
@@ -94,8 +99,17 @@ export class MidiEditor {
     this.loadButton = document.getElementById('load-button-editor');
     this.loadFileInput = document.getElementById('load-file-input');
     
+    // 禁用页面中的所有框选
+    this.disablePageSelection();
+    
+    // 处理悬浮容器的拖拽事件
+    this.handleFloatingContainers();
+    
     // 绑定事件
     this.bindEvents();
+    
+    // 创建音色显示控制面板
+    this.createInstrumentVisibilityPanel();
     
     // 自动吸附功能开关
     this.snapToggle = snapToggle;
@@ -440,193 +454,74 @@ export class MidiEditor {
       e.stopPropagation();
     });
     
-    // 播放头拖拽
+    // 鼠标按下事件
     this.canvas.addEventListener('mousedown', (e) => {
-      if (!this.isRecording && !this.isPlaying) {
-        // 重置拖拽标志
-        this.hasDragged = false;
-        
-        const rect = this.canvas.getBoundingClientRect();
-        const x = e.clientX - rect.left;
-        const y = e.clientY - rect.top;
-        
-        // 检查是否点击了音符
-        const clickedNote = this.getNoteAtPosition(x, y);
-        if (clickedNote) {
-          // 检查是否按住了Ctrl键
-          if (e.ctrlKey) {
-            // Ctrl键按下时，切换音符的选中状态
-            const index = this.selectedNotes.indexOf(clickedNote);
-            if (index > -1) {
-              // 如果已选中，则取消选中
-              this.selectedNotes.splice(index, 1);
-            } else {
-              // 如果未选中，则添加到选中列表
-              this.selectedNotes.push(clickedNote);
-            }
-            this.draw();
-          } else {
-            // 没有按住Ctrl键时，检查是否点击了已选中的音符
-            const index = this.selectedNotes.indexOf(clickedNote);
-            if (index > -1) {
-              // 如果已选中，标记为待取消选中，并设置为编辑状态
-              this.pendingDeselect = clickedNote;
-              this.selectNote(clickedNote, x, y);
-            } else {
-              // 否则清空之前的选中并选中当前音符
-              this.selectedNotes = [clickedNote];
-              this.selectNote(clickedNote, x, y);
-            }
-          }
-        } else {
-          // 点击空白区域，如果没有按住Ctrl键则取消所有选中
-          if (!e.ctrlKey && this.selectedNotes.length > 0) {
-            this.selectedNotes = [];
-            this.draw();
-          }
-          
-          // 开始框选或标记播放头位置
-          // 默认开始框选，除非是原地点击
-          this.isSelecting = true;
-          this.selectionStartX = x;
-          this.selectionStartY = y;
-          this.selectionEndX = x;
-          this.selectionEndY = y;
-          
-          // 初始化自动滚动相关变量
-          this.lastMouseX = x;
-          this.lastMouseY = y;
-          this.scrollTimer = null;
-          
-          // 标记播放头位置，等待mouseup事件
-          this.pendingPlayheadPosition = x;
-        }
+      if (this.isRecording || this.isPlaying) return;
+      
+      const pos = this.getMousePosition(e);
+      
+      // 重置拖拽标志
+      this.hasDragged = false;
+      
+      // 检查是否点击了音符
+      const clickedNoteRef = this.getNoteAtPosition(pos.x, pos.y);
+      
+      if (clickedNoteRef) {
+        // 点击音符：处理音符选择/编辑
+        this.handleNoteClick(clickedNoteRef, pos, e.ctrlKey);
+      } else {
+        // 点击空白区域：开始框选
+        this.startSelection(pos, e.ctrlKey);
       }
     });
     
     // 鼠标移动事件
     this.canvas.addEventListener('mousemove', (e) => {
+      const pos = this.getMousePosition(e);
+      
       if (this.isEditing && this.selectedNotes.length > 0) {
-        const rect = this.canvas.getBoundingClientRect();
-        const x = e.clientX - rect.left;
-        const y = e.clientY - rect.top;
-        
-        this.dragNote(x, y);
+        // 拖拽音符
+        this.dragNote(pos.x, pos.y);
       } else if (this.isSelecting) {
         // 处理框选
-        const rect = this.canvas.getBoundingClientRect();
-        const x = e.clientX - rect.left;
-        const y = e.clientY - rect.top;
-        
-        // 更新框选结束位置
-        this.selectionEndX = x;
-        this.selectionEndY = y;
-        
-        // 设置鼠标样式为十字
-        this.canvas.style.cursor = 'crosshair';
-        
-        // 重置悬停状态
-        this.hoveredNote = null;
-        
-        // 自动滚动逻辑
-        this.autoScrollOnSelection(e);
-        
-        // 重绘
-        this.draw();
-      } else if (!this.isEditing) {
-        // 检测鼠标悬停在音符上
-        const rect = this.canvas.getBoundingClientRect();
-        const x = e.clientX - rect.left;
-        const y = e.clientY - rect.top;
-        
-        const hoveredNote = this.getNoteAtPosition(x, y);
-        if (hoveredNote) {
-          // 设置鼠标样式为手指箭头
-          this.canvas.style.cursor = 'pointer';
-        } else {
-          // 恢复默认鼠标样式
-          this.canvas.style.cursor = 'default';
-          
-          // 更新预览播放头位置
-          this.previewPlayheadPosition = x;
-          this.draw();
-        }
-        
-        // 保存悬停状态用于绘制
-        this.hoveredNote = hoveredNote;
+        this.updateSelection(pos);
+      } else {
+        // 处理悬停
+        this.updateHover(pos);
       }
     });
     
-    // 简化的框选处理：监听document上的mousemove和mouseup事件
+    // 全局鼠标移动事件（处理从悬浮元素开始的拖拽）
     document.addEventListener('mousemove', (e) => {
       if (this.isSelecting) {
-        const rect = this.canvas.getBoundingClientRect();
-        const x = e.clientX - rect.left;
-        const y = e.clientY - rect.top;
+        const canvasRect = this.canvas.getBoundingClientRect();
+        const pos = {
+          x: e.clientX - canvasRect.left,
+          y: e.clientY - canvasRect.top
+        };
         
-        // 更新框选结束位置（限制在canvas范围内）
-        this.selectionEndX = Math.max(0, Math.min(rect.width, x));
-        this.selectionEndY = Math.max(0, Math.min(rect.height, y));
-        
-        // 设置鼠标样式为十字
-        this.canvas.style.cursor = 'crosshair';
-        
-        // 自动滚动逻辑
-        this.autoScrollOnSelection(e);
-        
-        // 重绘
-        this.draw();
+        // 更新框选状态
+        this.updateSelection(pos);
       }
     });
     
-    // 鼠标释放事件（canvas内）
+    // 鼠标释放事件（只在canvas内）
     this.canvas.addEventListener('mouseup', (e) => {
-      if (this.isSelecting) {
-        // 检查是否是原地点击
-        const deltaX = Math.abs(this.selectionEndX - this.selectionStartX);
-        const deltaY = Math.abs(this.selectionEndY - this.selectionStartY);
-        
-        if (deltaX < 5 && deltaY < 5) {
-          // 原地点击：更新播放头位置
-          this.isSelecting = false;
-          this.finishDrag();
-        } else {
-          // 拖拽：完成框选
-          this.finishSelection();
-        }
-      } else {
-        this.finishDrag();
-      }
-      
-      // 清理自动滚动定时器
-      if (this.scrollTimer) {
-        clearInterval(this.scrollTimer);
-        this.scrollTimer = null;
-      }
+      this.handleMouseUp(e);
     });
     
-    // 全局鼠标释放事件（处理鼠标在canvas外释放的情况）
+    // 全局鼠标释放事件（处理从悬浮元素开始的拖拽）
     document.addEventListener('mouseup', (e) => {
-      if (this.isSelecting) {
-        // 完成框选（无论鼠标在哪里释放）
-        this.finishSelection();
-      }
-      
-      // 清理自动滚动定时器
-      if (this.scrollTimer) {
-        clearInterval(this.scrollTimer);
-        this.scrollTimer = null;
-      }
+      this.handleMouseUp(e);
     });
     
     // 鼠标离开canvas区域
     this.canvas.addEventListener('mouseleave', () => {
-      if (!this.isSelecting) {
-        // 不在框选状态下才更新播放头位置
-        this.finishDrag();
-        this.previewPlayheadPosition = -1;
-        this.draw();
-      }
+      // 重置悬停状态
+      this.hoveredNote = null;
+      this.previewPlayheadPosition = -1;
+      this.canvas.style.cursor = 'default';
+      this.draw();
     });
     
     // Ctrl+滚轮缩放
@@ -719,15 +614,20 @@ export class MidiEditor {
       const mouseY = e.clientY - rect.top;
       
       const hoveredNote = this.getNoteAtPosition(mouseX, mouseY);
-      if (hoveredNote && this.selectedNotes.includes(hoveredNote)) {
+      if (hoveredNote && this.selectedNotes.some(noteRef => 
+        noteRef.midiNote === hoveredNote.midiNote && 
+        noteRef.startTime === hoveredNote.startTime && 
+        noteRef.endTime === hoveredNote.endTime &&
+        noteRef.instrument === hoveredNote.instrument
+      )) {
         e.preventDefault();
         
         // 根据滚动方向调整力度
         const delta = e.deltaY > 0 ? -5 : 5; // 每次调整5个单位
         
         // 批量调整所有选中音符的力度
-        for (const note of this.selectedNotes) {
-          note.velocity = Math.max(0, Math.min(100, note.velocity + delta));
+        for (const noteRef of this.selectedNotes) {
+          noteRef.velocity = Math.max(0, Math.min(100, noteRef.velocity + delta));
         }
         
         // 重新绘制
@@ -786,76 +686,7 @@ export class MidiEditor {
     // 移除了节拍器开关事件监听器，因为现在使用图标点击来切换状态
   }
   
-  // 自动滚动逻辑
-  autoScrollOnSelection(e) {
-    const container = this.canvas.parentElement;
-    const rect = container.getBoundingClientRect();
-    
-    // 保存鼠标位置用于持续滚动
-    this.lastMouseX = e.clientX - rect.left;
-    this.lastMouseY = e.clientY - rect.top;
-    
-    // 定义边缘阈值
-    const threshold = 80;
-    
-    // 如果还没有启动滚动定时器，则启动一个
-    if (!this.scrollTimer) {
-      this.scrollTimer = setInterval(() => {
-        if (!this.isSelecting) {
-          // 如果不再选择，清除定时器
-          clearInterval(this.scrollTimer);
-          this.scrollTimer = null;
-          return;
-        }
-        
-        const rect = container.getBoundingClientRect();
-        const mouseX = this.lastMouseX;
-        const mouseY = this.lastMouseY;
-        
-        let scrolled = false;
-        
-        // 检查鼠标是否接近边缘
-        if (mouseX < threshold) {
-          // 向左滚动
-          container.scrollLeft -= 10;
-          scrolled = true;
-        } else if (mouseX > rect.width - threshold) {
-          // 向右滚动
-          container.scrollLeft += 10;
-          scrolled = true;
-        }
-        
-        if (mouseY < threshold) {
-          // 向上滚动
-          container.scrollTop -= 10;
-          scrolled = true;
-        } else if (mouseY > rect.height - threshold) {
-          // 向下滚动
-          container.scrollTop += 10;
-          scrolled = true;
-        }
-        
-        // 如果发生了滚动，更新框选框的位置
-        if (scrolled) {
-          // 更新框选结束位置为当前鼠标位置
-          const currentMouseX = this.lastMouseX + container.scrollLeft;
-          const currentMouseY = this.lastMouseY + container.scrollTop;
-          
-          this.selectionEndX = currentMouseX;
-          this.selectionEndY = currentMouseY;
-          
-          // 重绘
-          this.draw();
-        }
-        
-        // 如果没有滚动，清除定时器
-        if (!scrolled) {
-          clearInterval(this.scrollTimer);
-          this.scrollTimer = null;
-        }
-      }, 50); // 每50ms检查一次
-    }
-  }
+
   
   // 调整canvas尺寸
   resizeCanvas() {
@@ -871,12 +702,14 @@ export class MidiEditor {
       // 略微提前于播放头位置计算canvas宽度，预留2拍的空间
       const playheadWidth = (playheadBeats + 2) * this.pixelsPerBeat;
       minWidth = Math.max(minWidth, playheadWidth);
-    } else if (this.recordedNotes.length > 0) {
+    } else if (this.tracks.length > 0) {
       // 如果有录制的音符，计算容纳所有音符所需的宽度
       let maxEndTime = 0;
-      for (const note of this.recordedNotes) {
-        if (note.endTime > maxEndTime) {
-          maxEndTime = note.endTime;
+      for (const track of this.tracks) {
+        for (const note of track.notes) {
+          if (note.endTime > maxEndTime) {
+            maxEndTime = note.endTime;
+          }
         }
       }
       // 计算所需宽度，额外增加10%的空间
@@ -941,20 +774,24 @@ export class MidiEditor {
     this.isRecording = false;
     
     // 停止所有正在播放的音符
-    for (const noteEntry of this.recordedNotes) {
-      if (noteEntry.played) {
-        this.audioEngine.stopNote(noteEntry.note);
-        noteEntry.played = false;
+    for (const track of this.tracks) {
+      for (const noteEntry of track.notes) {
+        if (noteEntry.played) {
+          this.audioEngine.stopNote(noteEntry.midiNote);
+          noteEntry.played = false;
+        }
       }
     }
     
     // 为所有未完成录制的音符设置结束时间为当前时间
     const elapsedTime = Tone.now() - this.startTime;
     const endBeats = elapsedTime * this.bpm / 60;
-    for (const noteEntry of this.recordedNotes) {
-      if (noteEntry.endTime === null) {
-        noteEntry.endTime = endBeats;
-        console.log(`自动完成音符: ${noteEntry.note} 在结束录制时`);
+    for (const track of this.tracks) {
+      for (const noteEntry of track.notes) {
+        if (noteEntry.endTime === null) {
+          noteEntry.endTime = endBeats;
+          console.log(`自动完成音符: ${noteEntry.midiNote} 在结束录制时`);
+        }
       }
     }
     
@@ -970,7 +807,7 @@ export class MidiEditor {
     this.playButton.disabled = false;
     
     console.log('停止录制');
-    console.log('录制的音符:', this.recordedNotes);
+    console.log('录制的轨道:', this.tracks);
   }
   
   // 播放
@@ -985,11 +822,14 @@ export class MidiEditor {
     let hasNotesAfterPlayhead = false;
     
     // 检查是否有音符在播放头之后
-    for (const note of this.recordedNotes) {
-      if (note.startTime >= playheadTime || (note.startTime < playheadTime && note.endTime > playheadTime)) {
-        hasNotesAfterPlayhead = true;
-        break;
+    for (const track of this.tracks) {
+      for (const note of track.notes) {
+        if (note.startTime >= playheadTime || (note.startTime < playheadTime && note.endTime > playheadTime)) {
+          hasNotesAfterPlayhead = true;
+          break;
+        }
       }
+      if (hasNotesAfterPlayhead) break;
     }
     
     // 如果播放头后没有音符，则直接暂停
@@ -1018,14 +858,14 @@ export class MidiEditor {
   
   // 保存录制内容
   saveRecording() {
-    if (this.recordedNotes.length === 0) {
+    if (this.tracks.length === 0) {
       alert('没有录制内容可保存');
       return;
     }
     
-    // 创建要保存的数据对象，只包含音符信息
+    // 创建要保存的数据对象，包含轨道信息
     const data = {
-      recordedNotes: this.recordedNotes,
+      tracks: this.tracks,
       timestamp: new Date().toISOString()
     };
     
@@ -1063,23 +903,21 @@ export class MidiEditor {
         const data = JSON.parse(e.target.result);
         
         // 验证数据格式
-        if (data.recordedNotes && Array.isArray(data.recordedNotes)) {
-          // 清空当前录制内容
-          this.recordedNotes = [];
+        if (data.tracks && Array.isArray(data.tracks)) {
+          // 清空现有数据
+          this.tracks = [];
+          this.visibleInstruments.clear();
           
           // 不使用导入文件中的BPM信息，保持当前BPM设置
-        // 重新计算pixelsPerBeat以确保正确显示
-        this.pixelsPerBeat = this.calculatePixelsPerBeat();
+          // 重新计算pixelsPerBeat以确保正确显示
+          this.pixelsPerBeat = this.calculatePixelsPerBeat();
           
-          // 加载新内容
-          for (const note of data.recordedNotes) {
-            this.recordedNotes.push({
-              note: note.note,
-              startTime: note.startTime,  // 以拍数记录的开始时间
-              endTime: note.endTime,      // 以拍数记录的结束时间
-              velocity: note.velocity || 100, // 如果没有velocity属性，则默认为100
-              played: false
-            });
+          // 使用轨道格式
+          this.tracks = data.tracks;
+          
+          // 设置所有音色为可见
+          for (const track of this.tracks) {
+            this.visibleInstruments.add(track.instrument);
           }
           
           // 清空选中列表
@@ -1088,7 +926,16 @@ export class MidiEditor {
           // 调整canvas尺寸以适应导入的音符
           this.resizeCanvas();
           
+          // 更新音色显示控制面板
+          this.updateInstrumentVisibilityPanel();
+          
           console.log('录制内容已导入');
+          
+          // 异步预加载需要的音色（不阻塞音符显示）
+          const notesToPreload = data.tracks.flatMap(track => 
+            track.notes.map(note => ({ instrument: track.instrument }))
+          );
+          this.preloadInstrumentsAsync(notesToPreload);
         } else {
           throw new Error('无效的文件格式');
         }
@@ -1111,10 +958,12 @@ export class MidiEditor {
     this.pausedTime = Tone.now() - this.startTime;
     
     // 停止所有正在播放的音符
-    for (const noteEntry of this.recordedNotes) {
-      if (noteEntry.played) {
-        this.audioEngine.stopNote(noteEntry.note);
-        noteEntry.played = false;
+    for (const track of this.tracks) {
+      for (const noteEntry of track.notes) {
+        if (noteEntry.played) {
+          this.audioEngine.stopNote(noteEntry.midiNote);
+          noteEntry.played = false;
+        }
       }
     }
     
@@ -1137,8 +986,10 @@ export class MidiEditor {
     this.playhead.classList.remove('recording');
     
     // 重置所有录制音符的播放状态
-    for (const noteEntry of this.recordedNotes) {
-      noteEntry.played = false;
+    for (const track of this.tracks) {
+      for (const noteEntry of track.notes) {
+        noteEntry.played = false;
+      }
     }
     
     // 更新按钮状态
@@ -1165,23 +1016,30 @@ export class MidiEditor {
       }
 
       // 检查是否已经存在相同音符的未结束记录
-      const existingNoteIndex = this.recordedNotes.findIndex(
-        entry => entry.note === note && entry.endTime === null
-      );
+      let existingNoteFound = false;
+      for (const track of this.tracks) {
+        const existingNote = track.notes.find(
+          entry => entry.midiNote === note && entry.endTime === null
+        );
+        if (existingNote) {
+          existingNoteFound = true;
+          break;
+        }
+      }
       
       // 如果不存在相同音符的未结束记录，则创建新记录
-      if (existingNoteIndex === -1) {
+      if (!existingNoteFound) {
         const elapsedTime = time - this.startTime;
         // 将startTime转换为拍数
         const startTimeBeats = elapsedTime * this.bpm / 60;
-        this.recordedNotes.push({
-          note: note,
-          startTime: startTimeBeats,  // 以拍数记录的开始时间
-          endTime: null,
-          velocity: 100  // 默认力度值为100
-        });
         
-        console.log(`记录音符按下: ${note} at ${elapsedTime}s (${startTimeBeats} beats)`);
+        // 获取当前选中的音色
+        const currentInstrument = this.audioEngine.currentInstrument;
+        
+        // 使用新的轨道结构
+        this.addNoteToTrack(note, startTimeBeats, null, 100, currentInstrument);
+        
+        console.log(`记录音符按下: ${note} at ${elapsedTime}s (${startTimeBeats} beats) with instrument: ${currentInstrument}`);
       } else {
         console.log(`跳过重复音符按下: ${note}（已有未结束记录）`);
       }
@@ -1197,22 +1055,26 @@ export class MidiEditor {
       
       if (this.isSpacePressed) {
         // 查找最近未结束的同音高音符
-        for (let i = this.recordedNotes.length - 1; i >= 0; i--) {
-          const entry = this.recordedNotes[i];
-          if (entry.note === note && entry.endTime === null) {
-            this.pendingReleases.set(note, entry);
-            console.log(`延音状态保持音符: ${note}`);
-            break;
+        for (const track of this.tracks) {
+          for (let i = track.notes.length - 1; i >= 0; i--) {
+            const entry = track.notes[i];
+            if (entry.midiNote === note && entry.endTime === null) {
+              this.pendingReleases.set(note, entry);
+              console.log(`延音状态保持音符: ${note}`);
+              break;
+            }
           }
         }
       } else {
         // 正常结束音符
-        for (let i = this.recordedNotes.length - 1; i >= 0; i--) {
-          const entry = this.recordedNotes[i];
-          if (entry.note === note && entry.endTime === null) {
-            entry.endTime = endBeats;  // 以拍数记录结束时间
-            console.log(`记录音符松开: ${note} at ${elapsedTime}s (${endBeats} beats)`);
-            break;
+        for (const track of this.tracks) {
+          for (let i = track.notes.length - 1; i >= 0; i--) {
+            const entry = track.notes[i];
+            if (entry.midiNote === note && entry.endTime === null) {
+              entry.endTime = endBeats;  // 以拍数记录结束时间
+              console.log(`记录音符松开: ${note} at ${elapsedTime}s (${endBeats} beats)`);
+              break;
+            }
           }
         }
       }
@@ -1260,34 +1122,34 @@ export class MidiEditor {
       switch (e.code) {
         case 'ArrowUp':
           // 批量向上移动音高
-          for (const note of this.selectedNotes) {
-            if (note.note < 127) {
-              note.note++;
+          for (const noteRef of this.selectedNotes) {
+            if (noteRef.midiNote < 127) {
+              noteRef.midiNote++;
             }
           }
           break;
         case 'ArrowDown':
           // 批量向下移动音高
-          for (const note of this.selectedNotes) {
-            if (note.note > 0) {
-              note.note--;
+          for (const noteRef of this.selectedNotes) {
+            if (noteRef.midiNote > 0) {
+              noteRef.midiNote--;
             }
           }
           break;
         case 'ArrowLeft':
           // 批量向左移动时间（以拍数为单位）
-          for (const note of this.selectedNotes) {
-            if (note.startTime > 0) {
-              note.startTime = Math.max(0, note.startTime - step);
-              note.endTime -= step;
+          for (const noteRef of this.selectedNotes) {
+            if (noteRef.startTime > 0) {
+              noteRef.startTime = Math.max(0, noteRef.startTime - step);
+              noteRef.endTime -= step;
             }
           }
           break;
         case 'ArrowRight':
           // 批量向右移动时间（以拍数为单位）
-          for (const note of this.selectedNotes) {
-            note.startTime += step;
-            note.endTime += step;
+          for (const noteRef of this.selectedNotes) {
+            noteRef.startTime += step;
+            noteRef.endTime += step;
           }
           break;
         case 'Delete':
@@ -1320,43 +1182,41 @@ export class MidiEditor {
     }
   }
   
-  // 移动选中音符的时间位置
-  moveSelectedNoteTime(deltaTime) {
-    if (!this.selectedNote) return;
-    
-    // 更新时间（以拍数为单位）
-    this.selectedNote.startTime = Math.max(0, this.selectedNote.startTime + deltaTime);
-    this.selectedNote.endTime = Math.max(this.selectedNote.startTime, this.selectedNote.endTime + deltaTime);
-    
-    this.draw();
-  }
-  
-  // 改变选中音符的音高
-  moveSelectedNotePitch(deltaPitch) {
-    if (!this.selectedNote) return;
-    
-    // 更新音高
-    const newNote = this.selectedNote.note + deltaPitch;
-    if (newNote >= 0 && newNote <= 127) {
-      this.selectedNote.note = newNote;
-      this.draw();
-    }
-  }
+
   
   // 删除选中音符
   deleteSelectedNotes() {
     if (this.selectedNotes.length === 0) return;
     
-    // 从录制音符数组中移除所有选中的音符
-    for (const note of this.selectedNotes) {
-      const index = this.recordedNotes.indexOf(note);
-      if (index > -1) {
-        this.recordedNotes.splice(index, 1);
+    // 收集需要删除的音符，按轨道分组
+    const notesToDelete = new Map(); // track -> [noteIndexes]
+    
+    for (const noteRef of this.selectedNotes) {
+      if (!notesToDelete.has(noteRef.track)) {
+        notesToDelete.set(noteRef.track, []);
+      }
+      notesToDelete.get(noteRef.track).push(noteRef.noteIndex);
+    }
+    
+    // 从轨道中移除音符（从后往前删除，避免索引变化）
+    for (const [track, noteIndexes] of notesToDelete) {
+      // 排序并去重，从大到小删除
+      const sortedIndexes = [...new Set(noteIndexes)].sort((a, b) => b - a);
+      for (const noteIndex of sortedIndexes) {
+        if (noteIndex >= 0 && noteIndex < track.notes.length) {
+          track.notes.splice(noteIndex, 1);
+        }
       }
     }
     
     // 清空选中列表
     this.selectedNotes = [];
+    
+    // 清理空的轨道
+    this.cleanupEmptyTracks();
+    
+    // 更新音色显示控制面板
+    this.updateInstrumentVisibilityPanel();
     
     this.draw();
   }
@@ -1367,12 +1227,13 @@ export class MidiEditor {
     
     // 将选中的音符信息存储到剪贴板（保持拍数单位）
     this.clipboard = [];
-    for (const note of this.selectedNotes) {
+    for (const noteRef of this.selectedNotes) {
       this.clipboard.push({
-        note: note.note,
-        startTime: note.startTime,  // 以拍数记录的开始时间
-        endTime: note.endTime,      // 以拍数记录的结束时间
-        velocity: note.velocity
+        midiNote: noteRef.midiNote,
+        startTime: noteRef.startTime,  // 以拍数记录的开始时间
+        endTime: noteRef.endTime,      // 以拍数记录的结束时间
+        velocity: noteRef.velocity,
+        instrument: noteRef.instrument  // 包含音色信息
       });
     }
     
@@ -1413,19 +1274,31 @@ export class MidiEditor {
     // 清空当前选中列表
     this.selectedNotes = [];
     
-    // 创建新音符并添加到录制音符数组中
+    // 创建新音符并添加到轨道中
     for (const note of this.clipboard) {
       const newNote = {
-        note: note.note,
+        midiNote: note.midiNote,
         startTime: note.startTime + timeOffset,  // 以拍数记录的开始时间
         endTime: note.endTime + timeOffset,      // 以拍数记录的结束时间
-        velocity: note.velocity
+        velocity: note.velocity,
+        played: false
       };
       
-      this.recordedNotes.push(newNote);
+      // 添加到对应的轨道
+      this.addNoteToTrack(
+        newNote.midiNote,
+        newNote.startTime,
+        newNote.endTime,
+        newNote.velocity,
+        note.instrument
+      );
       
-      // 将新音符添加到选中列表
-      this.selectedNotes.push(newNote);
+      // 将新音符添加到选中列表（需要重新获取引用）
+      const newNoteRef = this.createNoteReference(
+        this.getOrCreateTrack(note.instrument),
+        this.getOrCreateTrack(note.instrument).notes.length - 1
+      );
+      this.selectedNotes.push(newNoteRef);
     }
     
     this.draw();
@@ -1438,14 +1311,22 @@ export class MidiEditor {
     // 清空当前选中列表
     this.selectedNotes = [];
     
-    // 将所有录制的音符添加到选中列表
-    for (const note of this.recordedNotes) {
-      this.selectedNotes.push(note);
+    // 只选择可见音色的音符
+    for (const track of this.tracks) {
+      // 检查音色是否可见
+      if (!this.visibleInstruments.has(track.instrument)) {
+        continue;
+      }
+      
+      for (let i = 0; i < track.notes.length; i++) {
+        // 添加音符引用
+        this.selectedNotes.push(this.createNoteReference(track, i));
+      }
     }
     
     this.draw();
     
-    console.log('全选所有音符');
+    console.log('全选可见音符');
   }
 
   
@@ -1499,16 +1380,25 @@ export class MidiEditor {
     }
   }
   
-  // 获取指定位置的音符
+  // 获取指定位置的音符引用
   getNoteAtPosition(x, y) {
     // 将像素坐标转换为时间/音高坐标（使用拍数）
     const beats = x / this.pixelsPerBeat;
     const note = 127 - Math.floor(y / this.pixelsPerNote);
     
-    // 查找匹配的音符
-    for (const noteEntry of this.recordedNotes) {
-      if (beats >= noteEntry.startTime && beats <= noteEntry.endTime && note === noteEntry.note) {
-        return noteEntry;
+    // 查找匹配的音符（只考虑可见的音符）
+    for (const track of this.tracks) {
+      // 检查音色是否可见
+      if (!this.visibleInstruments.has(track.instrument)) {
+        continue;
+      }
+      
+      for (let i = 0; i < track.notes.length; i++) {
+        const noteEntry = track.notes[i];
+        if (beats >= noteEntry.startTime && beats <= noteEntry.endTime && note === noteEntry.midiNote) {
+          // 返回音符引用
+          return this.createNoteReference(track, i);
+        }
       }
     }
     
@@ -1516,20 +1406,20 @@ export class MidiEditor {
   }
   
   // 选择音符
-  selectNote(noteEntry, x, y) {
+  selectNote(noteRef, x, y) {
     this.isEditing = true;
     this.hasDragged = false; // 重置拖拽标志
     
     // 如果该音符尚未被选中，则添加到选中列表
-    if (this.selectedNotes.indexOf(noteEntry) === -1) {
-      this.selectedNotes.push(noteEntry);
+    if (this.findNoteRefIndex(noteRef) === -1) {
+      this.selectedNotes.push(noteRef);
     }
     
     // 计算拖拽偏移量（使用被按住的音符作为参考）
-    const referenceNote = noteEntry; // 使用被按住的音符作为参考
+    const referenceNote = noteRef.note; // 使用被按住的音符作为参考
     const noteX = referenceNote.startTime * this.pixelsPerBeat;
     const noteWidth = (referenceNote.endTime - referenceNote.startTime) * this.pixelsPerBeat;
-    const noteY = (127 - referenceNote.note) * this.pixelsPerNote;
+    const noteY = (127 - referenceNote.midiNote) * this.pixelsPerNote;
     
     // 如果有多个音符被选中，则默认为整体移动
     if (this.selectedNotes.length > 1) {
@@ -1601,18 +1491,18 @@ export class MidiEditor {
     
     // 计算新的音高偏移量
     const newNote = 127 - Math.floor(y / this.pixelsPerNote);
-    const pitchOffset = newNote - referenceNote.note;
+    const pitchOffset = newNote - referenceNote.midiNote;
     
     // 批量更新所有选中音符的位置
-    for (const note of this.selectedNotes) {
+    for (const noteRef of this.selectedNotes) {
       // 更新时间
-      note.startTime = Math.max(0, note.startTime + timeOffset);
-      note.endTime = Math.max(note.startTime, note.endTime + timeOffset);
+      noteRef.startTime = Math.max(0, noteRef.startTime + timeOffset);
+      noteRef.endTime = Math.max(noteRef.startTime, noteRef.endTime + timeOffset);
       
       // 更新音高
-      const newPitch = note.note + pitchOffset;
+      const newPitch = noteRef.midiNote + pitchOffset;
       if (newPitch >= 0 && newPitch <= 127) {
-        note.note = newPitch;
+        noteRef.midiNote = newPitch;
       }
     }
   }
@@ -1639,8 +1529,8 @@ export class MidiEditor {
       const timeOffset = newStartTime - referenceNote.startTime;
       
       // 批量调整所有选中音符的开始时间
-      for (const note of this.selectedNotes) {
-        note.startTime = Math.max(0, note.startTime + timeOffset);
+      for (const noteRef of this.selectedNotes) {
+        noteRef.startTime = Math.max(0, noteRef.startTime + timeOffset);
       }
     }
   }
@@ -1667,44 +1557,24 @@ export class MidiEditor {
       const timeOffset = newEndTime - referenceNote.endTime;
       
       // 批量调整所有选中音符的结束时间
-      for (const note of this.selectedNotes) {
-        note.endTime = note.endTime + timeOffset;
+      for (const noteRef of this.selectedNotes) {
+        noteRef.endTime = noteRef.endTime + timeOffset;
       }
     }
   }
   
   // 完成拖拽
   finishDrag() {
-    this.isEditing = false;
-    
     // 检查是否有待取消选中的音符，并且没有发生拖拽
     if (this.pendingDeselect && !this.hasDragged) {
-      const index = this.selectedNotes.indexOf(this.pendingDeselect);
+      const index = this.findNoteRefIndex(this.pendingDeselect);
       if (index > -1) {
         this.selectedNotes.splice(index, 1);
       }
     }
     
-    // 清空待取消选中的音符
-    this.pendingDeselect = null;
-    
-    // 更新播放头位置，只有在没有发生拖拽的情况下才更新
-    if (this.pendingPlayheadPosition !== undefined && !this.hasDragged) {
-      this.setPlayheadPosition(this.pendingPlayheadPosition, true);
-    }
-    this.pendingPlayheadPosition = undefined;
-    
-    // 隐藏预览播放头
-    this.previewPlayheadPosition = -1;
-    
-    // 重置框选状态
-    this.isSelecting = false;
-    
-    this.dragType = null;
-    this.dragOffsetX = 0;
-    this.dragOffsetY = 0;
-    this.dragStartX = 0;
-    this.dragStartY = 0;
+    // 重置所有交互状态
+    this.resetInteractionState();
     
     this.draw();
   }
@@ -1718,19 +1588,19 @@ export class MidiEditor {
     }
     
     // 遍历所有选中的音符，对每个音符进行独立吸附
-    for (const note of this.selectedNotes) {
+    for (const noteRef of this.selectedNotes) {
       // 计算最近的拍数位置，考虑吸附精度
-      const snappedStartBeats = Math.round(note.startTime * this.snapPrecision) / this.snapPrecision;
-      const snapOffset = snappedStartBeats - note.startTime;
+      const snappedStartBeats = Math.round(noteRef.startTime * this.snapPrecision) / this.snapPrecision;
+      const snapOffset = snappedStartBeats - noteRef.startTime;
       
       // 使用新的灵敏度变量，考虑吸附精度
       if (Math.abs(snapOffset) < (this.snapSensitivity / this.snapPrecision)) {
         // 计算时间偏移量
-        const timeOffset = snappedStartBeats - note.startTime;
+        const timeOffset = snappedStartBeats - noteRef.startTime;
         
         // 更新音符的开始和结束时间
-        note.startTime = Math.max(0, note.startTime + timeOffset);
-        note.endTime = note.endTime + timeOffset;
+        noteRef.startTime = Math.max(0, noteRef.startTime + timeOffset);
+        noteRef.endTime = noteRef.endTime + timeOffset;
       }
     }
     
@@ -1750,9 +1620,9 @@ export class MidiEditor {
     const oneBeat = 1 / this.snapPrecision;
     
     // 遍历所有选中的音符，对每个音符的时长进行独立吸附
-    for (const note of this.selectedNotes) {
+    for (const noteRef of this.selectedNotes) {
       // 计算当前音符的时长
-      const duration = note.endTime - note.startTime;
+      const duration = noteRef.endTime - noteRef.startTime;
       
       // 计算量化后的时长（以刻度为单位）
       const snappedDuration = Math.round(duration * this.snapPrecision) / this.snapPrecision;
@@ -1760,7 +1630,7 @@ export class MidiEditor {
       // 检查吸附后的时长是否至少为一个刻度长度
       if (snappedDuration >= oneBeat) {
         // 更新音符的结束时间
-        note.endTime = note.startTime + snappedDuration;
+        noteRef.endTime = noteRef.startTime + snappedDuration;
       } else {
         // 如果吸附后的时长小于一个刻度长度，则保持原时长不变
         console.log('音符时长过短，不进行吸附');
@@ -1772,55 +1642,55 @@ export class MidiEditor {
   }
   
   // 完成框选
-    finishSelection() {
-      // 重置框选状态
-      this.isSelecting = false;
+  finishSelection() {
+    // 计算框选区域
+    const startX = Math.min(this.selectionStartX, this.selectionEndX);
+    const startY = Math.min(this.selectionStartY, this.selectionEndY);
+    const endX = Math.max(this.selectionStartX, this.selectionEndX);
+    const endY = Math.max(this.selectionStartY, this.selectionEndY);
+    
+    // 将像素坐标转换为时间/音高坐标（使用拍数）
+    const startBeats = startX / this.pixelsPerBeat;
+    const endBeats = endX / this.pixelsPerBeat;
+    const startNote = 127 - Math.floor(endY / this.pixelsPerNote); // 注意：y坐标是反向的
+    const endNote = 127 - Math.floor(startY / this.pixelsPerNote);
+    
+    // 查找框选区域内的音符（只考虑可见的音符）
+    const selectedNotesInRegion = [];
+    for (const track of this.tracks) {
+      // 检查音色是否可见
+      if (!this.visibleInstruments.has(track.instrument)) {
+        continue;
+      }
       
-      // 清除待处理的播放头位置
-      this.pendingPlayheadPosition = undefined;
-      
-      // 计算框选区域
-      const startX = Math.min(this.selectionStartX, this.selectionEndX);
-      const startY = Math.min(this.selectionStartY, this.selectionEndY);
-      const endX = Math.max(this.selectionStartX, this.selectionEndX);
-      const endY = Math.max(this.selectionStartY, this.selectionEndY);
-      
-      // 将像素坐标转换为时间/音高坐标（使用拍数）
-      const startBeats = startX / this.pixelsPerBeat;
-      const endBeats = endX / this.pixelsPerBeat;
-      const startNote = 127 - Math.floor(endY / this.pixelsPerNote); // 注意：y坐标是反向的
-      const endNote = 127 - Math.floor(startY / this.pixelsPerNote);
-      
-      // 查找框选区域内的音符
-      const selectedNotesInRegion = [];
-      for (const noteEntry of this.recordedNotes) {
+      for (let i = 0; i < track.notes.length; i++) {
+        const noteEntry = track.notes[i];
         // 检查音符是否在框选区域内
         // 音符与选择区域有重叠就算选中
-        if (noteEntry.note >= startNote && noteEntry.note <= endNote &&
+        if (noteEntry.midiNote >= startNote && noteEntry.midiNote <= endNote &&
             noteEntry.endTime >= startBeats && noteEntry.startTime <= endBeats) {
-          selectedNotesInRegion.push(noteEntry);
+          // 添加音符引用
+          selectedNotesInRegion.push(this.createNoteReference(track, i));
         }
       }
-      
-      // 将框选区域内的音符添加到选中列表中（不重复添加）
-      for (const note of selectedNotesInRegion) {
-        if (this.selectedNotes.indexOf(note) === -1) {
-          this.selectedNotes.push(note);
-        }
-      }
-      
-      // 重置选择框坐标
-      this.selectionStartX = 0;
-      this.selectionStartY = 0;
-      this.selectionEndX = 0;
-      this.selectionEndY = 0;
-      
-      // 恢复默认鼠标样式
-      this.canvas.style.cursor = 'default';
-      
-      // 重绘
-      this.draw();
     }
+    
+    // 将框选区域内的音符添加到选中列表中（不重复添加）
+    for (const noteRef of selectedNotesInRegion) {
+      if (this.findNoteRefIndex(noteRef) === -1) {
+        this.selectedNotes.push(noteRef);
+      }
+    }
+    
+    // 重置选择框坐标
+    this.selectionStartX = 0;
+    this.selectionStartY = 0;
+    this.selectionEndX = 0;
+    this.selectionEndY = 0;
+    
+    // 重绘
+    this.draw();
+  }
   
   // 动画循环
   animate() {
@@ -1833,7 +1703,9 @@ export class MidiEditor {
       this.setPlayheadPosition(position);
       
       // 播放录制的音符
-      this.playRecordedNotes(elapsedTime);
+      this.playRecordedNotes(elapsedTime).catch(error => {
+        console.error('播放录制音符时出错:', error);
+      });
       
       // 播放节拍器
       if (this.isMetronomeEnabled) {
@@ -1854,28 +1726,32 @@ export class MidiEditor {
       this.setPlayheadPosition(position);
       
       // 播放录制的音符
-      this.playRecordedNotes(elapsedTime);
+      this.playRecordedNotes(elapsedTime).catch(error => {
+        console.error('播放录制音符时出错:', error);
+      });
       
       // 播放节拍器
       if (this.isMetronomeEnabled) {
         this.playMetronomeBeat(elapsedTime);
       }
       
-      // 检查是否播放完所有音符，如果是则自动暂停
-      if (this.recordedNotes.length > 0) {
-        // 找到最后一个音符的结束时间
-        let maxEndTime = 0;
-        for (const note of this.recordedNotes) {
+          // 检查是否播放完所有音符，如果是则自动暂停
+    if (this.tracks.length > 0) {
+      // 找到最后一个音符的结束时间
+      let maxEndTime = 0;
+      for (const track of this.tracks) {
+        for (const note of track.notes) {
           if (note.endTime > maxEndTime) {
             maxEndTime = note.endTime;
           }
         }
-        
-        // 如果播放头已经超过了最后一个音符的结束时间，则暂停
-        if (elapsedTime > maxEndTime * 60 / this.bpm) {
-          this.pause();
-        }
       }
+      
+      // 如果播放头已经超过了最后一个音符的结束时间，则暂停
+      if (elapsedTime > maxEndTime * 60 / this.bpm) {
+        this.pause();
+      }
+    }
     } else if (this.isPaused) {
       // 暂停时保持播放头位置不变
     }
@@ -1888,27 +1764,35 @@ export class MidiEditor {
   }
   
   // 播放录制的音符
-  playRecordedNotes(currentTime) {
+  async playRecordedNotes(currentTime) {
     // 将当前时间（秒）转换为拍数
     const currentBeats = currentTime * this.bpm / 60;
     
-    for (const noteEntry of this.recordedNotes) {
-      // 检查是否应该播放这个音符（使用拍数进行比较）
-      if (noteEntry.startTime <= currentBeats && noteEntry.endTime > currentBeats) {
-        // 检查是否已经播放过
-        if (!noteEntry.played) {
-          // 播放音符，使用音符的力度值
-          this.audioEngine.playNote(noteEntry.note, noteEntry.velocity);
-          noteEntry.played = true;
-          console.log(`播放录制的音符: ${noteEntry.note}`);
+    // 使用轨道结构播放音符
+    for (const track of this.tracks) {
+      // 检查音色是否可见且已加载
+      if (!this.visibleInstruments.has(track.instrument)) {
+        continue;
+      }
+      
+      for (const noteEntry of track.notes) {
+        // 检查是否应该播放这个音符（使用拍数进行比较）
+        if (noteEntry.startTime <= currentBeats && noteEntry.endTime > currentBeats) {
+          // 检查是否已经播放过
+          if (!noteEntry.played) {
+            // 播放音符，使用音符的力度值和音色
+            await this.audioEngine.playNote(noteEntry.midiNote, noteEntry.velocity, false, track.instrument);
+            noteEntry.played = true;
+            console.log(`播放录制的音符: ${noteEntry.midiNote} with instrument: ${track.instrument}`);
+          }
+        } else if (noteEntry.endTime <= currentBeats && noteEntry.played) {
+          // 停止音符
+          this.audioEngine.stopNote(noteEntry.midiNote);
+          noteEntry.played = false;
+        } else if (noteEntry.startTime > currentBeats && noteEntry.played) {
+          // 重置未来的音符状态
+          noteEntry.played = false;
         }
-      } else if (noteEntry.endTime <= currentBeats && noteEntry.played) {
-        // 停止音符
-        this.audioEngine.stopNote(noteEntry.note);
-        noteEntry.played = false;
-      } else if (noteEntry.startTime > currentBeats && noteEntry.played) {
-        // 重置未来的音符状态
-        noteEntry.played = false;
       }
     }
   }
@@ -1983,10 +1867,12 @@ export class MidiEditor {
     
     // 计算音轨总长
     let trackDuration = 0;
-    if (this.recordedNotes.length > 0) {
-      for (const note of this.recordedNotes) {
-        if (note.endTime > trackDuration) {
-          trackDuration = note.endTime;
+    if (this.tracks.length > 0) {
+      for (const track of this.tracks) {
+        for (const note of track.notes) {
+          if (note.endTime > trackDuration) {
+            trackDuration = note.endTime;
+          }
         }
       }
     }
@@ -2012,23 +1898,23 @@ export class MidiEditor {
         selectedNotesInfoElement.textContent = '';
       } else if (this.selectedNotes.length === 1) {
         // 显示单个音符的信息
-        const note = this.selectedNotes[0];
-        const noteName = this.noteNumberToNoteName(note.note);
+        const noteRef = this.selectedNotes[0];
+        const noteName = this.noteNumberToNoteName(noteRef.midiNote);
         // 将拍数转换为秒数进行显示
-        const startTimeSeconds = note.startTime * 60 / this.bpm;
-        const endTimeSeconds = note.endTime * 60 / this.bpm;
-        selectedNotesInfoElement.textContent = `开始时间: ${startTimeSeconds.toFixed(2)}s (${note.startTime.toFixed(2)} beats), 结束时间: ${endTimeSeconds.toFixed(2)}s (${note.endTime.toFixed(2)} beats), 音高: ${noteName}, 力度: ${note.velocity}`;
+        const startTimeSeconds = noteRef.startTime * 60 / this.bpm;
+        const endTimeSeconds = noteRef.endTime * 60 / this.bpm;
+        selectedNotesInfoElement.textContent = `开始时间: ${startTimeSeconds.toFixed(2)}s (${noteRef.startTime.toFixed(2)} beats), 结束时间: ${endTimeSeconds.toFixed(2)}s (${noteRef.endTime.toFixed(2)} beats), 音高: ${noteName}, 力度: ${noteRef.velocity}`;
       } else {
         // 显示多个音符的统计信息
         let earliestStartTime = Infinity;
         let latestEndTime = -Infinity;
         
-        for (const note of this.selectedNotes) {
-          if (note.startTime < earliestStartTime) {
-            earliestStartTime = note.startTime;
+        for (const noteRef of this.selectedNotes) {
+          if (noteRef.startTime < earliestStartTime) {
+            earliestStartTime = noteRef.startTime;
           }
-          if (note.endTime > latestEndTime) {
-            latestEndTime = note.endTime;
+          if (noteRef.endTime > latestEndTime) {
+            latestEndTime = noteRef.endTime;
           }
         }
         
@@ -2131,34 +2017,54 @@ export class MidiEditor {
       currentPlayheadBeats = this.playheadPosition / this.pixelsPerBeat;
     }
     
-    for (const noteEntry of this.recordedNotes) {
-      if (noteEntry.startTime !== null) {
-        // 将拍数转换为像素位置
-        const x = noteEntry.startTime * this.pixelsPerBeat;
-        const y = height - (noteEntry.note * noteHeight);
-        
-        // 确定音符宽度
-        let noteWidth;
-        if (noteEntry.endTime !== null) {
-          // 已完成录制的音符
-          noteWidth = (noteEntry.endTime - noteEntry.startTime) * this.pixelsPerBeat;
-        } else if (this.isRecording) {
-          // 正在录制的音符，使用播放头位置作为结束时间
-          noteWidth = Math.max(0, currentPlayheadBeats - noteEntry.startTime) * this.pixelsPerBeat;
-        } else {
-          // 未完成录制且不在录制状态的音符，显示为一个小点
-          noteWidth = 2;
+    // 使用轨道结构绘制音符
+    for (const track of this.tracks) {
+      // 检查音色是否可见
+      if (!this.visibleInstruments.has(track.instrument)) {
+        continue;
+      }
+      
+      for (const noteEntry of track.notes) {
+        if (noteEntry.startTime !== null) {
+          // 将拍数转换为像素位置
+          const x = noteEntry.startTime * this.pixelsPerBeat;
+          const y = height - (noteEntry.midiNote * noteHeight);
+          
+          // 确定音符宽度
+          let noteWidth;
+          if (noteEntry.endTime !== null) {
+            // 已完成录制的音符
+            noteWidth = (noteEntry.endTime - noteEntry.startTime) * this.pixelsPerBeat;
+          } else if (this.isRecording) {
+            // 正在录制的音符，使用播放头位置作为结束时间
+            noteWidth = Math.max(0, currentPlayheadBeats - noteEntry.startTime) * this.pixelsPerBeat;
+          } else {
+            // 未完成录制且不在录制状态的音符，显示为一个小点
+            noteWidth = 2;
+          }
+          
+          // 获取音符颜色
+          const noteColor = this.getNoteColor(track.instrument);
+          
+          // 根据力度值计算填充颜色的透明度
+          const alpha = noteEntry.velocity / 100;  // 0-100映射到0-1的透明度
+          
+          // 将十六进制颜色转换为RGBA
+          const hexToRgba = (hex, alpha) => {
+            const r = parseInt(hex.slice(1, 3), 16);
+            const g = parseInt(hex.slice(3, 5), 16);
+            const b = parseInt(hex.slice(5, 7), 16);
+            return `rgba(${r}, ${g}, ${b}, ${alpha})`;
+          };
+          
+          this.ctx.fillStyle = hexToRgba(noteColor, alpha);
+          this.ctx.fillRect(x, y - noteHeight, noteWidth, noteHeight);
+          
+          // 绘制边框
+          this.ctx.strokeStyle = noteColor;
+          this.ctx.lineWidth = 1;
+          this.ctx.strokeRect(x, y - noteHeight, noteWidth, noteHeight);
         }
-        
-        // 根据力度值计算填充颜色的透明度
-        const alpha = noteEntry.velocity / 100;  // 0-100映射到0-1的透明度
-        this.ctx.fillStyle = `rgba(0, 204, 255, ${alpha})`;  // 使用velocity调整透明度
-        this.ctx.fillRect(x, y - noteHeight, noteWidth, noteHeight);
-        
-        // 绘制边框
-        this.ctx.strokeStyle = '#0088aa';
-        this.ctx.lineWidth = 1;
-        this.ctx.strokeRect(x, y - noteHeight, noteWidth, noteHeight);
       }
     }
   }
@@ -2171,10 +2077,10 @@ export class MidiEditor {
     const height = this.canvas.height;
     const noteHeight = height / 128;
     
-    for (const note of this.selectedNotes) {
-      const x = note.startTime * this.pixelsPerBeat;
-      const y = height - (note.note * noteHeight);
-      const widthValue = (note.endTime - note.startTime) * this.pixelsPerBeat;
+    for (const noteRef of this.selectedNotes) {
+      const x = noteRef.startTime * this.pixelsPerBeat;
+      const y = height - (noteRef.midiNote * noteHeight);
+      const widthValue = (noteRef.endTime - noteRef.startTime) * this.pixelsPerBeat;
       
       // 绘制高亮边框
       this.ctx.strokeStyle = '#ffcc00';
@@ -2199,7 +2105,7 @@ export class MidiEditor {
     const noteHeight = height / 128;
     
     const x = this.hoveredNote.startTime * this.pixelsPerBeat;
-    const y = height - (this.hoveredNote.note * noteHeight);
+    const y = height - (this.hoveredNote.midiNote * noteHeight);
     const widthValue = (this.hoveredNote.endTime - this.hoveredNote.startTime) * this.pixelsPerBeat;
     
     // 绘制半透明高光
@@ -2212,6 +2118,601 @@ export class MidiEditor {
     this.ctx.strokeRect(x, y - noteHeight, widthValue, noteHeight);
   }
   
+  // 设置音色配置引用
+  setInstrumentConfig(config) {
+    this.instrumentConfig = config;
+  }
+
+  // 获取音符颜色
+  getNoteColor(instrumentId) {
+    if (!this.instrumentConfig || !instrumentId) {
+      return '#00ccff'; // 默认颜色
+    }
+    
+    // 直接从配置中获取颜色，不依赖于音色加载
+    const instrument = this.instrumentConfig.instruments[instrumentId];
+    return instrument?.color || '#00ccff';
+  }
+
+  // 获取或创建轨道
+  getOrCreateTrack(instrumentId) {
+    let track = this.tracks.find(t => t.instrument === instrumentId);
+    if (!track) {
+      track = {
+        instrument: instrumentId,
+        notes: []
+      };
+      this.tracks.push(track);
+      // 默认显示所有音色
+      this.visibleInstruments.add(instrumentId);
+      // 更新音色显示控制面板
+      this.updateInstrumentVisibilityPanel();
+    }
+    return track;
+  }
+
+  // 添加音符到轨道
+  addNoteToTrack(note, startTime, endTime, velocity, instrumentId) {
+    const track = this.getOrCreateTrack(instrumentId);
+    const newNote = {
+      midiNote: note,
+      startTime: startTime,
+      endTime: endTime,
+      velocity: velocity,
+      played: false
+    };
+    track.notes.push(newNote);
+    
+    // 如果是新轨道，更新音色显示控制面板（触发添加动画）
+    if (track.notes.length === 1) {
+      this.updateInstrumentVisibilityPanel();
+    }
+  }
+
+  // 音符引用结构
+  createNoteReference(track, noteIndex) {
+    return {
+      track: track,
+      noteIndex: noteIndex,
+      get note() { return this.track.notes[this.noteIndex]; },
+      get midiNote() { return this.note.midiNote; },
+      get startTime() { return this.note.startTime; },
+      get endTime() { return this.note.endTime; },
+      get velocity() { return this.note.velocity; },
+      get instrument() { return this.track.instrument; },
+      set midiNote(value) { this.note.midiNote = value; },
+      set startTime(value) { this.note.startTime = value; },
+      set endTime(value) { this.note.endTime = value; },
+      set velocity(value) { this.note.velocity = value; }
+    };
+  }
+
+  // 比较两个音符引用是否相同
+  isSameNoteRef(ref1, ref2) {
+    return ref1.track === ref2.track && ref1.noteIndex === ref2.noteIndex;
+  }
+
+  // 在选中列表中查找音符引用的索引
+  findNoteRefIndex(noteRef) {
+    return this.selectedNotes.findIndex(selectedRef => this.isSameNoteRef(selectedRef, noteRef));
+  }
+
+  // 重置所有交互状态
+  resetInteractionState() {
+    this.isEditing = false;
+    this.isSelecting = false;
+    this.hasDragged = false;
+    this.pendingDeselect = null;
+    this.pendingPlayheadPosition = undefined;
+    this.dragType = null;
+    this.dragOffsetX = 0;
+    this.dragOffsetY = 0;
+    this.dragStartX = 0;
+    this.dragStartY = 0;
+    this.selectionStartX = 0;
+    this.selectionStartY = 0;
+    this.selectionEndX = 0;
+    this.selectionEndY = 0;
+    this.previewPlayheadPosition = -1;
+    
+    // 恢复默认鼠标样式
+    this.canvas.style.cursor = 'default';
+  }
+
+  // 获取鼠标在canvas中的坐标
+  getMousePosition(e) {
+    const rect = this.canvas.getBoundingClientRect();
+    return {
+      x: e.clientX - rect.left,
+      y: e.clientY - rect.top
+    };
+  }
+
+  // 判断是否为原地点击（移动距离小于阈值）
+  isClickInPlace(startPos, endPos, threshold = 5) {
+    const deltaX = Math.abs(endPos.x - startPos.x);
+    const deltaY = Math.abs(endPos.y - startPos.y);
+    return deltaX < threshold && deltaY < threshold;
+  }
+
+  // 禁用页面中的所有框选
+  disablePageSelection() {
+    // 禁用整个页面的文本选择
+    document.addEventListener('selectstart', (e) => {
+      e.preventDefault();
+    });
+    
+    // 禁用拖拽选择
+    document.addEventListener('dragstart', (e) => {
+      e.preventDefault();
+    });
+    
+    // 禁用右键菜单（可选）
+    document.addEventListener('contextmenu', (e) => {
+      e.preventDefault();
+    });
+    
+    // 为所有元素添加CSS样式禁用选择
+    const style = document.createElement('style');
+    style.textContent = `
+      * {
+        -webkit-user-select: none !important;
+        -moz-user-select: none !important;
+        -ms-user-select: none !important;
+        user-select: none !important;
+        -webkit-touch-callout: none !important;
+      }
+    `;
+    document.head.appendChild(style);
+  }
+
+  // 处理悬浮容器的拖拽事件
+  handleFloatingContainers() {
+    // 获取canvas的父容器
+    const canvasParent = this.canvas.parentElement;
+    
+    // 查找所有悬浮在父容器上的元素
+    const floatingElements = canvasParent.querySelectorAll('*');
+    
+    floatingElements.forEach(element => {
+      // 跳过canvas本身
+      if (element === this.canvas) return;
+      
+      // 检查元素是否悬浮（position: absolute 或 fixed）
+      const style = window.getComputedStyle(element);
+      if (style.position === 'absolute' || style.position === 'fixed') {
+        this.setupFloatingElement(element);
+      }
+    });
+    
+    // 监听DOM变化，处理动态添加的悬浮元素
+    const observer = new MutationObserver((mutations) => {
+      mutations.forEach((mutation) => {
+        mutation.addedNodes.forEach((node) => {
+          if (node.nodeType === Node.ELEMENT_NODE) {
+            const style = window.getComputedStyle(node);
+            if (style.position === 'absolute' || style.position === 'fixed') {
+              this.setupFloatingElement(node);
+            }
+          }
+        });
+      });
+    });
+    
+    observer.observe(canvasParent, {
+      childList: true,
+      subtree: true
+    });
+  }
+
+  // 为悬浮元素设置事件处理
+  setupFloatingElement(element) {
+    // 检查元素是否是可点击的（按钮、链接等）
+    const isClickable = element.tagName === 'BUTTON' || 
+                       element.tagName === 'A' || 
+                       element.onclick || 
+                       element.classList.contains('clickable') ||
+                       element.getAttribute('role') === 'button';
+    
+    // 阻止拖拽开始事件
+    element.addEventListener('mousedown', (e) => {
+      // 如果是可点击元素，不阻止事件传播
+      if (isClickable) {
+        return;
+      }
+      
+      // 阻止默认的拖拽行为
+      e.stopPropagation();
+      
+      // 如果按下鼠标，立即开始canvas的框选
+      if (!this.isRecording && !this.isPlaying) {
+        const canvasRect = this.canvas.getBoundingClientRect();
+        const pos = {
+          x: e.clientX - canvasRect.left,
+          y: e.clientY - canvasRect.top
+        };
+        
+        // 开始框选
+        this.startSelection(pos, e.ctrlKey);
+      }
+    });
+    
+    // 阻止拖拽事件
+    element.addEventListener('dragstart', (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+    });
+    
+    // 阻止选择事件
+    element.addEventListener('selectstart', (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+    });
+  }
+
+  // 处理音符点击
+  handleNoteClick(noteRef, pos, isCtrlKey) {
+    if (isCtrlKey) {
+      // Ctrl键按下时，切换音符的选中状态
+      const index = this.findNoteRefIndex(noteRef);
+      if (index > -1) {
+        // 如果已选中，则取消选中
+        this.selectedNotes.splice(index, 1);
+      } else {
+        // 如果未选中，则添加到选中列表
+        this.selectedNotes.push(noteRef);
+      }
+      this.draw();
+    } else {
+      // 没有按住Ctrl键时，检查是否点击了已选中的音符
+      const index = this.findNoteRefIndex(noteRef);
+      if (index > -1) {
+        // 如果已选中，标记为待取消选中，并设置为编辑状态
+        this.pendingDeselect = noteRef;
+        this.selectNote(noteRef, pos.x, pos.y);
+      } else {
+        // 否则清空之前的选中并选中当前音符
+        this.selectedNotes = [noteRef];
+        this.selectNote(noteRef, pos.x, pos.y);
+      }
+    }
+  }
+
+  // 开始框选
+  startSelection(pos, isCtrlKey) {
+    // 如果没有按住Ctrl键则取消所有选中
+    if (!isCtrlKey && this.selectedNotes.length > 0) {
+      this.selectedNotes = [];
+      this.draw();
+    }
+    
+    // 开始框选
+    this.isSelecting = true;
+    this.selectionStartX = pos.x;
+    this.selectionStartY = pos.y;
+    this.selectionEndX = pos.x;
+    this.selectionEndY = pos.y;
+    
+    // 标记播放头位置，等待mouseup事件
+    this.pendingPlayheadPosition = pos.x;
+  }
+
+  // 更新框选状态
+  updateSelection(pos) {
+    this.selectionEndX = pos.x;
+    this.selectionEndY = pos.y;
+    
+    // 设置鼠标样式为十字
+    this.canvas.style.cursor = 'crosshair';
+    
+    // 重置悬停状态
+    this.hoveredNote = null;
+    
+    // 重绘
+    this.draw();
+  }
+
+  // 更新悬停状态
+  updateHover(pos) {
+    const hoveredNote = this.getNoteAtPosition(pos.x, pos.y);
+    
+    if (hoveredNote) {
+      // 设置鼠标样式为手指箭头
+      this.canvas.style.cursor = 'pointer';
+    } else {
+      // 恢复默认鼠标样式
+      this.canvas.style.cursor = 'default';
+      
+      // 更新预览播放头位置
+      this.previewPlayheadPosition = pos.x;
+      this.draw();
+    }
+    
+    // 保存悬停状态用于绘制
+    this.hoveredNote = hoveredNote;
+  }
+
+  // 处理鼠标释放事件
+  handleMouseUp(e) {
+    if (this.isSelecting) {
+      // 处理框选结束
+      this.handleSelectionEnd();
+    } else if (this.isEditing) {
+      // 处理拖拽结束
+      this.finishDrag();
+    }
+  }
+
+  // 处理框选结束
+  handleSelectionEnd() {
+    const startPos = { x: this.selectionStartX, y: this.selectionStartY };
+    const endPos = { x: this.selectionEndX, y: this.selectionEndY };
+    
+    if (this.isClickInPlace(startPos, endPos)) {
+      // 原地点击：更新播放头位置
+      this.setPlayheadPosition(this.pendingPlayheadPosition, true);
+    } else {
+      // 拖拽：完成框选
+      this.finishSelection();
+    }
+    
+    // 重置框选状态
+    this.isSelecting = false;
+  }
+
+
+
+  // 预加载需要的音色
+  async preloadRequiredInstruments(instrumentIds) {
+    const loadPromises = instrumentIds.map(async (instrumentId) => {
+      try {
+        // 检查音色是否已经加载
+        if (!this.audioEngine.synths[instrumentId]) {
+          console.log(`预加载音色: ${instrumentId}`);
+          await this.audioEngine.loadInstrumentLazy(instrumentId);
+        }
+      } catch (error) {
+        console.error(`预加载音色 ${instrumentId} 失败:`, error);
+      }
+    });
+    
+    await Promise.all(loadPromises);
+    console.log('音色预加载完成');
+  }
+
+  // 异步预加载音色（不阻塞UI）
+  async preloadInstrumentsAsync(notes) {
+    // 收集需要预加载的音色
+    const requiredInstruments = new Set();
+    for (const note of notes) {
+      if (note.instrument) {
+        requiredInstruments.add(note.instrument);
+      }
+    }
+    
+    // 如果有需要预加载的音色，异步加载
+    if (requiredInstruments.size > 0) {
+      console.log(`开始异步预加载音色: ${Array.from(requiredInstruments).join(', ')}`);
+      
+      // 使用setTimeout确保不阻塞UI
+      setTimeout(async () => {
+        try {
+          await this.preloadRequiredInstruments(Array.from(requiredInstruments));
+          console.log('异步音色预加载完成');
+        } catch (error) {
+          console.error('异步音色预加载失败:', error);
+        }
+      }, 0);
+    }
+  }
+
+  // 创建音色显示控制面板
+  createInstrumentVisibilityPanel() {
+    // 创建面板容器
+    this.instrumentVisibilityPanel = document.createElement('div');
+    this.instrumentVisibilityPanel.className = 'instrument-visibility-panel';
+    this.instrumentVisibilityPanel.style.cssText = `
+      position: absolute;
+      top: 90px;
+      left: 30px;
+      display: flex;
+      flex-direction: row;
+      gap: 15px;
+      align-items: center;
+      justify-content: flex-start;
+      padding: 8px 10px;
+      background-color: transparent;
+      border: none;
+      margin-top: 5px;
+      z-index: 1000;
+      pointer-events: auto;
+    `;
+    
+    // 添加到MIDI编辑器容器中，在控制栏下面
+    const editorContainer = document.querySelector('.midi-editor-container');
+    if (editorContainer) {
+      // 找到控制栏
+      const controlsContainer = editorContainer.querySelector('.midi-editor-controls');
+      if (controlsContainer) {
+        // 在控制栏后插入音色面板
+        controlsContainer.parentNode.insertBefore(this.instrumentVisibilityPanel, controlsContainer.nextSibling);
+      }
+    }
+  }
+
+  // 更新音色显示控制面板
+  updateInstrumentVisibilityPanel() {
+    if (!this.instrumentVisibilityPanel) return;
+    
+    // 获取当前存在的按钮
+    const existingButtons = Array.from(this.instrumentVisibilityPanel.children);
+    const currentInstrumentIds = new Set(this.tracks.map(track => track.instrument));
+    
+    // 找出需要删除的按钮（轨道已删除的音色）
+    const buttonsToRemove = existingButtons.filter(button => {
+      const instrumentId = button.dataset.instrumentId;
+      return !currentInstrumentIds.has(instrumentId);
+    });
+    
+    // 找出需要添加的音色（新轨道）
+    const existingInstrumentIds = new Set(existingButtons.map(button => button.dataset.instrumentId));
+    const instrumentsToAdd = this.tracks.filter(track => !existingInstrumentIds.has(track.instrument));
+    
+    // 找出需要更新的按钮（状态变化）
+    const buttonsToUpdate = existingButtons.filter(button => {
+      const instrumentId = button.dataset.instrumentId;
+      const track = this.tracks.find(t => t.instrument === instrumentId);
+      if (!track) return false;
+      
+      const isVisible = this.visibleInstruments.has(instrumentId);
+      const currentVisible = button.classList.contains('visible');
+      return isVisible !== currentVisible;
+    });
+    
+    // 删除不需要的按钮（带动画）
+    buttonsToRemove.forEach(button => {
+      button.style.transform = 'scale(0)';
+      button.style.opacity = '0';
+      setTimeout(() => {
+        if (button.parentNode) {
+          button.parentNode.removeChild(button);
+        }
+      }, 200);
+    });
+    
+    // 更新现有按钮状态
+    buttonsToUpdate.forEach(button => {
+      const instrumentId = button.dataset.instrumentId;
+      const isVisible = this.visibleInstruments.has(instrumentId);
+      const color = this.getNoteColor(instrumentId);
+      
+      // 更新样式
+      button.style.backgroundColor = color;
+      button.style.borderColor = isVisible ? '#fff' : '#666';
+      button.style.opacity = isVisible ? '1' : '0.5';
+      
+      // 更新类名
+      if (isVisible) {
+        button.classList.add('visible');
+        button.classList.remove('hidden');
+      } else {
+        button.classList.add('hidden');
+        button.classList.remove('visible');
+      }
+      
+      // 更新斜杠显示
+      const slash = button.querySelector('.slash');
+      if (isVisible) {
+        if (slash) slash.remove();
+      } else {
+        if (!slash) {
+          const newSlash = document.createElement('div');
+          newSlash.className = 'slash';
+          newSlash.style.cssText = `
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%) rotate(45deg);
+            width: 2px;
+            height: 14px;
+            background-color: #000;
+            transition: all 0.2s ease;
+          `;
+          button.appendChild(newSlash);
+        }
+      }
+    });
+    
+    // 添加新的按钮（带动画）
+    instrumentsToAdd.forEach(track => {
+      const instrumentId = track.instrument;
+      const isVisible = this.visibleInstruments.has(instrumentId);
+      const color = this.getNoteColor(instrumentId);
+      
+      const button = document.createElement('div');
+      button.className = `instrument-visibility-button ${isVisible ? 'visible' : 'hidden'}`;
+      button.dataset.instrumentId = instrumentId;
+      button.style.cssText = `
+        width: 20px;
+        height: 20px;
+        border-radius: 50%;
+        background-color: ${color};
+        border: 2px solid ${isVisible ? '#fff' : '#666'};
+        cursor: pointer;
+        position: relative;
+        transition: all 0.3s ease;
+        opacity: ${isVisible ? '1' : '0.5'};
+        flex-shrink: 0;
+        transform: scale(0);
+      `;
+      
+      // 如果不可见，添加斜杠
+      if (!isVisible) {
+        button.innerHTML = `
+          <div class="slash" style="
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%) rotate(45deg);
+            width: 2px;
+            height: 14px;
+            background-color: #000;
+            transition: all 0.2s ease;
+          "></div>
+        `;
+      }
+      
+      // 添加点击事件
+      button.addEventListener('click', () => {
+        this.toggleInstrumentVisibility(instrumentId);
+      });
+      
+      // 添加悬停效果
+      button.addEventListener('mouseenter', () => {
+        button.style.transform = 'scale(1.2)';
+      });
+      
+      button.addEventListener('mouseleave', () => {
+        button.style.transform = 'scale(1)';
+      });
+      
+      this.instrumentVisibilityPanel.appendChild(button);
+      
+      // 触发进入动画
+      requestAnimationFrame(() => {
+        button.style.transform = 'scale(1)';
+      });
+    });
+    
+    // 注意：不再在面板为空时重复创建所有按钮，避免初始化时重复元素
+  }
+
+  // 清理空的轨道
+  cleanupEmptyTracks() {
+    // 移除没有音符的轨道
+    this.tracks = this.tracks.filter(track => track.notes.length > 0);
+    
+    // 更新音色显示控制面板（触发删除动画）
+    this.updateInstrumentVisibilityPanel();
+  }
+
+  // 切换音色可见性
+  toggleInstrumentVisibility(instrumentId) {
+    if (this.visibleInstruments.has(instrumentId)) {
+      this.visibleInstruments.delete(instrumentId);
+    } else {
+      this.visibleInstruments.add(instrumentId);
+    }
+    
+    // 更新面板显示
+    this.updateInstrumentVisibilityPanel();
+    
+    // 重绘画布
+    this.draw();
+  }
+
+
+
   // 切换全屏模式
   toggleFullscreen() {
     const editorContainer = document.querySelector('.midi-editor-container');

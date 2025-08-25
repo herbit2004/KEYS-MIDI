@@ -44,4 +44,9 @@ export class InstrumentConfig {
     }
     return names;
   }
+
+  // 获取音色配置（别名方法，与getInstrumentConfig相同）
+  getInstrument(instrumentId) {
+    return this.getInstrumentConfig(instrumentId);
+  }
 }

@@ -67,6 +67,9 @@ export class MainController {
       // 加载音色配置
       await this.instrumentConfig.loadConfig();
       
+      // 立即设置MIDI编辑器的音色配置（在音色初始化之前）
+      this.midiEditor.setInstrumentConfig(this.instrumentConfig);
+      
       // 立即更新前端音色选择列表（在音色初始化之前）
       this.updateToneSelectOptions();
       
@@ -462,7 +465,7 @@ export class MainController {
   }
 
   // 处理音符按下
-  handleNoteOn(key) {
+  async handleNoteOn(key) {
     const note = this.keyMapper.getMidiNote(key);
     if (note !== null) {
       // 如果MIDI编辑器正在录制，记录音符事件
@@ -472,7 +475,8 @@ export class MainController {
       
       // 优先触发音频（关键路径）
       // 如果延音踏板被按下，允许重新触发音符
-      this.audioEngine.playNote(note, 100, this.sustainPedalPressed);
+      // 使用当前选中的音色播放音符
+      await this.audioEngine.playNote(note, 100, this.sustainPedalPressed, this.audioEngine.currentInstrument);
       
       // 异步更新UI，避免阻塞音频触发
       requestAnimationFrame(() => {

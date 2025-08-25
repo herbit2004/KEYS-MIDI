@@ -2,6 +2,7 @@
   "instruments": {
     "sampledPiano": {
       "name": "采样钢琴",
+      "color": "#4CAF50",
       "synth": {
         "type": "Sampler",
         "options": {
@@ -59,6 +60,7 @@
     
     "sampledRhodes": {
       "name": "采样电钢琴",
+      "color": "#FF9800",
       "synth": {
         "type": "Sampler",
         "options": {
@@ -137,6 +139,7 @@
 
     "sampledGuitar": {
       "name": "采样吉他",
+      "color": "#8BC34A",
       "synth": {
         "type": "Sampler",
         "options": {
@@ -172,6 +175,7 @@
 
     "sampledBass": {
       "name": "采样贝斯",
+      "color": "#795548",
       "synth": {
         "type": "Sampler",
         "options": {
@@ -209,6 +213,7 @@
 
     "sampledString": {
       "name": "采样弦乐",
+      "color": "#E91E63",
       "synth": {
         "type": "Sampler",
         "options": {
@@ -262,6 +267,7 @@
 
     "sampledTrumpet": {
       "name": "采样小号",
+      "color": "#FFC107",
       "synth": {
         "type": "Sampler",
         "options": {
@@ -301,6 +307,7 @@
 
     "piano": {
       "name": "piano",
+      "color": "#2196F3",
       "synth": {
         "type": "PolySynth",
         "options": {
@@ -357,6 +364,7 @@
     },
     "guitar": {
       "name": "guitar",
+      "color": "#9C27B0",
       "synth": {
         "type": "PolySynth",
         "options": {
@@ -418,6 +426,7 @@
     },
     "electricGuitar": {
       "name": "electricGuitar",
+      "color": "#F44336",
       "synth": {
         "type": "PolySynth",
         "options": {
@@ -463,6 +472,7 @@
     },
     "acousticBass": {
       "name": "acousticBass",
+      "color": "#607D8B",
       "synth": {
         "type": "PolySynth",
         "options": {
@@ -529,6 +539,7 @@
     },
     "uprightBass": {
       "name": "uprightBass",
+      "color": "#3F51B5",
       "synth": {
         "type": "PolySynth",
         "options": {
@@ -586,6 +597,7 @@
     
     "sampledPercussion": {
       "name": "采样打击乐",
+      "color": "#FF5722",
       "synth": {
         "type": "Sampler",
         "options": {
@@ -655,7 +667,7 @@
           }
         }
       ],
-      "volume": 8
+      "volume": 15
     }
   }
 }

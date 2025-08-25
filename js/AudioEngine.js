@@ -206,6 +206,9 @@ export class AudioEngine {
         this.connectEffects();
       }
 
+      // 确保所有加载的音色都连接到输出
+      this.connectInstrumentToOutput(instrument);
+
       console.log(`音色 ${instrumentId} 懒加载完成`);
       return instrument;
 
@@ -229,23 +232,76 @@ export class AudioEngine {
 
     // 等待Tone.js Sampler加载完成
     return new Promise((resolve, reject) => {
+      let checkCount = 0;
+      const maxChecks = 1000; // 最大检查次数，防止无限循环
+      
+      // 尝试使用Tone.js的内置加载事件
+      if (sampler.onload) {
+        console.log(`采样器 ${instrumentId} 使用内置onload事件`);
+        sampler.onload = () => {
+          console.log(`采样器 ${instrumentId} 通过onload事件完成加载`);
+          resolve();
+        };
+        return;
+      }
+      
       const checkInterval = setInterval(() => {
-        // 检查sampler是否已加载
-        if (sampler.loaded) {
-          const loadedCount = Object.keys(sampler.loaded).length;
-          if (loadedCount >= totalFiles) {
-            clearInterval(checkInterval);
-            resolve();
-          }
+        checkCount++;
+        
+        // 简化的加载检查逻辑
+        let isLoaded = false;
+        
+        // 检查sampler是否已经可用
+        if (sampler.loaded === true) {
+          isLoaded = true;
+        } else if (sampler._buffers && Object.keys(sampler._buffers).length >= totalFiles) {
+          isLoaded = true;
+        } else if (sampler.buffers && Object.keys(sampler.buffers).length >= totalFiles) {
+          isLoaded = true;
+        }
+        
+        // 每20次检查输出一次状态
+        if (checkCount % 20 === 0) {
+          console.log(`采样器 ${instrumentId} 状态检查:`, {
+            checkCount,
+            isLoaded,
+            samplerLoaded: sampler.loaded,
+            hasBuffers: !!sampler._buffers,
+            buffersCount: sampler._buffers ? Object.keys(sampler._buffers).length : 0,
+            totalFiles
+          });
+        }
+        
+        // 如果检测到加载完成，立即结束
+        if (isLoaded) {
+          clearInterval(checkInterval);
+          console.log(`采样器 ${instrumentId} 加载完成`);
+          resolve();
+          return;
+        }
+        
+        // 防止无限循环
+        if (checkCount >= maxChecks) {
+          clearInterval(checkInterval);
+          console.warn(`采样器 ${instrumentId} 检查次数超限，但采样器可能已经可用`);
+          console.log(`最终状态:`, {
+            samplerLoaded: sampler.loaded,
+            hasBuffers: !!sampler._buffers,
+            buffersCount: sampler._buffers ? Object.keys(sampler._buffers).length : 0,
+            totalFiles
+          });
+          // 即使超限也认为加载完成，因为采样器可能已经可用
+          resolve();
         }
       }, 100);
 
-      // 设置超时
-      setTimeout(() => {
-        clearInterval(checkInterval);
-        console.warn(`采样器 ${instrumentId} 加载超时`);
-        resolve(); // 不抛出错误，允许部分加载
-      }, 30000); // 30秒超时
+      // 移除超时限制，让加载完全完成
+      // 只有在真正需要时才设置超时，比如网络问题
+      // setTimeout(() => {
+      //   clearInterval(checkInterval);
+      //   console.warn(`采样器 ${instrumentId} 加载超时`);
+      //   resolve(); // 不抛出错误，允许部分加载
+      // }, 30000); // 30秒超时
     });
   }
 
@@ -262,7 +318,7 @@ export class AudioEngine {
       // 懒加载默认音色
       await this.loadInstrumentLazy(firstInstrumentId);
       
-      console.log(`设置默认音色: ${firstInstrumentId}`);
+      console.log(`初始化完成，默认音色: ${firstInstrumentId}`);
     }
   }
 
@@ -358,7 +414,7 @@ export class AudioEngine {
   }
 
   // 统一的音符播放方法
-  playNote(note, velocity = 100, allowRetrigger = false) {
+  async playNote(note, velocity = 100, allowRetrigger = false, instrumentId = null) {
     const vel = velocity / 127; // 归一化到0-1
     
     // 如果音符已经在播放且不允许重新触发，则不重复创建
@@ -369,11 +425,30 @@ export class AudioEngine {
       this.stopNote(note);
     }
     
-    // 根据音色类型播放音符
-    if (this.currentSynth.type === 'Sampler') {
-      this.playSamplerNote(note, vel);
+    // 确定要使用的音色
+    const targetInstrument = instrumentId || this.currentInstrument;
+    
+    // 确保目标音色已加载（懒加载）
+    if (!this.synths[targetInstrument]) {
+      try {
+        await this.loadInstrumentLazy(targetInstrument);
+      } catch (error) {
+        console.warn(`音色 ${targetInstrument} 加载失败，使用默认音色`);
+        this.playNoteWithSynth(note, vel, this.currentSynth);
+        return;
+      }
+    }
+    
+    // 使用指定音色播放音符
+    this.playNoteWithSynth(note, vel, this.synths[targetInstrument]);
+  }
+
+  // 使用指定合成器播放音符
+  playNoteWithSynth(note, velocity, synth) {
+    if (synth.type === 'Sampler') {
+      this.playSamplerNoteWithSynth(note, velocity, synth);
     } else {
-      this.playSynthNote(note, vel);
+      this.playSynthNoteWithSynth(note, velocity, synth);
     }
   }
 
@@ -397,6 +472,86 @@ export class AudioEngine {
       frequency,
       type: 'synth'
     });
+  }
+
+  // 使用指定合成器播放采样器音符
+  playSamplerNoteWithSynth(note, velocity, synth) {
+    const noteName = Tone.Midi(note).toNote();
+    synth.synth.triggerAttack(noteName, Tone.context.currentTime, velocity);
+    this.activeNotes.set(note, { 
+      synth: synth.synth, 
+      noteName,
+      type: 'sampler'
+    });
+  }
+
+  // 使用指定合成器播放合成器音符
+  playSynthNoteWithSynth(note, velocity, synth) {
+    const frequency = Tone.Midi(note).toFrequency();
+    synth.synth.triggerAttack(frequency, Tone.context.currentTime, velocity);
+    this.activeNotes.set(note, { 
+      synth: synth.synth, 
+      frequency,
+      type: 'synth'
+    });
+  }
+
+
+
+  // 连接音色到输出
+  connectInstrumentToOutput(instrument) {
+    if (!instrument) return;
+    
+    // 断开之前的连接
+    if (instrument.synth) {
+      instrument.synth.disconnect();
+    }
+    
+    // 根据音色类型连接
+    if (instrument.type === 'Sampler') {
+      this.connectSamplerToOutput(instrument);
+    } else {
+      this.connectSynthToOutput(instrument);
+    }
+  }
+
+  // 连接采样器到输出
+  connectSamplerToOutput(instrument) {
+    const sampler = instrument.synth;
+    
+    // 应用采样器的音量控制
+    if (!instrument.volumeNode) {
+      instrument.volumeNode = new Tone.Volume(instrument.volume);
+    } else {
+      instrument.volumeNode.volume.value = instrument.volume;
+    }
+    
+    // 连接采样器到效果链
+    sampler.connect(instrument.volumeNode);
+    instrument.volumeNode.connect(this.globalEffects.delay);
+  }
+
+  // 连接合成器到输出
+  connectSynthToOutput(instrument) {
+    let lastNode = instrument.synth;
+    
+    // 连接音色的专属效果链
+    instrument.effects.forEach(effect => {
+      lastNode.connect(effect);
+      lastNode = effect;
+    });
+    
+    // 应用音色的独立音量控制
+    if (!instrument.volumeNode) {
+      instrument.volumeNode = new Tone.Volume(instrument.volume);
+    } else {
+      instrument.volumeNode.volume.value = instrument.volume;
+    }
+    lastNode.connect(instrument.volumeNode);
+    lastNode = instrument.volumeNode;
+    
+    // 连接全局效果链
+    lastNode.connect(this.globalEffects.delay);
   }
 
   // 统一的音符停止方法
