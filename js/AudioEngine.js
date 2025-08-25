@@ -421,8 +421,24 @@ export class AudioEngine {
   setGlobalDelay(params) {
     const { delayTime, feedback, wet } = params;
     if (delayTime !== undefined) this.globalEffects.delay.delayTime.value = Math.max(0, Math.min(5, delayTime));
-    if (feedback !== undefined) this.globalEffects.delay.feedback.value = Math.max(0, Math.min(1, feedback));
-    if (wet !== undefined) this.globalEffects.delay.wet.value = Math.max(0, Math.min(1, wet));
+    if (feedback !== undefined) {
+      const feedbackValue = Math.max(0, Math.min(1, feedback));
+      this.globalEffects.delay.feedback.value = feedbackValue;
+      
+      // 当反馈为0时，确保延迟效果完全关闭
+      if (feedbackValue === 0) {
+        this.globalEffects.delay.wet.value = 0;
+      } else if (wet !== undefined) {
+        // 反馈不为0时，应用指定的wet值
+        this.globalEffects.delay.wet.value = Math.max(0, Math.min(1, wet));
+      } else {
+        // 反馈不为0但没有指定wet时，使用默认wet值
+        this.globalEffects.delay.wet.value = 0.2;
+      }
+    } else if (wet !== undefined) {
+      // 只设置wet值，不改变feedback
+      this.globalEffects.delay.wet.value = Math.max(0, Math.min(1, wet));
+    }
   }
 
   // 控制全局混响效果

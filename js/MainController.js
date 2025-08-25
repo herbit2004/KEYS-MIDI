@@ -241,36 +241,14 @@ export class MainController {
       toneSelect.addEventListener('change', async (event) => {
         const instrument = event.target.value;
         await this.audioEngine.changeInstrument(instrument);
-        
-        // 更新音色列表显示（移除云朵图标）
         this.updateToneSelectOptions();
-        
-        // 选择音色后移除焦点，避免显示选中状态
         toneSelect.blur();
       });
       
-      // 当用户点击select元素时，确保在交互结束后移除焦点
-      toneSelect.addEventListener('blur', () => {
-        // 可以在这里添加其他处理逻辑
-      });
-      
-      // 处理select元素的点击事件，确保在菜单收起后移除焦点
-      let isSelectOpen = false;
-      toneSelect.addEventListener('click', () => {
-        if (isSelectOpen) {
-          // 如果菜单已展开，则收起并失去焦点
+      // 简化的菜单展开/收起逻辑
+      document.addEventListener('click', (event) => {
+        if (!toneSelect.contains(event.target)) {
           toneSelect.blur();
-          isSelectOpen = false;
-        } else {
-          // 如果菜单未展开，则标记为已展开
-          isSelectOpen = true;
-          // 当菜单失去焦点时，标记为已收起
-          setTimeout(() => {
-            toneSelect.addEventListener('blur', function onBlur() {
-              isSelectOpen = false;
-              toneSelect.removeEventListener('blur', onBlur);
-            });
-          }, 0);
         }
       });
     }

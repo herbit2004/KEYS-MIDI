@@ -557,47 +557,41 @@ export class MidiEditor {
       }
     });
     
-    // 监听document上的mousemove事件，以处理鼠标移出canvas区域的情况
+    // 简化的框选处理：监听document上的mousemove和mouseup事件
     document.addEventListener('mousemove', (e) => {
       if (this.isSelecting) {
         const rect = this.canvas.getBoundingClientRect();
         const x = e.clientX - rect.left;
         const y = e.clientY - rect.top;
         
-        // 检查鼠标是否在canvas区域内
-        if (x >= 0 && x <= rect.width && y >= 0 && y <= rect.height) {
-          // 如果在canvas区域内，更新框选结束位置
-          this.selectionEndX = x;
-          this.selectionEndY = y;
-          
-          // 设置鼠标样式为十字
-          this.canvas.style.cursor = 'crosshair';
-          
-          // 重置悬停状态
-          this.hoveredNote = null;
-          
-          // 自动滚动逻辑
-          this.autoScrollOnSelection(e);
-          
-          // 重绘
-          this.draw();
-        }
+        // 更新框选结束位置（限制在canvas范围内）
+        this.selectionEndX = Math.max(0, Math.min(rect.width, x));
+        this.selectionEndY = Math.max(0, Math.min(rect.height, y));
+        
+        // 设置鼠标样式为十字
+        this.canvas.style.cursor = 'crosshair';
+        
+        // 自动滚动逻辑
+        this.autoScrollOnSelection(e);
+        
+        // 重绘
+        this.draw();
       }
     });
     
-    // 鼠标释放事件
+    // 鼠标释放事件（canvas内）
     this.canvas.addEventListener('mouseup', (e) => {
       if (this.isSelecting) {
-        // 检查是否是原地点击（没有拖拽）
+        // 检查是否是原地点击
         const deltaX = Math.abs(this.selectionEndX - this.selectionStartX);
         const deltaY = Math.abs(this.selectionEndY - this.selectionStartY);
         
-        // 如果是原地点击，则更新播放头位置
         if (deltaX < 5 && deltaY < 5) {
+          // 原地点击：更新播放头位置
           this.isSelecting = false;
           this.finishDrag();
         } else {
-          // 否则完成框选
+          // 拖拽：完成框选
           this.finishSelection();
         }
       } else {
@@ -611,10 +605,10 @@ export class MidiEditor {
       }
     });
     
-    // 监听document上的mouseup事件，以处理鼠标在窗口外释放的情况
+    // 全局鼠标释放事件（处理鼠标在canvas外释放的情况）
     document.addEventListener('mouseup', (e) => {
       if (this.isSelecting) {
-        // 完成框选
+        // 完成框选（无论鼠标在哪里释放）
         this.finishSelection();
       }
       
@@ -627,18 +621,9 @@ export class MidiEditor {
     
     // 鼠标离开canvas区域
     this.canvas.addEventListener('mouseleave', () => {
-      if (this.isSelecting) {
-        // 不再完成框选或更新播放头位置，保持选择状态
-        // 但需要清理自动滚动定时器
-        if (this.scrollTimer) {
-          clearInterval(this.scrollTimer);
-          this.scrollTimer = null;
-        }
-      } else {
+      if (!this.isSelecting) {
         // 不在框选状态下才更新播放头位置
         this.finishDrag();
-        
-        // 隐藏预览播放头
         this.previewPlayheadPosition = -1;
         this.draw();
       }
