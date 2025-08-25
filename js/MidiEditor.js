@@ -777,7 +777,7 @@ export class MidiEditor {
     for (const track of this.tracks) {
       for (const noteEntry of track.notes) {
         if (noteEntry.played) {
-          this.audioEngine.stopNote(noteEntry.midiNote);
+          this.audioEngine.stopNote(noteEntry.midiNote, track.instrument);
           noteEntry.played = false;
         }
       }
@@ -961,7 +961,7 @@ export class MidiEditor {
     for (const track of this.tracks) {
       for (const noteEntry of track.notes) {
         if (noteEntry.played) {
-          this.audioEngine.stopNote(noteEntry.midiNote);
+          this.audioEngine.stopNote(noteEntry.midiNote, track.instrument);
           noteEntry.played = false;
         }
       }
@@ -1787,7 +1787,7 @@ export class MidiEditor {
           }
         } else if (noteEntry.endTime <= currentBeats && noteEntry.played) {
           // 停止音符
-          this.audioEngine.stopNote(noteEntry.midiNote);
+          this.audioEngine.stopNote(noteEntry.midiNote, track.instrument);
           noteEntry.played = false;
         } else if (noteEntry.startTime > currentBeats && noteEntry.played) {
           // 重置未来的音符状态

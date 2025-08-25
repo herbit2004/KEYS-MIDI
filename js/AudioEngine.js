@@ -417,16 +417,19 @@ export class AudioEngine {
   async playNote(note, velocity = 100, allowRetrigger = false, instrumentId = null) {
     const vel = velocity / 127; // 归一化到0-1
     
-    // 如果音符已经在播放且不允许重新触发，则不重复创建
-    if (this.activeNotes.has(note) && !allowRetrigger) return;
-    
-    // 如果允许重新触发，先释放当前音符
-    if (this.activeNotes.has(note) && allowRetrigger) {
-      this.stopNote(note);
-    }
-    
     // 确定要使用的音色
     const targetInstrument = instrumentId || this.currentInstrument;
+    
+    // 创建音符和音色的唯一标识符
+    const noteKey = `${note}-${targetInstrument}`;
+    
+    // 如果音符已经在播放且不允许重新触发，则不重复创建
+    if (this.activeNotes.has(noteKey) && !allowRetrigger) return;
+    
+    // 如果允许重新触发，先释放当前音符
+    if (this.activeNotes.has(noteKey) && allowRetrigger) {
+      this.stopNote(note, targetInstrument);
+    }
     
     // 确保目标音色已加载（懒加载）
     if (!this.synths[targetInstrument]) {
@@ -434,21 +437,21 @@ export class AudioEngine {
         await this.loadInstrumentLazy(targetInstrument);
       } catch (error) {
         console.warn(`音色 ${targetInstrument} 加载失败，使用默认音色`);
-        this.playNoteWithSynth(note, vel, this.currentSynth);
+        this.playNoteWithSynth(note, vel, this.currentSynth, targetInstrument);
         return;
       }
     }
     
     // 使用指定音色播放音符
-    this.playNoteWithSynth(note, vel, this.synths[targetInstrument]);
+    this.playNoteWithSynth(note, vel, this.synths[targetInstrument], targetInstrument);
   }
 
   // 使用指定合成器播放音符
-  playNoteWithSynth(note, velocity, synth) {
+  playNoteWithSynth(note, velocity, synth, instrumentId) {
     if (synth.type === 'Sampler') {
-      this.playSamplerNoteWithSynth(note, velocity, synth);
+      this.playSamplerNoteWithSynth(note, velocity, synth, instrumentId);
     } else {
-      this.playSynthNoteWithSynth(note, velocity, synth);
+      this.playSynthNoteWithSynth(note, velocity, synth, instrumentId);
     }
   }
 
@@ -475,24 +478,28 @@ export class AudioEngine {
   }
 
   // 使用指定合成器播放采样器音符
-  playSamplerNoteWithSynth(note, velocity, synth) {
+  playSamplerNoteWithSynth(note, velocity, synth, instrumentId) {
     const noteName = Tone.Midi(note).toNote();
     synth.synth.triggerAttack(noteName, Tone.context.currentTime, velocity);
-    this.activeNotes.set(note, { 
+    const noteKey = `${note}-${instrumentId}`;
+    this.activeNotes.set(noteKey, { 
       synth: synth.synth, 
       noteName,
-      type: 'sampler'
+      type: 'sampler',
+      instrumentId: instrumentId
     });
   }
 
   // 使用指定合成器播放合成器音符
-  playSynthNoteWithSynth(note, velocity, synth) {
+  playSynthNoteWithSynth(note, velocity, synth, instrumentId) {
     const frequency = Tone.Midi(note).toFrequency();
     synth.synth.triggerAttack(frequency, Tone.context.currentTime, velocity);
-    this.activeNotes.set(note, { 
+    const noteKey = `${note}-${instrumentId}`;
+    this.activeNotes.set(noteKey, { 
       synth: synth.synth, 
       frequency,
-      type: 'synth'
+      type: 'synth',
+      instrumentId: instrumentId
     });
   }
 
@@ -555,10 +562,22 @@ export class AudioEngine {
   }
 
   // 统一的音符停止方法
-  stopNote(note) {
-    if (!this.activeNotes.has(note)) return;
+  stopNote(note, instrumentId = null) {
+    // 如果没有指定音色，尝试查找所有匹配的音符
+    if (!instrumentId) {
+      // 查找所有以该音符开头的键
+      for (const [key, noteInfo] of this.activeNotes.entries()) {
+        if (key.startsWith(`${note}-`)) {
+          this.stopNote(note, noteInfo.instrumentId);
+        }
+      }
+      return;
+    }
     
-    const noteInfo = this.activeNotes.get(note);
+    const noteKey = `${note}-${instrumentId}`;
+    if (!this.activeNotes.has(noteKey)) return;
+    
+    const noteInfo = this.activeNotes.get(noteKey);
     
     if (noteInfo.type === 'sampler') {
       // 采样器音符
@@ -569,7 +588,7 @@ export class AudioEngine {
     }
     
     // 从活动音符中移除
-    this.activeNotes.delete(note);
+    this.activeNotes.delete(noteKey);
   }
 
   // 控制全局延迟效果

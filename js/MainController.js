@@ -504,8 +504,8 @@ export class MainController {
         this.visualManager.releaseKey(key);
         console.log(`延音保持音符: ${key} (MIDI: ${note})`);
       } else {
-        // 停止音频
-        this.audioEngine.stopNote(note);
+        // 停止音频 - 停止当前音色的音符
+        this.audioEngine.stopNote(note, this.audioEngine.currentInstrument);
         // 更新界面
         this.visualManager.releaseKey(key);
         
@@ -518,8 +518,8 @@ export class MainController {
   releaseSustainedNotes() {
     // 释放所有延音期间保持的音符
     this.sustainedNotes.forEach((key, note) => {
-      // 停止音频
-      this.audioEngine.stopNote(note);
+      // 停止音频 - 停止当前音色的音符
+      this.audioEngine.stopNote(note, this.audioEngine.currentInstrument);
       console.log(`释放延音保持的音符: ${key} (MIDI: ${note})`);
     });
     
