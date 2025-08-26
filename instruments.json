@@ -253,7 +253,7 @@
           }
         }
       ],
-      "volume": 15
+      "volume": 20
     },
 
     "sampledGuitar2": {
@@ -294,7 +294,107 @@
           }
         }
       ],
-      "volume": 15
+      "volume": 8
+    },
+
+    "sampledMutedGuitar": {
+      "name": "采样闷音电吉他",
+      "color": "#663300",
+      "synth": {
+        "type": "Sampler",
+        "options": {
+          "urls": {
+            "A2": "A2.wav",
+            "A3": "A3.wav",
+            "C3": "C3.wav",
+            "C4": "C4.wav",
+            "E3": "E3.wav"
+          },
+          "baseUrl": "samples/sampleMutedguitar/",
+          "release": 1.0,
+          "attack": 0.01,
+          "decay": 0.2,
+          "sustain": 0.8
+        }
+      },
+      "effects": [
+        {
+          "type": "Reverb",
+          "options": {
+            "roomSize": 0.4,
+            "dampening": 4000,
+            "wet": 0.4
+          }
+        }
+      ],
+      "volume": 12
+    },
+    "sampledNylonGuitar": {
+      "name": "采样尼龙吉他",
+      "color": "#8B4513",
+      "synth": {
+        "type": "Sampler",
+        "options": {
+          "urls": {
+            "A2": "A2.wav",
+            "B3": "B3.wav",
+            "D2": "D2.wav",
+            "D3": "D3.wav",
+            "E2": "E2.wav",
+            "E4": "E4.wav",
+            "G2": "G2.wav"
+          },
+          "baseUrl": "samples/sampleNylonguitar/",
+          "release": 1.0,
+          "attack": 0.01,
+          "decay": 0.2,
+          "sustain": 0.8
+        }
+      },
+      "effects": [
+        {
+          "type": "Reverb",
+          "options": {
+            "roomSize": 0.4,
+            "dampening": 4000,
+            "wet": 0.4
+          }
+        }
+      ],
+      "volume": 17
+    },
+    "sampledCleanElectricGuitar": {
+      "name": "采样清音电吉他",
+      "color": "#90EE90",
+      "synth": {
+        "type": "Sampler",
+        "options": {
+          "urls": {
+            "A2": "A2.wav",
+            "B3": "B3.wav",
+            "D3": "D3.wav",
+            "E2": "E2.wav",
+            "E4": "E4.wav",
+            "G3": "G3.wav"
+          },
+          "baseUrl": "samples/sampleCleanelectricguitar/",
+          "release": 1.0,
+          "attack": 0.01,
+          "decay": 0.2,
+          "sustain": 0.8
+        }
+      },
+      "effects": [
+        {
+          "type": "Reverb",
+          "options": {
+            "roomSize": 0.4,
+            "dampening": 4000,
+            "wet": 0.4
+          }
+        }
+      ],
+      "volume": 8
     },
 
     "sampledBass": {
@@ -332,7 +432,7 @@
           }
         }
       ],
-      "volume": 18
+      "volume": 13
     },
 
     "sampledString": {
@@ -426,44 +526,7 @@
           }
         }
       ],
-      "volume": 25
-    },
-    
-    "sampledXylophone": {
-      "name": "采样木琴",
-      "color": "#f0e68c",
-      "synth": {
-        "type": "Sampler",
-        "options": {
-          "urls": {
-            "C4": "C3_ff.wav",
-            "C5": "C4_ff.wav",
-            "C6": "C5_ff.wav",
-            "C7": "C6_ff.wav",
-            "C8": "C7_ff.wav",
-            "G4": "G3_ff.wav",
-            "G5": "G4_ff.wav",
-            "G6": "G5_ff.wav",
-            "G7": "G6_ff.wav"
-          },
-          "baseUrl": "samples/sampleXylophone/",
-          "release": 1.0,
-          "attack": 0.01,
-          "decay": 0.1,
-          "sustain": 0.2
-        }
-      },
-      "effects": [
-        {
-          "type": "Reverb",
-          "options": {
-            "roomSize": 0.3,
-            "dampening": 5000,
-            "wet": 0.3
-          }
-        }
-      ],
-      "volume": 15
+      "volume": 28
     },
 
     "sampledClarinet": {
@@ -501,6 +564,43 @@
         }
       ],
       "volume": 13
+    },
+    
+    "sampledXylophone": {
+      "name": "采样木琴",
+      "color": "#f0e68c",
+      "synth": {
+        "type": "Sampler",
+        "options": {
+          "urls": {
+            "C4": "C3_ff.wav",
+            "C5": "C4_ff.wav",
+            "C6": "C5_ff.wav",
+            "C7": "C6_ff.wav",
+            "C8": "C7_ff.wav",
+            "G4": "G3_ff.wav",
+            "G5": "G4_ff.wav",
+            "G6": "G5_ff.wav",
+            "G7": "G6_ff.wav"
+          },
+          "baseUrl": "samples/sampleXylophone/",
+          "release": 1.0,
+          "attack": 0.01,
+          "decay": 0.1,
+          "sustain": 0.2
+        }
+      },
+      "effects": [
+        {
+          "type": "Reverb",
+          "options": {
+            "roomSize": 0.3,
+            "dampening": 5000,
+            "wet": 0.3
+          }
+        }
+      ],
+      "volume": 15
     },
 
     "sampledHarp": {
@@ -584,7 +684,7 @@
           }
         }
       ],
-      "volume": 12
+      "volume": 10
     },
 
     "sampledPercussion": {
