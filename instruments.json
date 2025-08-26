@@ -58,6 +58,49 @@
       "volume": 10
     },
     
+    "sampledOldPiano": {
+      "name": "采样老钢琴",
+      "color": "#696969",
+      "synth": {
+        "type": "Sampler",
+        "options": {
+          "urls": {
+            "A0": "A0.wav",
+            "A1": "A1.wav",
+            "A2": "A2.wav",
+            "A3": "A3.wav",
+            "A4": "A4.wav",
+            "A5": "A5.wav",
+            "A6": "A6.wav",
+            "A7": "A7.wav",
+            "C1": "C1.wav",
+            "C2": "C2.wav",
+            "C3": "C3.wav",
+            "C4": "C4.wav",
+            "C5": "C5.wav",
+            "C6": "C6.wav",
+            "C7": "C7.wav"
+          },
+          "baseUrl": "samples/sampleOldPiano/",
+          "release": 1.2,
+          "attack": 0.01,
+          "decay": 0.1,
+          "sustain": 0.8
+        }
+      },
+      "effects": [
+        {
+          "type": "Reverb",
+          "options": {
+            "roomSize": 0.4,
+            "dampening": 4000,
+            "wet": 0.4
+          }
+        }
+      ],
+      "volume": 14
+    },
+
     "sampledRhodes": {
       "name": "采样Rhodes",
       "color": "#9b66f2",
@@ -393,15 +436,15 @@
         "type": "Sampler",
         "options": {
           "urls": {
-            "C3": "C3_ff.wav",
-            "C4": "C4_ff.wav",
-            "C5": "C5_ff.wav",
-            "C6": "C6_ff.wav",
-            "C7": "C7_ff.wav",
-            "G3": "G3_ff.wav",
-            "G4": "G4_ff.wav",
-            "G5": "G5_ff.wav",
-            "G6": "G6_ff.wav"
+            "C4": "C3_ff.wav",
+            "C5": "C4_ff.wav",
+            "C6": "C5_ff.wav",
+            "C7": "C6_ff.wav",
+            "C8": "C7_ff.wav",
+            "G4": "G3_ff.wav",
+            "G5": "G4_ff.wav",
+            "G6": "G5_ff.wav",
+            "G7": "G6_ff.wav"
           },
           "baseUrl": "samples/sampleXylophone/",
           "release": 1.0,
@@ -420,7 +463,128 @@
           }
         }
       ],
-      "volume": 18
+      "volume": 15
+    },
+
+    "sampledClarinet": {
+      "name": "采样单簧管",
+      "color": "#20B2AA",
+      "synth": {
+        "type": "Sampler",
+        "options": {
+          "urls": {
+            "Bb3": "Bb3.wav",
+            "Bb4": "Bb4.wav",
+            "Bb5": "Bb5.wav",
+            "D3": "D3.wav",
+            "D4": "D4.wav",
+            "D5": "D5.wav",
+            "F3": "F3.wav",
+            "F4": "F4.wav",
+            "F5": "F5.wav"
+          },
+          "baseUrl": "samples/sampleClarinet/",
+          "release": 1.2,
+          "attack": 0.02,
+          "decay": 0.3,
+          "sustain": 0.7
+        }
+      },
+      "effects": [
+        {
+          "type": "Reverb",
+          "options": {
+            "roomSize": 0.4,
+            "dampening": 4000,
+            "wet": 0.4
+          }
+        }
+      ],
+      "volume": 13
+    },
+
+    "sampledHarp": {
+      "name": "采样竖琴",
+      "color": "#D8BFD8",
+      "synth": {
+        "type": "Sampler",
+        "options": {
+          "urls": {
+            "A2": "A2_mf1.wav",
+            "A6": "A6_mf1.wav",
+            "B1": "B1_mf1.wav",
+            "B3": "B3_mf1.wav",
+            "B5": "B5_mf1.wav",
+            "B6": "B6_mf1.wav",
+            "C3": "C3_mf3.wav",
+            "C5": "C5_f1.wav",
+            "D2": "D2_f1.wav",
+            "D4": "D4_mf1.wav",
+            "D6": "D6_mf1.wav",
+            "D7": "D7_f1.wav",
+            "E1": "E1_f1.wav",
+            "E3": "E3_mf1.wav",
+            "E5": "E5_mf1.wav"
+          },
+          "baseUrl": "samples/sampleHarp/",
+          "release": 1.5,
+          "attack": 0.01,
+          "decay": 0.2,
+          "sustain": 0.6
+        }
+      },
+      "effects": [
+        {
+          "type": "Reverb",
+          "options": {
+            "roomSize": 0.4,
+            "dampening": 4000,
+            "wet": 0.4
+          }
+        }
+      ],
+      "volume": 14
+    },
+
+    "sampledSacphone": {
+      "name": "采样萨克斯风",
+      "color": "#FF8C00",
+      "synth": {
+        "type": "Sampler",
+        "options": {
+          "urls": {
+            "C3": "C3_v2.wav",
+            "C4": "C4_v2.wav",
+            "C5": "C5_v3.wav",
+            "C6": "C6_v3.wav",
+            "E2": "E2_v3.wav",
+            "E3": "E3_v2.wav",
+            "E4": "E4_v3.wav",
+            "E5": "E5_v3.wav",
+            "E6": "E6_v3.wav",
+            "G#2": "G#2_v2.wav",
+            "G#3": "G#3_v2.wav",
+            "G#4": "G#4_v3.wav",
+            "G#5": "G#5_v3.wav"
+          },
+          "baseUrl": "samples/sampleSacphone/",
+          "release": 1.3,
+          "attack": 0.03,
+          "decay": 0.4,
+          "sustain": 0.7
+        }
+      },
+      "effects": [
+        {
+          "type": "Reverb",
+          "options": {
+            "roomSize": 0.4,
+            "dampening": 4000,
+            "wet": 0.4
+          }
+        }
+      ],
+      "volume": 12
     },
 
     "sampledPercussion": {
