@@ -59,7 +59,7 @@
     },
     
     "sampledRhodes": {
-      "name": "采样电钢琴",
+      "name": "采样Rhodes",
       "color": "#9b66f2",
       "synth": {
         "type": "Sampler",
@@ -136,6 +136,46 @@
       ],
       "volume": 20
     },
+    
+    "sampledYamahaDX7": {
+      "name": "采样DX7",
+      "color": "#3cb371",
+      "synth": {
+        "type": "Sampler",
+        "options": {
+          "urls": {
+            "C2": "C2v80.wav",
+            "C3": "C3v80.wav",
+            "C4": "C4v80.wav",
+            "C5": "C5v80.wav",
+            "C6": "C6v80.wav",
+            "C7": "C7v80.wav",
+            "F#1": "F#1v80.wav",
+            "F#2": "F#2v80.wav",
+            "F#3": "F#3v80.wav",
+            "F#4": "F#4v80.wav",
+            "F#5": "F#5v80.wav",
+            "F#6": "F#6v80.wav"
+          },
+          "baseUrl": "samples/sampleYamahaDX7/",
+          "release": 1.2,
+          "attack": 0.02,
+          "decay": 0.4,
+          "sustain": 0.6
+        }
+      },
+      "effects": [
+        {
+          "type": "Reverb",
+          "options": {
+            "roomSize": 0.4,
+            "dampening": 4000,
+            "wet": 0.4
+          }
+        }
+      ],
+      "volume": 12
+    },
 
     "sampledGuitar": {
       "name": "采样吉他",
@@ -154,6 +194,47 @@
             "G3": "G3.wav"
           },
           "baseUrl": "samples/sampleGuitar/",
+          "release": 1.5,
+          "attack": 0.01,
+          "decay": 0.2,
+          "sustain": 0.7
+        }
+      },
+      "effects": [
+        {
+          "type": "Reverb",
+          "options": {
+            "roomSize": 0.4,
+            "dampening": 4000,
+            "wet": 0.4
+          }
+        }
+      ],
+      "volume": 15
+    },
+
+    "sampledGuitar2": {
+      "name": "采样吉他2",
+      "color": "#e9967a",
+      "synth": {
+        "type": "Sampler",
+        "options": {
+          "urls": {
+            "A2": "A2.wav",
+            "A4": "A4.wav",
+            "A5": "A5.wav",
+            "C4": "C4.wav",
+            "C5": "C5.wav",
+            "C6": "C6.wav",
+            "D#3": "D#3.wav",
+            "D#4": "D#4.wav",
+            "D#5": "D#5.wav",
+            "E2": "E2.wav",
+            "F#4": "F#4.wav",
+            "F#5": "F#5.wav",
+            "G#3": "G#3.wav"
+          },
+          "baseUrl": "samples/sampleGuitar2/",
           "release": 1.5,
           "attack": 0.01,
           "decay": 0.2,
@@ -305,6 +386,43 @@
       "volume": 25
     },
     
+    "sampledXylophone": {
+      "name": "采样木琴",
+      "color": "#f0e68c",
+      "synth": {
+        "type": "Sampler",
+        "options": {
+          "urls": {
+            "C3": "C3_ff.wav",
+            "C4": "C4_ff.wav",
+            "C5": "C5_ff.wav",
+            "C6": "C6_ff.wav",
+            "C7": "C7_ff.wav",
+            "G3": "G3_ff.wav",
+            "G4": "G4_ff.wav",
+            "G5": "G5_ff.wav",
+            "G6": "G6_ff.wav"
+          },
+          "baseUrl": "samples/sampleXylophone/",
+          "release": 1.0,
+          "attack": 0.01,
+          "decay": 0.1,
+          "sustain": 0.2
+        }
+      },
+      "effects": [
+        {
+          "type": "Reverb",
+          "options": {
+            "roomSize": 0.3,
+            "dampening": 5000,
+            "wet": 0.3
+          }
+        }
+      ],
+      "volume": 18
+    },
+
     "sampledPercussion": {
       "name": "采样打击乐",
       "color": "#F54F4F",

@@ -130,6 +130,9 @@ export class AudioEngine {
     const {
       baseUrl,
       urls,
+      loop,
+      loopStart,
+      loopEnd,
       ...samplerOptions
     } = options;
 
@@ -138,17 +141,34 @@ export class AudioEngine {
       return null;
     }
 
-    console.log('创建采样器:', {
-      baseUrl,
-      noteCount: Object.keys(urls).length,
-      notes: Object.keys(urls)
-    });
-
-    return new Tone.Sampler({
+    // 准备采样器选项，包括可能的loop参数
+    const samplerConfig = {
       urls: urls,
       baseUrl: baseUrl,
       ...samplerOptions
+    };
+    
+    // 如果配置了loop相关参数，添加到采样器配置中
+    if (loop !== undefined) {
+      samplerConfig.loop = loop;
+      
+      // 添加loopStart和loopEnd参数（如果存在）
+      if (loopStart !== undefined) {
+        samplerConfig.loopStart = loopStart;
+      }
+      if (loopEnd !== undefined) {
+        samplerConfig.loopEnd = loopEnd;
+      }
+    }
+
+    console.log('创建采样器:', {
+      baseUrl,
+      noteCount: Object.keys(urls).length,
+      notes: Object.keys(urls),
+      hasLoop: loop === true
     });
+
+    return new Tone.Sampler(samplerConfig);
   }
 
   // 懒加载音色
@@ -480,15 +500,21 @@ export class AudioEngine {
   // 使用指定合成器播放采样器音符
   playSamplerNoteWithSynth(note, velocity, synth, instrumentId) {
     const noteName = Tone.Midi(note).toNote();
+    
+    // 标准播放方式
     synth.synth.triggerAttack(noteName, Tone.context.currentTime, velocity);
+    
     const noteKey = `${note}-${instrumentId}`;
-    this.activeNotes.set(noteKey, { 
-      synth: synth.synth, 
+    this.activeNotes.set(noteKey, {
+      synth: synth.synth,
       noteName,
       type: 'sampler',
-      instrumentId: instrumentId
+      instrumentId: instrumentId,
+      startTime: Tone.context.currentTime
     });
   }
+  
+
 
   // 使用指定合成器播放合成器音符
   playSynthNoteWithSynth(note, velocity, synth, instrumentId) {
@@ -580,8 +606,33 @@ export class AudioEngine {
     const noteInfo = this.activeNotes.get(noteKey);
     
     if (noteInfo.type === 'sampler') {
-      // 采样器音符
-      noteInfo.synth.triggerRelease(noteInfo.noteName);
+      // 采样器音符 - 对于带有loop的采样，确保完全停止循环
+      if (noteInfo.hasLoop) {
+        // 对于带有loop的采样，确保停止所有循环
+        try {
+          // 首先尝试常规的triggerRelease
+          noteInfo.synth.triggerRelease(noteInfo.noteName);
+          
+          // 从自定义循环系统中移除循环信息
+          if (this.customLoopSystem && this.customLoopSystem.activeLoops) {
+            this.customLoopSystem.activeLoops.delete(noteKey);
+            console.log(`从循环系统中移除: ${noteInfo.noteName}`);
+          }
+          
+          // 额外的安全措施：检查是否有其他方法可以强制停止采样
+          if (noteInfo.synth._players && noteInfo.synth._players[noteInfo.noteName]) {
+            const player = noteInfo.synth._players[noteInfo.noteName];
+            if (player.stop) {
+              player.stop();
+            }
+          }
+        } catch (error) {
+          console.warn('停止带有loop的采样时出错:', error);
+        }
+      } else {
+        // 常规采样停止
+        noteInfo.synth.triggerRelease(noteInfo.noteName);
+      }
     } else {
       // 合成器音符
       noteInfo.synth.triggerRelease(noteInfo.frequency);

@@ -2705,6 +2705,9 @@ export class MidiEditor {
         button.style.transform = 'scale(1)';
       });
       
+      // 添加拖拽功能
+      this.setupDragAndDrop(button);
+      
       this.instrumentVisibilityPanel.appendChild(button);
       
       // 触发进入动画
@@ -2714,6 +2717,178 @@ export class MidiEditor {
     });
     
     // 注意：不再在面板为空时重复创建所有按钮，避免初始化时重复元素
+  }
+  
+  // 设置拖拽排序功能
+  setupDragAndDrop(button) {
+    let isDragging = false;
+    let draggedButton = null;
+    let originalX = 0;
+    let originalY = 0;
+    let offsetX = 0;
+    let offsetY = 0;
+    let ghostElement = null;
+    let parent = this.instrumentVisibilityPanel;
+    
+    // 鼠标按下事件 - 开始拖拽
+    button.addEventListener('mousedown', (e) => {
+      // 只有按下左键才开始拖拽
+      if (e.button !== 0) return;
+      
+      // 阻止默认行为，避免文本选择等
+      e.preventDefault();
+      
+      isDragging = true;
+      draggedButton = button;
+      
+      // 计算鼠标相对于按钮的偏移量
+      const rect = button.getBoundingClientRect();
+      offsetX = e.clientX - rect.left;
+      offsetY = e.clientY - rect.top;
+      
+      // 存储原始位置
+      originalX = button.style.left || '';
+      originalY = button.style.top || '';
+      
+      // 设置按钮为相对定位
+      button.style.position = 'relative';
+      button.style.zIndex = '2000';
+      button.style.opacity = '0.6';
+      
+      // 创建幽灵元素作为拖拽指示器
+      createGhostElement();
+      
+      // 添加全局事件监听
+      document.addEventListener('mousemove', onMouseMove);
+      document.addEventListener('mouseup', onMouseUp);
+    });
+    
+    // 创建幽灵元素
+    function createGhostElement() {
+      ghostElement = document.createElement('div');
+      ghostElement.className = 'ghost-drag-element';
+      ghostElement.style.cssText = `
+        width: 24px;
+        height: 24px;
+        border-radius: 50%;
+        background-color: ${button.style.backgroundColor};
+        border: 2px solid #00ccff;
+        box-shadow: 0 0 10px rgba(0, 204, 255, 0.7);
+        position: fixed;
+        z-index: 3000;
+        pointer-events: none;
+        opacity: 0.9;
+      `;
+      
+      document.body.appendChild(ghostElement);
+    }
+    
+    // 鼠标移动事件 - 拖动中
+    function onMouseMove(e) {
+      if (!isDragging || !draggedButton || !ghostElement) return;
+      
+      // 更新幽灵元素位置
+      ghostElement.style.left = (e.clientX - 12) + 'px';
+      ghostElement.style.top = (e.clientY - 12) + 'px';
+      
+      // 找到当前鼠标下的目标按钮
+      const currentButton = findButtonAtPosition(e.clientX, e.clientY);
+      
+      // 如果找到了另一个按钮且不是正在拖拽的按钮，则考虑交换位置
+      if (currentButton && currentButton !== draggedButton) {
+        const buttons = Array.from(parent.children);
+        const draggedIndex = buttons.indexOf(draggedButton);
+        const targetIndex = buttons.indexOf(currentButton);
+        
+        // 只有当拖拽到了新的位置才进行重排序
+        if (draggedIndex !== -1 && targetIndex !== -1) {
+          // 重新排序DOM元素
+          if (draggedIndex < targetIndex) {
+            parent.insertBefore(draggedButton, currentButton.nextSibling);
+          } else {
+            parent.insertBefore(draggedButton, currentButton);
+          }
+        }
+      }
+    }
+    
+    // 鼠标松开事件 - 结束拖拽
+    function onMouseUp() {
+      if (!isDragging || !draggedButton) return;
+      
+      // 恢复按钮样式
+      draggedButton.style.position = '';
+      draggedButton.style.zIndex = '';
+      draggedButton.style.opacity = '1';
+      draggedButton.style.left = originalX;
+      draggedButton.style.top = originalY;
+      
+      // 移除幽灵元素
+      if (ghostElement && ghostElement.parentNode) {
+        ghostElement.parentNode.removeChild(ghostElement);
+        ghostElement = null;
+      }
+      
+      // 更新tracks数组顺序以反映DOM顺序
+      updateTracksOrder();
+      
+      // 清理拖拽状态
+      isDragging = false;
+      draggedButton = null;
+      
+      // 移除全局事件监听
+      document.removeEventListener('mousemove', onMouseMove);
+      document.removeEventListener('mouseup', onMouseUp);
+    }
+    
+    // 查找指定位置的按钮
+    function findButtonAtPosition(x, y) {
+      const buttons = Array.from(parent.children);
+      for (const btn of buttons) {
+        if (btn === draggedButton) continue;
+        
+        const rect = btn.getBoundingClientRect();
+        if (x >= rect.left && x <= rect.right && y >= rect.top && y <= rect.bottom) {
+          return btn;
+        }
+      }
+      return null;
+    }
+    
+    // 更新tracks数组顺序以匹配DOM顺序
+    function updateTracksOrder() {
+      const buttons = Array.from(parent.children);
+      const newTracksOrder = [];
+      
+      // 按照DOM顺序创建新的轨道数组
+      for (const button of buttons) {
+        const instrumentId = button.dataset.instrumentId;
+        const track = this.tracks.find(t => t.instrument === instrumentId);
+        if (track) {
+          newTracksOrder.push(track);
+        }
+      }
+      
+      // 保持原有的可见性状态
+      const visibleInstrumentsSnapshot = new Set(this.visibleInstruments);
+      
+      // 更新tracks数组
+      this.tracks = newTracksOrder;
+      
+      // 恢复可见性状态
+      this.visibleInstruments.clear();
+      visibleInstrumentsSnapshot.forEach(id => {
+        this.visibleInstruments.add(id);
+      });
+      
+      // 重绘画布以反映新的轨道顺序
+      this.draw();
+      
+      console.log('音色轨道顺序已更新');
+    }
+    
+    // 绑定updateTracksOrder的this上下文
+    updateTracksOrder = updateTracksOrder.bind(this);
   }
 
   // 清理空的轨道
