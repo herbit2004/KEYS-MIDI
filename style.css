@@ -830,7 +830,7 @@ input:checked + .slider:before {
     bottom: 30px;
     left: 50%;
     transform: translateX(-50%);
-    width: 95%;
+    width: calc(100% - 60px);
     z-index: 20;
     background-color: rgba(37, 37, 37, 0);
     border-radius: 4px;
@@ -838,17 +838,18 @@ input:checked + .slider:before {
 
 .playhead-info {
     white-space: nowrap;
+    flex-shrink: 0;
+    min-width: 200px;
 }
 
 .selected-notes-info {
     text-align: right;
     flex-grow: 1;
     margin-left: 20px;
-}
-
-.bpm-info {
-    margin-left: 20px;
     white-space: nowrap;
+    min-width: 300px;
+    overflow: hidden;
+    text-overflow: ellipsis;
 }
 
 .midi-editor-wrapper {
@@ -1250,4 +1251,42 @@ kbd {
     100% {
         transform: scale(1);
     }
+}
+
+/* 音色提示框样式 */
+.instrument-tooltip {
+    position: fixed;
+    background-color: #252525;
+    color: white;
+    padding: 6px 10px;
+    border-radius: 4px;
+    font-size: 12px;
+    font-family: 'Arial', sans-serif;
+    z-index: 10000;
+    pointer-events: none;
+    white-space: nowrap;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+    opacity: 0;
+    transition: opacity 0.2s ease;
+    backdrop-filter: blur(4px);
+    -webkit-backdrop-filter: blur(4px);
+}
+
+.instrument-tooltip::before {
+    content: '';
+    position: absolute;
+    left: -4px;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 0;
+    height: 0;
+    border-top: 4px solid transparent;
+    border-bottom: 4px solid transparent;
+    border-right: 4px solid #252525;
+}
+
+/* 音色按钮悬浮效果增强 */
+.instrument-visibility-button:hover {
+    transform: scale(1.2) !important;
+    transition: all 0.3s ease;
 }
