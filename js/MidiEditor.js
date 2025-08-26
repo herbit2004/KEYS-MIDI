@@ -2750,14 +2750,6 @@ export class MidiEditor {
       originalX = button.style.left || '';
       originalY = button.style.top || '';
       
-      // 设置按钮为相对定位
-      button.style.position = 'relative';
-      button.style.zIndex = '2000';
-      button.style.opacity = '0.6';
-      
-      // 创建幽灵元素作为拖拽指示器
-      createGhostElement();
-      
       // 添加全局事件监听
       document.addEventListener('mousemove', onMouseMove);
       document.addEventListener('mouseup', onMouseUp);
@@ -2785,28 +2777,46 @@ export class MidiEditor {
     
     // 鼠标移动事件 - 拖动中
     function onMouseMove(e) {
-      if (!isDragging || !draggedButton || !ghostElement) return;
+      if (!isDragging || !draggedButton) return;
       
-      // 更新幽灵元素位置
-      ghostElement.style.left = (e.clientX - 12) + 'px';
-      ghostElement.style.top = (e.clientY - 12) + 'px';
+      // 只有在鼠标移动一定距离后才开始拖拽
+      const deltaX = e.clientX - (button.getBoundingClientRect().left + offsetX);
+      const deltaY = e.clientY - (button.getBoundingClientRect().top + offsetY);
       
-      // 找到当前鼠标下的目标按钮
-      const currentButton = findButtonAtPosition(e.clientX, e.clientY);
-      
-      // 如果找到了另一个按钮且不是正在拖拽的按钮，则考虑交换位置
-      if (currentButton && currentButton !== draggedButton) {
-        const buttons = Array.from(parent.children);
-        const draggedIndex = buttons.indexOf(draggedButton);
-        const targetIndex = buttons.indexOf(currentButton);
+      // 如果是第一次移动且移动距离超过阈值，则开始拖拽
+      if (!ghostElement && (Math.abs(deltaX) > 5 || Math.abs(deltaY) > 5)) {
+        // 设置按钮为相对定位
+        button.style.position = 'relative';
+        button.style.zIndex = '2000';
+        button.style.opacity = '0.6';
         
-        // 只有当拖拽到了新的位置才进行重排序
-        if (draggedIndex !== -1 && targetIndex !== -1) {
-          // 重新排序DOM元素
-          if (draggedIndex < targetIndex) {
-            parent.insertBefore(draggedButton, currentButton.nextSibling);
-          } else {
-            parent.insertBefore(draggedButton, currentButton);
+        // 创建幽灵元素作为拖拽指示器
+        createGhostElement();
+      }
+      
+      // 如果已经有幽灵元素，则更新其位置
+      if (ghostElement) {
+        // 更新幽灵元素位置
+        ghostElement.style.left = (e.clientX - 12) + 'px';
+        ghostElement.style.top = (e.clientY - 12) + 'px';
+        
+        // 找到当前鼠标下的目标按钮
+        const currentButton = findButtonAtPosition(e.clientX, e.clientY);
+        
+        // 如果找到了另一个按钮且不是正在拖拽的按钮，则考虑交换位置
+        if (currentButton && currentButton !== draggedButton) {
+          const buttons = Array.from(parent.children);
+          const draggedIndex = buttons.indexOf(draggedButton);
+          const targetIndex = buttons.indexOf(currentButton);
+          
+          // 只有当拖拽到了新的位置才进行重排序
+          if (draggedIndex !== -1 && targetIndex !== -1) {
+            // 重新排序DOM元素
+            if (draggedIndex < targetIndex) {
+              parent.insertBefore(draggedButton, currentButton.nextSibling);
+            } else {
+              parent.insertBefore(draggedButton, currentButton);
+            }
           }
         }
       }
