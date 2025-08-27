@@ -2964,8 +2964,22 @@ export class MidiEditor {
     const hoveredNote = this.getNoteAtPosition(pos.x, pos.y);
     
     if (hoveredNote) {
-      // 设置鼠标样式为手指箭头
-      this.canvas.style.cursor = 'pointer';
+      // 计算音符的位置信息
+      const note = hoveredNote.note;
+      const noteX = note.startTime * this.pixelsPerBeat;
+      const noteWidth = (note.endTime - note.startTime) * this.pixelsPerBeat;
+      
+      // 根据鼠标位置设置不同的光标样式
+      if (pos.x < noteX + 5) {
+        // 鼠标在左边缘，设置为左向右箭头
+        this.canvas.style.cursor = 'w-resize';
+      } else if (pos.x > noteX + noteWidth - 5) {
+        // 鼠标在右边缘，设置为右向左箭头
+        this.canvas.style.cursor = 'e-resize';
+      } else {
+        // 鼠标在音符内部，设置为手指箭头
+        this.canvas.style.cursor = 'pointer';
+      }
     } else {
       // 恢复默认鼠标样式
       this.canvas.style.cursor = 'default';
