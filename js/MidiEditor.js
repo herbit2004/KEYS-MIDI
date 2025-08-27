@@ -98,6 +98,14 @@ export class MidiEditor {
     this.pixelsPerNote = this.canvas.height / 128;
     this.pixelsPerNote = this.canvas.height / 128;
     
+    // 鼠标输入功能状态
+    this.isMouseInputEnabled = false; // 鼠标输入功能默认关闭
+    this.isMousePressed = false; // 鼠标是否按下
+    this.mouseInputStartTime = 0; // 鼠标按下的开始时间
+    this.mouseInputNote = null; // 鼠标输入的音符
+    this.mouseInputStartPos = null; // 鼠标按下的起始位置
+    this.mouseInputStartBeats = 0; // 鼠标按下时的拍数位置
+    
     // 录制时调整canvas大小
     this.lastResizeTime = 0;
     
@@ -109,6 +117,8 @@ export class MidiEditor {
     this.saveButton = document.getElementById('save-button-editor');
     this.loadButton = document.getElementById('load-button-editor');
     this.loadFileInput = document.getElementById('load-file-input');
+    this.mouseInputButton = document.getElementById('mouse-input-button');
+    this.mouseInputIcon = this.mouseInputButton ? this.mouseInputButton.querySelector('img') : null;
     
     // 禁用页面中的所有框选
     this.disablePageSelection();
@@ -181,6 +191,25 @@ export class MidiEditor {
     if (snapDurationButton) {
       snapDurationButton.addEventListener('click', () => {
         this.snapDuration();
+      });
+    }
+    
+    // 监听鼠标输入按钮点击事件
+    if (this.mouseInputButton && this.mouseInputIcon) {
+      this.mouseInputButton.addEventListener('click', () => {
+        this.isMouseInputEnabled = !this.isMouseInputEnabled;
+        if (this.isMouseInputEnabled) {
+          this.mouseInputIcon.classList.add('active');
+          this.mouseInputButton.classList.add('active');
+          // 确保当前选中的乐器在可见乐器集合中
+          const currentInstrument = this.audioEngine.currentInstrument;
+          if (currentInstrument && !this.visibleInstruments.has(currentInstrument)) {
+            this.visibleInstruments.add(currentInstrument);
+          }
+        } else {
+          this.mouseInputIcon.classList.remove('active');
+          this.mouseInputButton.classList.remove('active');
+        }
       });
     }
     
@@ -593,6 +622,9 @@ export class MidiEditor {
       if (clickedNoteRef) {
         // 点击音符：处理音符选择/编辑
         this.handleNoteClick(clickedNoteRef, pos, e.ctrlKey);
+      } else if (this.isMouseInputEnabled) {
+        // 鼠标输入功能开启：开始创建音符
+        this.startMouseInputNote(pos);
       } else {
         // 点击空白区域：开始框选
         this.startSelection(pos, e.ctrlKey);
@@ -603,6 +635,11 @@ export class MidiEditor {
     this.canvas.addEventListener('mousemove', (e) => {
       const pos = this.getMousePosition(e);
       this.lastMousePosition = pos; // 保存鼠标位置
+      
+      // 检查鼠标输入模式下是否需要转为选择框
+      if (this.isMouseInputEnabled && this.isMousePressed) {
+        this.checkMouseMoveForInputMode(pos);
+      }
       
       if (this.isEditing && this.selectedNotes.length > 0) {
         // 拖拽音符
@@ -640,6 +677,10 @@ export class MidiEditor {
     
     // 全局鼠标释放事件（处理从悬浮元素开始的拖拽）
     document.addEventListener('mouseup', (e) => {
+      if (this.isMouseInputEnabled && this.isMousePressed) {
+        // 鼠标输入功能开启：结束音符创建
+        this.endMouseInputNote();
+      }
       this.handleMouseUp(e);
     });
     
@@ -2358,6 +2399,44 @@ export class MidiEditor {
         }
       }
     }
+    
+    // 绘制鼠标输入的临时音符（按下时显示并随时间动态增长）
+    if (this.isMousePressed && this.mouseInputNote !== null && this.mouseInputStartBeats > 0) {
+      const currentInstrument = this.audioEngine.currentInstrument;
+      
+      // 检查当前乐器是否可见
+      if (this.visibleInstruments.has(currentInstrument)) {
+        // 计算当前时间对应的拍数
+        const now = Date.now();
+        const durationMs = now - this.mouseInputStartTime;
+        const currentBeats = this.mouseInputStartBeats + (durationMs / 1000 * this.bpm / 60);
+        
+        // 计算音符位置和宽度
+        const x = this.mouseInputStartBeats * this.pixelsPerBeat;
+        const y = height - (this.mouseInputNote * noteHeight);
+        const noteWidth = Math.max(2, (currentBeats - this.mouseInputStartBeats) * this.pixelsPerBeat);
+        
+        // 获取当前乐器的颜色
+        const noteColor = this.getNoteColor(currentInstrument);
+        
+        // 使用稍微透明的颜色绘制临时音符
+        const alpha = 0.6; // 临时音符透明度
+        this.ctx.fillStyle = `rgba(0, 0, 0, 0)`; // 清空背景
+        this.ctx.strokeStyle = noteColor;
+        this.ctx.lineWidth = 2;
+        this.ctx.strokeRect(x, y - noteHeight, noteWidth, noteHeight);
+        
+        // 填充稍微透明的颜色
+        const hexToRgba = (hex, alpha) => {
+          const r = parseInt(hex.slice(1, 3), 16);
+          const g = parseInt(hex.slice(3, 5), 16);
+          const b = parseInt(hex.slice(5, 7), 16);
+          return `rgba(${r}, ${g}, ${b}, ${alpha})`;
+        };
+        this.ctx.fillStyle = hexToRgba(noteColor, alpha);
+        this.ctx.fillRect(x, y - noteHeight, noteWidth, noteHeight);
+      }
+    }
   }
   
   // 绘制选中的音符
@@ -2767,11 +2846,23 @@ export class MidiEditor {
     const endPos = { x: this.selectionEndX, y: this.selectionEndY };
     
     if (this.isClickInPlace(startPos, endPos)) {
-      // 原地点击：更新播放头位置
-      this.setPlayheadPosition(this.pendingPlayheadPosition, true);
+      // 原地点击
+      if (this.isMouseInputEnabled && this.isMousePressed) {
+        // 鼠标输入功能开启，处理音符创建
+        this.endMouseInputNote();
+      } else {
+        // 默认行为：更新播放头位置
+        this.setPlayheadPosition(this.pendingPlayheadPosition, true);
+      }
     } else {
       // 拖拽：完成框选
-      this.finishSelection();
+      if (this.isMouseInputEnabled && this.isMousePressed) {
+        // 鼠标输入功能开启，鼠标移动时结束音符创建
+        this.endMouseInputNote();
+      } else {
+        // 默认行为：完成框选
+        this.finishSelection();
+      }
     }
     
     // 重置框选状态
@@ -3500,6 +3591,95 @@ export class MidiEditor {
       }
       
       console.log(`节拍器: ${isStrongBeat ? '强拍' : '弱拍'} - 拍数: ${currentBeat}`);
+    }
+  }
+  
+  // 开始鼠标输入音符
+  startMouseInputNote(pos) {
+    this.isMousePressed = true;
+    this.mouseInputStartTime = Date.now();
+    this.mouseInputStartPos = { ...pos };
+    this.mouseInputStartBeats = pos.x / this.pixelsPerBeat;
+    
+    // 计算音高 - 使用与显示相同的计算方式
+    const noteHeight = this.canvas.height / 128; // 与updateMouseInfo和drawRecordedNotes保持一致
+    const baseNote = 127 - Math.floor(pos.y / noteHeight);
+    this.mouseInputNote = Math.max(0, Math.min(127, baseNote));
+    
+    // 播放音符
+    const currentInstrument = this.audioEngine.currentInstrument;
+    this.audioEngine.playNote(this.mouseInputNote, 0.8, false, currentInstrument);
+    
+    // 立即绘制临时音符（按下时就显示）
+    this.draw();
+  }
+  
+  // 结束鼠标输入音符
+  endMouseInputNote() {
+    if (!this.isMousePressed || this.mouseInputNote === null) return;
+    
+    this.isMousePressed = false;
+    
+    // 计算音符持续时间（以拍为单位）
+    const now = Date.now();
+    const durationMs = now - this.mouseInputStartTime;
+    const durationBeats = durationMs / 1000 * this.bpm / 60;
+    
+    // 停止播放音符
+    const currentInstrument = this.audioEngine.currentInstrument;
+    this.audioEngine.stopNote(this.mouseInputNote, currentInstrument);
+    
+    // 创建音符 - 力度设置为100
+    const note = {
+      midiNote: this.mouseInputNote,
+      startTime: this.mouseInputStartBeats,
+      endTime: this.mouseInputStartBeats + durationBeats,
+      velocity: 100 // 力度设置为100
+    };
+    
+    // 添加到当前乐器的轨道
+    try {
+      const currentInstrument = this.audioEngine.currentInstrument;
+      const track = this.getOrCreateTrack(currentInstrument);
+      track.notes.push(note);
+      console.log('音符已添加到轨道:', note);
+      console.log('当前乐器:', currentInstrument);
+      console.log('轨道音符数量:', track.notes.length);
+      
+      // 更新显示
+      this.draw();
+      this.updateInfoDisplay();
+    } catch (error) {
+      console.error('添加音符到轨道时出错:', error);
+    }
+    
+    // 重置鼠标输入状态
+    this.mouseInputNote = null;
+  }
+  
+  // 检查鼠标是否移动离开音符位置并处理
+  checkMouseMoveForInputMode(currentPos) {
+    if (!this.isMouseInputEnabled || !this.isMousePressed || !this.mouseInputStartPos) return;
+    
+    const noteHeight = this.canvas.height / 128;
+    const threshold = noteHeight / 2; // 设置阈值为音符高度的一半
+    
+    // 计算与起始位置的距离
+    const deltaX = Math.abs(currentPos.x - this.mouseInputStartPos.x);
+    const deltaY = Math.abs(currentPos.y - this.mouseInputStartPos.y);
+    
+    // 如果移动距离超过阈值，则转为选择框模式
+    if (deltaX > threshold || deltaY > threshold) {
+      // 停止播放当前音符
+      const currentInstrument = this.audioEngine.currentInstrument;
+      this.audioEngine.stopNote(this.mouseInputNote, currentInstrument);
+      
+      // 重置鼠标输入状态，但不添加音符
+      this.isMousePressed = false;
+      this.mouseInputNote = null;
+      
+      // 开始绘制选择框
+      this.startSelection(this.mouseInputStartPos, false);
     }
   }
 }

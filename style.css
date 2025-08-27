@@ -1294,3 +1294,22 @@ kbd {
     transform: scale(1.2) !important;
     transition: all 0.3s ease;
 }
+
+/* 鼠标输入按钮激活状态样式 */
+.mouse-input-control .midi-editor-button.active {
+    background-color: transparent;
+}
+
+.mouse-input-control .midi-editor-button.active svg {
+    filter: brightness(0) saturate(100%) invert(29%) sepia(89%) saturate(1492%) hue-rotate(180deg) brightness(101%) contrast(101%);
+}
+
+/* 鼠标输入按钮悬浮效果 - 只高亮SVG图标 */
+.mouse-input-control .midi-editor-button:hover {
+    background-color: transparent;
+    transform: scale(1.05);
+}
+
+.mouse-input-control .midi-editor-button:hover svg {
+    filter: brightness(0) saturate(100%) invert(29%) sepia(89%) saturate(1492%) hue-rotate(180deg) brightness(101%) contrast(101%);
+}
