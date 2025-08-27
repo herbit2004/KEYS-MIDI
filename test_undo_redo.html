@@ -1,0 +1,286 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>撤回和恢复功能测试</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+            background-color: #1a1a1a;
+            color: #ffffff;
+        }
+        .test-container {
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #252525;
+            border-radius: 8px;
+        }
+        .test-section {
+            margin-bottom: 30px;
+            padding: 15px;
+            background-color: #333;
+            border-radius: 5px;
+        }
+        .test-title {
+            font-size: 18px;
+            font-weight: bold;
+            margin-bottom: 10px;
+            color: #00ccff;
+        }
+        .test-description {
+            margin-bottom: 15px;
+            color: #cccccc;
+        }
+        .test-buttons {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+        .test-button {
+            padding: 8px 16px;
+            background-color: #00ccff;
+            color: #000;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 14px;
+        }
+        .test-button:hover {
+            background-color: #0099cc;
+        }
+        .test-button:disabled {
+            background-color: #666;
+            cursor: not-allowed;
+        }
+        .status {
+            margin-top: 10px;
+            padding: 10px;
+            background-color: #444;
+            border-radius: 4px;
+            font-family: monospace;
+            font-size: 12px;
+        }
+        .shortcut-info {
+            background-color: #2a2a2a;
+            padding: 10px;
+            border-radius: 4px;
+            margin-top: 10px;
+        }
+        .shortcut-info h4 {
+            margin: 0 0 10px 0;
+            color: #00ccff;
+        }
+        .shortcut-item {
+            margin: 5px 0;
+            font-family: monospace;
+        }
+    </style>
+</head>
+<body>
+    <div class="test-container">
+        <h1>撤回和恢复功能测试</h1>
+        
+        <div class="test-section">
+            <div class="test-title">基本操作测试</div>
+            <div class="test-description">
+                测试撤回和恢复功能的基本操作。请先打开MIDI编辑器，然后进行一些编辑操作。
+            </div>
+            <div class="test-buttons">
+                <button class="test-button" onclick="testUndo()">撤回 (Ctrl+Z)</button>
+                <button class="test-button" onclick="testRedo()">恢复 (Ctrl+Y)</button>
+                <button class="test-button" onclick="checkHistory()">检查历史状态</button>
+                <button class="test-button" onclick="clearHistory()">清空历史</button>
+            </div>
+            <div class="status" id="status">等待操作...</div>
+        </div>
+
+        <div class="test-section">
+            <div class="test-title">编辑操作测试</div>
+            <div class="test-description">
+                在MIDI编辑器中进行以下操作，然后测试撤回功能：
+            </div>
+                         <div class="test-buttons">
+                 <button class="test-button" onclick="testMouseInput()">鼠标输入音符</button>
+                 <button class="test-button" onclick="testRecording()">录制音符</button>
+                 <button class="test-button" onclick="testNoteSelection()">选择音符</button>
+                 <button class="test-button" onclick="testNoteMovement()">移动音符</button>
+                 <button class="test-button" onclick="testNoteDeletion()">删除音符</button>
+                 <button class="test-button" onclick="testReleaseNotes()">释放选中音符</button>
+             </div>
+            <div class="status" id="editStatus">等待编辑操作...</div>
+        </div>
+
+        <div class="test-section">
+            <div class="test-title">快捷键说明</div>
+            <div class="shortcut-info">
+                <h4>撤回和恢复快捷键：</h4>
+                <div class="shortcut-item">• Ctrl+Z: 撤回上一次操作</div>
+                <div class="shortcut-item">• Ctrl+Y: 恢复被撤回的操作</div>
+                <div class="shortcut-item">• 最多支持5次撤回/恢复</div>
+                <div class="shortcut-item">• 撤回后再次编辑会清除后续历史</div>
+            </div>
+        </div>
+
+        <div class="test-section">
+            <div class="test-title">支持的操作类型</div>
+            <div class="shortcut-info">
+                <h4>以下操作会被记录到历史中：</h4>
+                <div class="shortcut-item">• 鼠标输入音符</div>
+                <div class="shortcut-item">• 录制音符</div>
+                <div class="shortcut-item">• 移动/拖拽音符</div>
+                <div class="shortcut-item">• 删除音符</div>
+                <div class="shortcut-item">• 复制/粘贴音符</div>
+                <div class="shortcut-item">• 调整音符力度</div>
+                <div class="shortcut-item">• 吸附操作</div>
+                <div class="shortcut-item">• 修改BPM/拍数</div>
+                <div class="shortcut-item">• 切换音色可见性</div>
+                <div class="shortcut-item">• 导入文件</div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // 测试函数
+        function testUndo() {
+            try {
+                if (window.mainController && window.mainController.midiEditor) {
+                    const editor = window.mainController.midiEditor;
+                    if (editor.canUndo()) {
+                        editor.undo();
+                        updateStatus('撤回操作执行成功');
+                    } else {
+                        updateStatus('没有可撤回的操作');
+                    }
+                } else {
+                    updateStatus('错误：MIDI编辑器未初始化');
+                }
+            } catch (error) {
+                updateStatus('撤回操作失败: ' + error.message);
+            }
+        }
+
+        function testRedo() {
+            try {
+                if (window.mainController && window.mainController.midiEditor) {
+                    const editor = window.mainController.midiEditor;
+                    if (editor.canRedo()) {
+                        editor.redo();
+                        updateStatus('恢复操作执行成功');
+                    } else {
+                        updateStatus('没有可恢复的操作');
+                    }
+                } else {
+                    updateStatus('错误：MIDI编辑器未初始化');
+                }
+            } catch (error) {
+                updateStatus('恢复操作失败: ' + error.message);
+            }
+        }
+
+        function checkHistory() {
+            try {
+                if (window.mainController && window.mainController.midiEditor) {
+                    const editor = window.mainController.midiEditor;
+                    const historyInfo = {
+                        totalHistory: editor.history.length,
+                        currentIndex: editor.currentHistoryIndex,
+                        canUndo: editor.canUndo(),
+                        canRedo: editor.canRedo(),
+                        maxSize: editor.maxHistorySize
+                    };
+                    updateStatus('历史状态: ' + JSON.stringify(historyInfo, null, 2));
+                } else {
+                    updateStatus('错误：MIDI编辑器未初始化');
+                }
+            } catch (error) {
+                updateStatus('检查历史状态失败: ' + error.message);
+            }
+        }
+
+        function clearHistory() {
+            try {
+                if (window.mainController && window.mainController.midiEditor) {
+                    const editor = window.mainController.midiEditor;
+                    editor.history = [];
+                    editor.currentHistoryIndex = -1;
+                    updateStatus('历史记录已清空');
+                } else {
+                    updateStatus('错误：MIDI编辑器未初始化');
+                }
+            } catch (error) {
+                updateStatus('清空历史失败: ' + error.message);
+            }
+        }
+
+        function testMouseInput() {
+            updateEditStatus('请在MIDI编辑器中启用鼠标输入功能，然后点击画布创建音符');
+        }
+
+        function testRecording() {
+            updateEditStatus('请在MIDI编辑器中点击录制按钮，然后演奏一些音符');
+        }
+
+        function testNoteSelection() {
+            updateEditStatus('请在MIDI编辑器中点击或框选一些音符');
+        }
+
+        function testNoteMovement() {
+            updateEditStatus('请选中一些音符，然后拖拽移动它们');
+        }
+
+                 function testNoteDeletion() {
+             updateEditStatus('请选中一些音符，然后按Delete键删除它们');
+         }
+         
+         function testReleaseNotes() {
+             try {
+                 if (window.mainController && window.mainController.midiEditor) {
+                     const editor = window.mainController.midiEditor;
+                     if (editor.selectedNotes.length > 0) {
+                         editor.releaseSelectedNotes();
+                         updateEditStatus(`已释放 ${editor.selectedNotes.length} 个选中的音符`);
+                     } else {
+                         updateEditStatus('当前没有选中的音符');
+                     }
+                 } else {
+                     updateEditStatus('错误：MIDI编辑器未初始化');
+                 }
+             } catch (error) {
+                 updateEditStatus('释放选中音符失败: ' + error.message);
+             }
+         }
+
+        function updateStatus(message) {
+            document.getElementById('status').textContent = new Date().toLocaleTimeString() + ': ' + message;
+        }
+
+        function updateEditStatus(message) {
+            document.getElementById('editStatus').textContent = new Date().toLocaleTimeString() + ': ' + message;
+        }
+
+        // 监听键盘事件
+        document.addEventListener('keydown', function(e) {
+            if (e.ctrlKey || e.metaKey) {
+                switch (e.code) {
+                    case 'KeyZ':
+                        e.preventDefault();
+                        testUndo();
+                        break;
+                    case 'KeyY':
+                        e.preventDefault();
+                        testRedo();
+                        break;
+                }
+            }
+        });
+
+        // 页面加载完成后的初始化
+        window.addEventListener('load', function() {
+            updateStatus('测试页面已加载，请打开MIDI编辑器进行测试');
+        });
+    </script>
+</body>
+</html>

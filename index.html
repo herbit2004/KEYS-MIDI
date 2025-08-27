@@ -134,16 +134,28 @@
                     <ul>
                         <li>点击<kbd>保存</kbd>按钮导出JSON格式工程文件（包含BPM和拍/小节信息）</li>
                         <li>点击<kbd>导入</kbd>按钮加载JSON工程文件</li>
+                        <li>点击<kbd>导出</kbd>按钮导出标准MIDI文件</li>
                         <li>点击<kbd>全屏</kbd>按钮进入/退出全屏编辑模式</li>
                     </ul>
                     <h5>音符编辑</h5>
                     <ul>
-                        <li>在画布上点击音符可选中，按住<kbd>Ctrl</kbd>可多选</li>
+                        <li>在画布上点击音符可选中，可框选多个音符</li>
                         <li>拖拽选中音符可移动位置或调整长度</li>
                         <li>使用<kbd>Ctrl+C</kbd>/<kbd>Ctrl+X</kbd>/<kbd>Ctrl+V</kbd>复制/剪切/粘贴音符</li>
                         <li>选中音符后使用方向键微调位置</li>
                         <li>按<kbd>Delete</kbd>键删除选中音符</li>
                         <li>选中音符后在音符上滚动鼠标滚轮可调整音符力度</li>
+                        <li>点击<kbd>鼠标输入</kbd>按钮启用鼠标创建音符模式</li>
+                    </ul>
+                    <h5>撤回/恢复功能</h5>
+                    <ul>
+                        <li>使用<kbd>Ctrl+Z</kbd>撤回上一步操作</li>
+                        <li>使用<kbd>Ctrl+Y</kbd>恢复被撤回的操作</li>
+                        <li>最多支持10次连续撤回/恢复</li>
+                        <li>支持撤回：音符编辑、删除、移动、复制粘贴、录制、力度调节等</li>
+                        <li>撤回操作会自动释放选中的音符</li>
+                        <li>空录制（无音符输入）不会记录历史</li>
+                        <li>连续的力度调节会被合并为一个历史记录</li>
                     </ul>
                     <h5>视图控制</h5>
                     <ul>
@@ -168,6 +180,43 @@
                         <li>鼠标悬浮音色按钮显示音色名称工具提示</li>
                         <li>悬浮音色时对应音符会高亮显示</li>
                         <li>支持多音色轨道同时编辑</li>
+                    </ul>
+                    <h5>鼠标静态输入</h5>
+                    <ul>
+                        <li>点击<kbd>鼠标输入</kbd>按钮启用鼠标创建音符模式</li>
+                        <li>在编辑器中点击创建音符，拖拽调整音符时长</li>
+                        <li>支持实时音频反馈，创建音符时播放对应音色</li>
+                        <li>自动分配到当前选择的音色轨道</li>
+                        <li>支持撤回/恢复操作</li>
+                    </ul>
+                </div>
+            </div>
+            
+            <div class="help-section">
+                <h4>⌨️ 快捷键总览</h4>
+                <div class="help-content">
+                    <h5>编辑操作</h5>
+                    <ul>
+                        <li><kbd>Ctrl+Z</kbd> 撤回操作</li>
+                        <li><kbd>Ctrl+Y</kbd> 恢复操作</li>
+                        <li><kbd>Ctrl+C</kbd> 复制音符</li>
+                        <li><kbd>Ctrl+X</kbd> 剪切音符</li>
+                        <li><kbd>Ctrl+V</kbd> 粘贴音符</li>
+                        <li><kbd>Delete</kbd> 删除音符</li>
+                    </ul>
+                    <h5>转调控制</h5>
+                    <ul>
+                        <li><kbd>↑</kbd> 升高八度</li>
+                        <li><kbd>↓</kbd> 降低八度</li>
+                        <li><kbd>←</kbd> 降低半音</li>
+                        <li><kbd>→</kbd> 升高半音</li>
+                        <li><kbd>空格</kbd> 延音踏板</li>
+                    </ul>
+                    <h5>音符编辑</h5>
+                    <ul>
+                        <li><kbd>方向键</kbd> 微调音符位置</li>
+                        <li><kbd>鼠标滚轮</kbd> 调节音符力度</li>
+                        <li><kbd>拖拽</kbd> 移动音符或调整时长</li>
                     </ul>
                 </div>
             </div>
@@ -221,6 +270,38 @@
                         <li>保存完整的轨道信息、BPM、拍/小节设置</li>
                         <li>向后兼容，支持旧版本文件格式</li>
                         <li>自动恢复音色配置和播放设置</li>
+                    </ul>
+                    <h5>MIDI导出功能</h5>
+                    <ul>
+                        <li>支持导出标准MIDI文件格式</li>
+                        <li>包含多轨道音色信息和音符数据</li>
+                        <li>保留完整的节拍、速度、力度信息</li>
+                        <li>可在其他音乐软件中打开和编辑</li>
+                        <li>支持音色映射和通道分配</li>
+                    </ul>
+                </div>
+            </div>
+            
+            <div class="help-section">
+                <h4>❓ 常见问题</h4>
+                <div class="help-content">
+                    <h5>音频问题</h5>
+                    <ul>
+                        <li><strong>听不到声音</strong>：检查浏览器是否允许音频播放，确保音量设置正确</li>
+                        <li><strong>键盘映射不工作</strong>：确保焦点在页面上，尝试点击页面任意位置</li>
+                        <li><strong>录制功能不工作</strong>：确保选择了正确的音色，检查浏览器权限设置</li>
+                    </ul>
+                    <h5>编辑问题</h5>
+                    <ul>
+                        <li><strong>撤回功能不工作</strong>：确保进行了编辑操作，检查是否超出历史记录限制</li>
+                        <li><strong>音符无法选中</strong>：确保在正确的编辑模式下，尝试刷新页面</li>
+                        <li><strong>吸附功能异常</strong>：检查吸附开关是否开启，调整吸附精度设置</li>
+                    </ul>
+                    <h5>文件问题</h5>
+                    <ul>
+                        <li><strong>无法保存文件</strong>：检查浏览器下载设置，确保有足够存储空间</li>
+                        <li><strong>导入文件失败</strong>：确保文件格式正确，检查文件是否损坏</li>
+                        <li><strong>MIDI导出问题</strong>：确保有音符数据，检查轨道设置</li>
                     </ul>
                 </div>
             </div>

@@ -115,6 +115,21 @@ export class MidiEditor {
     // 录制时调整canvas大小
     this.lastResizeTime = 0;
     
+    // 撤回和恢复功能相关状态
+    this.history = []; // 历史状态数组
+    this.currentHistoryIndex = -1; // 当前历史状态索引
+    this.maxHistorySize = 10; // 最大历史记录数量
+    this.isUndoRedoOperation = false; // 是否正在进行撤回/恢复操作
+    this.lastActionType = null; // 上一次操作类型
+    this.lastActionTime = 0; // 上一次操作时间
+    this.actionCooldown = 100; // 操作冷却时间（毫秒）
+    this.pendingHistorySave = false; // 是否有待保存的历史状态
+    
+    // 力度调节相关状态
+    this.isVelocityAdjusting = false; // 是否正在调节力度
+    this.velocityAdjustStartTime = 0; // 力度调节开始时间
+    this.velocityAdjustTimeout = null; // 力度调节延迟保存定时器
+    
     // 按钮元素
     this.recordButton = document.getElementById('record-button-editor');
     this.playButton = document.getElementById('play-button-editor');
@@ -396,6 +411,9 @@ export class MidiEditor {
     
     // 开始动画循环
     this.animate();
+    
+    // 保存初始状态
+    this.saveToHistory('initial');
   }
   
   // 设置音符播放和停止的监听器
@@ -834,6 +852,9 @@ export class MidiEditor {
           noteRef.velocity = Math.max(0, Math.min(100, noteRef.velocity + delta));
         }
         
+        // 处理力度调节的历史记录
+        this.handleVelocityAdjustment();
+        
         // 重新绘制
         this.draw();
         
@@ -850,9 +871,16 @@ export class MidiEditor {
     // 添加BPM输入框事件监听器
     const bpmInput = document.getElementById('bpm-input');
     bpmInput.addEventListener('change', (e) => {
+      const oldBpm = this.bpm;
       this.bpm = parseInt(e.target.value);
       this.pixelsPerSecond = this.calculatePixelsPerSecond();
       this.updateBpmDisplay();
+      
+      // 保存BPM变化的历史状态
+      if (oldBpm !== this.bpm) {
+        this.saveToHistory('bpm_change');
+      }
+      
       console.log(`BPM设置为: ${this.bpm}`);
     });
     
@@ -870,9 +898,16 @@ export class MidiEditor {
     // 添加每小节拍数输入框事件监听器
     const beatsPerMeasureInput = document.getElementById('beats-per-measure-input');
     beatsPerMeasureInput.addEventListener('change', (e) => {
+      const oldBeatsPerMeasure = this.beatsPerMeasure;
       this.beatsPerMeasure = parseInt(e.target.value);
       this.updateBeatsPerMeasureDisplay();
       this.draw();
+      
+      // 保存拍数变化的历史状态
+      if (oldBeatsPerMeasure !== this.beatsPerMeasure) {
+        this.saveToHistory('beats_per_measure_change');
+      }
+      
       console.log(`每小节拍数设置为: ${this.beatsPerMeasure}`);
     });
     
@@ -962,6 +997,9 @@ export class MidiEditor {
     const playheadTime = this.getPlayheadTime();
     this.startTime = Tone.now() - playheadTime;
     
+    // 记录录制开始时的音符数量，用于判断是否有实际输入
+    this.recordingStartNoteCount = this.getTotalNoteCount();
+    
     // 为播放头添加录制状态样式
     this.playhead.classList.add('recording');
     
@@ -1004,6 +1042,18 @@ export class MidiEditor {
     
     // 重新调整canvas大小以适应录制的音符
     this.resizeCanvas();
+    
+    // 检查录制期间是否有实际输入音符
+    const currentNoteCount = this.getTotalNoteCount();
+    const hasNotesAdded = currentNoteCount > this.recordingStartNoteCount;
+    
+    // 只有在录制期间有实际输入音符时才保存历史状态
+    if (hasNotesAdded) {
+      this.saveToHistory('recording');
+      console.log(`录制完成，添加了 ${currentNoteCount - this.recordingStartNoteCount} 个音符`);
+    } else {
+      console.log('录制完成，但没有输入音符，不记录历史');
+    }
     
     // 更新按钮状态
     this.recordButton.style.display = 'inline-flex';
@@ -1135,6 +1185,9 @@ export class MidiEditor {
         
         // 验证数据格式
         if (data.tracks && Array.isArray(data.tracks)) {
+          // 保存导入前的状态
+          this.saveToHistory('import');
+          
           // 清空现有数据
           this.tracks = [];
           this.visibleInstruments.clear();
@@ -1360,6 +1413,14 @@ export class MidiEditor {
           e.preventDefault();
           this.pasteNotes();
           break;
+        case 'KeyZ': // Ctrl+Z 撤回
+          e.preventDefault();
+          this.undo();
+          break;
+        case 'KeyY': // Ctrl+Y 恢复
+          e.preventDefault();
+          this.redo();
+          break;
       }
     }
     
@@ -1371,6 +1432,7 @@ export class MidiEditor {
       }
       
       const step = e.shiftKey ? 0.5 : 0.25; // Shift键控制移动步长
+      let hasChanged = false;
       
       switch (e.code) {
         case 'ArrowUp':
@@ -1378,6 +1440,7 @@ export class MidiEditor {
           for (const noteRef of this.selectedNotes) {
             if (noteRef.midiNote < 127) {
               noteRef.midiNote++;
+              hasChanged = true;
             }
           }
           break;
@@ -1386,6 +1449,7 @@ export class MidiEditor {
           for (const noteRef of this.selectedNotes) {
             if (noteRef.midiNote > 0) {
               noteRef.midiNote--;
+              hasChanged = true;
             }
           }
           break;
@@ -1395,6 +1459,7 @@ export class MidiEditor {
             if (noteRef.startTime > 0) {
               noteRef.startTime = Math.max(0, noteRef.startTime - step);
               noteRef.endTime -= step;
+              hasChanged = true;
             }
           }
           break;
@@ -1403,12 +1468,19 @@ export class MidiEditor {
           for (const noteRef of this.selectedNotes) {
             noteRef.startTime += step;
             noteRef.endTime += step;
+            hasChanged = true;
           }
           break;
         case 'Delete':
             // 删除所有选中的音符
             this.deleteSelectedNotes();
+            hasChanged = true; // 标记为有变化
             break;
+      }
+      
+      // 如果有变化，保存历史状态
+      if (hasChanged) {
+        this.saveToHistory('keyboard_move');
       }
       
       this.draw();
@@ -1439,6 +1511,16 @@ export class MidiEditor {
   
   // 删除选中音符
   deleteSelectedNotes() {
+    if (this.selectedNotes.length === 0) return;
+    
+    // 保存删除前的状态
+    this.saveToHistory('delete');
+    
+    this.deleteSelectedNotesWithoutHistory();
+  }
+
+  // 删除选中音符（不记录历史）
+  deleteSelectedNotesWithoutHistory() {
     if (this.selectedNotes.length === 0) return;
     
     // 收集需要删除的音符，按轨道分组
@@ -1474,6 +1556,15 @@ export class MidiEditor {
     this.draw();
     this.updateInfoDisplay();
   }
+
+  // 获取总音符数量
+  getTotalNoteCount() {
+    let totalCount = 0;
+    for (const track of this.tracks) {
+      totalCount += track.notes.length;
+    }
+    return totalCount;
+  }
   
   // 复制选中音符
   copySelectedNotes() {
@@ -1498,13 +1589,18 @@ export class MidiEditor {
   cutSelectedNotes() {
     if (this.selectedNotes.length === 0) return;
     
+    console.log('开始剪切操作，选中音符数量:', this.selectedNotes.length);
+    
     // 先复制选中的音符
     this.copySelectedNotes();
     
-    // 然后删除选中的音符
-    this.deleteSelectedNotes();
+    // 然后删除选中的音符（不记录历史，因为剪切操作会记录）
+    this.deleteSelectedNotesWithoutHistory();
     
-    console.log('剪切音符到剪贴板');
+    // 保存剪切后的状态（在删除音符之后）
+    this.saveToHistory('cut');
+    
+    console.log('剪切音符到剪贴板完成');
   }
   
   // 粘贴音符
@@ -1554,6 +1650,9 @@ export class MidiEditor {
       );
       this.selectedNotes.push(newNoteRef);
     }
+    
+    // 保存粘贴后的状态（在添加音符之后）
+    this.saveToHistory('paste');
     
     this.draw();
     this.updateInfoDisplay();
@@ -1832,6 +1931,11 @@ export class MidiEditor {
       }
     }
     
+    // 如果发生了拖拽，保存历史状态
+    if (this.hasDragged) {
+      this.saveToHistory('move');
+    }
+    
     // 重置所有交互状态
     this.resetInteractionState();
     
@@ -1862,6 +1966,9 @@ export class MidiEditor {
         noteRef.endTime = noteRef.endTime + timeOffset;
       }
     }
+    
+    // 保存吸附后的状态
+    this.saveToHistory('snap_position');
     
     // 重绘
     this.draw();
@@ -1895,6 +2002,9 @@ export class MidiEditor {
         console.log('音符时长过短，不进行吸附');
       }
     }
+    
+    // 保存吸附后的状态
+    this.saveToHistory('snap_duration');
     
     // 重绘
     this.draw();
@@ -2878,6 +2988,9 @@ export class MidiEditor {
       // 处理拖拽结束
       this.finishDrag();
     }
+    
+    // 检查是否需要保存历史状态（释放选中状态）
+    this.checkForSelectionRelease();
   }
 
   // 处理框选结束
@@ -3486,6 +3599,9 @@ export class MidiEditor {
 
   // 切换音色可见性
   toggleInstrumentVisibility(instrumentId) {
+    // 保存切换前的状态
+    this.saveToHistory('visibility_change');
+    
     if (this.visibleInstruments.has(instrumentId)) {
       // 隐藏音色
       this.visibleInstruments.delete(instrumentId);
@@ -3518,6 +3634,260 @@ export class MidiEditor {
         }
       }
     }
+  }
+
+  // ==================== 撤回和恢复功能 ====================
+
+  // 保存当前状态到历史记录
+  saveToHistory(actionType = 'edit') {
+    // 如果正在进行撤回/恢复操作，不保存历史
+    if (this.isUndoRedoOperation) {
+      return;
+    }
+
+    // 检查操作冷却时间
+    // 注意：某些操作类型不应用冷却时间，以确保每次操作都能单独保存到历史记录
+    const now = Date.now();
+    const noCooldownActions = ['paste', 'delete', 'cut', 'recording', 'mouse_input', 'import', 'snap_position', 'snap_duration', 'bpm_change', 'beats_per_measure_change', 'visibility_change'];
+    
+    // 恢复冷却时间检查（排除关键操作类型）
+    if (!noCooldownActions.includes(actionType) && now - this.lastActionTime < this.actionCooldown) {
+      console.log(`操作冷却中: ${now - this.lastActionTime}ms < ${this.actionCooldown}ms`);
+      return;
+    }
+
+    // 创建当前状态的深拷贝
+    const currentState = this.createStateSnapshot();
+    
+    // 检查是否应该保存历史
+    // 对于某些关键操作，总是保存历史，确保每个操作都有独立的历史节点
+    const alwaysSaveActions = ['paste', 'delete', 'cut', 'recording', 'mouse_input', 'visibility_change'];
+    const shouldSave = alwaysSaveActions.includes(actionType) || this.hasStateChanged(currentState);
+    
+    if (!shouldSave) {
+      console.log(`状态没有变化，不保存历史: ${actionType}`);
+      return;
+    }
+    
+    // 移除当前索引之后的所有历史记录
+    this.history = this.history.slice(0, this.currentHistoryIndex + 1);
+    
+    // 添加新状态
+    this.history.push({
+      state: currentState,
+      actionType: actionType,
+      timestamp: now
+    });
+    
+    // 限制历史记录数量
+    if (this.history.length > this.maxHistorySize) {
+      this.history.shift();
+    } else {
+      this.currentHistoryIndex++;
+    }
+    
+    this.lastActionType = actionType;
+    this.lastActionTime = now;
+    this.pendingHistorySave = false;
+    
+    console.log(`历史状态已保存: ${actionType}, 当前索引: ${this.currentHistoryIndex}`);
+  }
+
+  // 创建状态快照
+  createStateSnapshot() {
+    return {
+      tracks: JSON.parse(JSON.stringify(this.tracks)),
+      visibleInstruments: new Set(this.visibleInstruments),
+      selectedNotes: [], // 不保存选中状态，因为撤回后应该清空选中
+      playheadPosition: this.playheadPosition,
+      bpm: this.bpm,
+      beatsPerMeasure: this.beatsPerMeasure
+    };
+  }
+
+  // 检查状态是否发生变化
+  hasStateChanged(newState) {
+    if (this.currentHistoryIndex < 0) {
+      return true; // 第一个状态
+    }
+    
+    const lastState = this.history[this.currentHistoryIndex].state;
+    
+    // 比较轨道数据
+    const tracksChanged = JSON.stringify(newState.tracks) !== JSON.stringify(lastState.tracks);
+    if (tracksChanged) {
+      return true;
+    }
+    
+    // 比较可见音色
+    if (newState.visibleInstruments.size !== lastState.visibleInstruments.size) {
+      return true;
+    }
+    
+    for (const instrument of newState.visibleInstruments) {
+      if (!lastState.visibleInstruments.has(instrument)) {
+        return true;
+      }
+    }
+    
+    // 比较其他属性
+    const otherChanged = newState.playheadPosition !== lastState.playheadPosition ||
+           newState.bpm !== lastState.bpm ||
+           newState.beatsPerMeasure !== lastState.beatsPerMeasure;
+    
+    return otherChanged;
+  }
+
+  // 撤回操作
+  undo() {
+    if (this.currentHistoryIndex <= 0) {
+      console.log('没有可撤回的操作');
+      return;
+    }
+    
+    // 在撤回前先释放所有已选中的音符，触发历史行为保存
+    if (this.selectedNotes.length > 0) {
+      this.releaseSelectedNotes();
+    }
+    
+    this.isUndoRedoOperation = true;
+    
+    // 移动到上一个状态
+    this.currentHistoryIndex--;
+    const targetState = this.history[this.currentHistoryIndex].state;
+    
+    // 恢复状态
+    this.restoreState(targetState);
+    
+    this.isUndoRedoOperation = false;
+    console.log(`撤回操作完成，当前索引: ${this.currentHistoryIndex}`);
+  }
+
+  // 恢复操作
+  redo() {
+    if (this.currentHistoryIndex >= this.history.length - 1) {
+      console.log('没有可恢复的操作');
+      return;
+    }
+    
+    // 在恢复前先释放所有已选中的音符，触发历史行为保存
+    if (this.selectedNotes.length > 0) {
+      this.releaseSelectedNotes();
+    }
+    
+    this.isUndoRedoOperation = true;
+    
+    // 移动到下一个状态
+    this.currentHistoryIndex++;
+    const targetState = this.history[this.currentHistoryIndex].state;
+    
+    // 恢复状态
+    this.restoreState(targetState);
+    
+    this.isUndoRedoOperation = false;
+    console.log(`恢复操作完成，当前索引: ${this.currentHistoryIndex}`);
+  }
+
+  // 恢复状态
+  restoreState(state) {
+    // 恢复轨道数据
+    this.tracks = JSON.parse(JSON.stringify(state.tracks));
+    
+    // 恢复可见音色
+    this.visibleInstruments = new Set(state.visibleInstruments);
+    
+    // 清空选中状态
+    this.selectedNotes = [];
+    
+    // 恢复播放头位置
+    this.playheadPosition = state.playheadPosition;
+    this.setPlayheadPosition(this.playheadPosition);
+    
+    // 恢复BPM和拍数设置
+    this.bpm = state.bpm;
+    this.beatsPerMeasure = state.beatsPerMeasure;
+    
+    // 更新UI显示
+    this.updateBpmDisplay();
+    this.updateBeatsPerMeasureDisplay();
+    
+    // 更新音色显示控制面板
+    this.updateInstrumentVisibilityPanel();
+    
+    // 重新调整canvas大小
+    this.resizeCanvas();
+    
+    // 重绘
+    this.draw();
+    this.updateInfoDisplay();
+  }
+
+  // 记录编辑行为
+  recordEditAction(actionType) {
+    // 延迟保存，避免频繁操作
+    setTimeout(() => {
+      if (this.pendingHistorySave) {
+        this.saveToHistory(actionType);
+      }
+    }, this.actionCooldown);
+  }
+
+  // 检查是否可以撤回
+  canUndo() {
+    return this.currentHistoryIndex > 0;
+  }
+
+  // 检查是否可以恢复
+  canRedo() {
+    return this.currentHistoryIndex < this.history.length - 1;
+  }
+
+  // 检查选中释放并保存历史状态
+  checkForSelectionRelease() {
+    // 如果正在进行撤回/恢复操作，不保存历史
+    if (this.isUndoRedoOperation) {
+      return;
+    }
+    
+    // 如果当前有选中的音符，且鼠标释放，检查是否需要保存历史
+    if (this.selectedNotes.length > 0 && !this.isEditing && !this.isSelecting) {
+      // 延迟检查，避免在拖拽过程中触发
+      setTimeout(() => {
+        if (this.selectedNotes.length > 0 && !this.isEditing && !this.isSelecting && !this.isUndoRedoOperation) {
+          // 检查是否有待保存的历史状态
+          if (this.pendingHistorySave) {
+            this.saveToHistory(this.lastActionType || 'selection_release');
+          }
+        }
+      }, 50);
+    }
+  }
+
+  // 释放所有已选中的音符
+  releaseSelectedNotes() {
+    if (this.selectedNotes.length === 0) {
+      return;
+    }
+    
+    console.log(`释放 ${this.selectedNotes.length} 个已选中的音符`);
+    
+    // 在非撤回/恢复操作时，保存待保存的历史状态
+    if (!this.isUndoRedoOperation && this.pendingHistorySave) {
+      this.saveToHistory(this.lastActionType || 'selection_release');
+    } else if (this.isUndoRedoOperation) {
+      // 在撤回/恢复操作时，不保存待保存的历史状态，避免历史记录混乱
+      this.pendingHistorySave = false;
+    }
+    
+    // 清空选中状态
+    this.selectedNotes = [];
+    
+    // 重置交互状态
+    this.resetInteractionState();
+    
+    // 重绘
+    this.draw();
+    this.updateInfoDisplay();
   }
 
 
@@ -3686,6 +4056,9 @@ export class MidiEditor {
       console.log('当前乐器:', currentInstrument);
       console.log('轨道音符数量:', track.notes.length);
       
+      // 保存历史状态
+      this.saveToHistory('mouse_input');
+      
       // 更新显示
       this.draw();
       this.updateInfoDisplay();
@@ -3695,6 +4068,30 @@ export class MidiEditor {
     
     // 重置鼠标输入状态
     this.mouseInputNote = null;
+  }
+  
+  // 处理力度调节的历史记录
+  handleVelocityAdjustment() {
+    const now = Date.now();
+    
+    // 如果是第一次调节力度
+    if (!this.isVelocityAdjusting) {
+      this.isVelocityAdjusting = true;
+      this.velocityAdjustStartTime = now;
+    }
+    
+    // 清除之前的定时器
+    if (this.velocityAdjustTimeout) {
+      clearTimeout(this.velocityAdjustTimeout);
+    }
+    
+    // 设置延迟保存定时器（500ms后保存）
+    this.velocityAdjustTimeout = setTimeout(() => {
+      this.saveToHistory('velocity_change');
+      this.isVelocityAdjusting = false;
+      this.velocityAdjustTimeout = null;
+      console.log('力度调节完成，保存历史状态');
+    }, 1500);
   }
   
   // 检查鼠标是否移动离开音符位置并处理

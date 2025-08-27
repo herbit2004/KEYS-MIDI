@@ -1,0 +1,315 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>剪切操作历史记录测试</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+            background-color: #1a1a1a;
+            color: #ffffff;
+        }
+        .test-container {
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #252525;
+            border-radius: 8px;
+        }
+        .test-section {
+            margin-bottom: 30px;
+            padding: 15px;
+            background-color: #333;
+            border-radius: 5px;
+        }
+        .test-title {
+            font-size: 18px;
+            font-weight: bold;
+            margin-bottom: 10px;
+            color: #00ccff;
+        }
+        .test-description {
+            margin-bottom: 15px;
+            color: #cccccc;
+        }
+        .test-buttons {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+        .test-button {
+            padding: 8px 16px;
+            background-color: #00ccff;
+            color: #000;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 14px;
+        }
+        .test-button:hover {
+            background-color: #0099cc;
+        }
+        .test-button:disabled {
+            background-color: #666;
+            cursor: not-allowed;
+        }
+        .status {
+            margin-top: 10px;
+            padding: 10px;
+            background-color: #444;
+            border-radius: 4px;
+            font-family: monospace;
+            font-size: 12px;
+        }
+        .step-list {
+            background-color: #2a2a2a;
+            padding: 15px;
+            border-radius: 4px;
+            margin-top: 15px;
+        }
+        .step-list h4 {
+            margin: 0 0 10px 0;
+            color: #00ccff;
+        }
+        .step-item {
+            margin: 8px 0;
+            padding: 8px;
+            background-color: #3a3a3a;
+            border-radius: 4px;
+            border-left: 3px solid #00ccff;
+        }
+    </style>
+</head>
+<body>
+    <div class="test-container">
+        <h1>剪切操作历史记录测试</h1>
+        
+        <div class="test-section">
+            <div class="test-title">测试步骤</div>
+            <div class="step-list">
+                <h4>请按以下步骤测试剪切操作的历史记录：</h4>
+                <div class="step-item">1. 在MIDI编辑器中创建一些音符（使用鼠标输入或录制）</div>
+                <div class="step-item">2. 选中一些音符</div>
+                <div class="step-item">3. 按 Ctrl+X 剪切选中的音符</div>
+                <div class="step-item">4. 按 Ctrl+Z 撤回剪切操作</div>
+                <div class="step-item">5. 检查音符是否被恢复</div>
+                <div class="step-item">6. 按 Ctrl+Y 重新执行剪切操作</div>
+                <div class="step-item">7. 检查音符是否再次被剪切</div>
+            </div>
+        </div>
+
+        <div class="test-section">
+            <div class="test-title">历史状态检查</div>
+            <div class="test-description">
+                检查当前的历史状态，确认剪切操作是否被正确记录
+            </div>
+            <div class="test-buttons">
+                <button class="test-button" onclick="checkHistory()">检查历史状态</button>
+                <button class="test-button" onclick="testUndo()">撤回 (Ctrl+Z)</button>
+                <button class="test-button" onclick="testRedo()">恢复 (Ctrl+Y)</button>
+                <button class="test-button" onclick="clearHistory()">清空历史</button>
+            </div>
+            <div class="status" id="status">等待操作...</div>
+        </div>
+
+        <div class="test-section">
+            <div class="test-title">剪切操作测试</div>
+            <div class="test-description">
+                测试剪切操作的不同方式
+            </div>
+            <div class="test-buttons">
+                <button class="test-button" onclick="testCutSelected()">剪切选中音符</button>
+                <button class="test-button" onclick="testCutAndPaste()">剪切后粘贴</button>
+                <button class="test-button" onclick="testSelectAllAndCut()">全选并剪切</button>
+            </div>
+            <div class="status" id="cutStatus">等待剪切操作...</div>
+        </div>
+
+        <div class="test-section">
+            <div class="test-title">调试信息</div>
+            <div class="test-description">
+                查看控制台输出，确认剪切操作是否被正确调用
+            </div>
+            <div class="step-list">
+                <h4>应该看到以下控制台信息：</h4>
+                <div class="step-item">• "开始剪切操作，选中音符数量: X"</div>
+                <div class="step-item">• "历史状态已保存: cut, 当前索引: X"</div>
+                <div class="step-item">• "剪切音符到剪贴板完成"</div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // 测试函数
+        function checkHistory() {
+            try {
+                if (window.mainController && window.mainController.midiEditor) {
+                    const editor = window.mainController.midiEditor;
+                    const historyInfo = {
+                        totalHistory: editor.history.length,
+                        currentIndex: editor.currentHistoryIndex,
+                        canUndo: editor.canUndo(),
+                        canRedo: editor.canRedo(),
+                        maxSize: editor.maxHistorySize,
+                        selectedNotesCount: editor.selectedNotes.length,
+                        lastActionType: editor.lastActionType,
+                        clipboardLength: editor.clipboard ? editor.clipboard.length : 0
+                    };
+                    updateStatus('历史状态: ' + JSON.stringify(historyInfo, null, 2));
+                } else {
+                    updateStatus('错误：MIDI编辑器未初始化');
+                }
+            } catch (error) {
+                updateStatus('检查历史状态失败: ' + error.message);
+            }
+        }
+
+        function testUndo() {
+            try {
+                if (window.mainController && window.mainController.midiEditor) {
+                    const editor = window.mainController.midiEditor;
+                    if (editor.canUndo()) {
+                        editor.undo();
+                        updateStatus('撤回操作执行成功');
+                    } else {
+                        updateStatus('没有可撤回的操作');
+                    }
+                } else {
+                    updateStatus('错误：MIDI编辑器未初始化');
+                }
+            } catch (error) {
+                updateStatus('撤回操作失败: ' + error.message);
+            }
+        }
+
+        function testRedo() {
+            try {
+                if (window.mainController && window.mainController.midiEditor) {
+                    const editor = window.mainController.midiEditor;
+                    if (editor.canRedo()) {
+                        editor.redo();
+                        updateStatus('恢复操作执行成功');
+                    } else {
+                        updateStatus('没有可恢复的操作');
+                    }
+                } else {
+                    updateStatus('错误：MIDI编辑器未初始化');
+                }
+            } catch (error) {
+                updateStatus('恢复操作失败: ' + error.message);
+            }
+        }
+
+        function clearHistory() {
+            try {
+                if (window.mainController && window.mainController.midiEditor) {
+                    const editor = window.mainController.midiEditor;
+                    editor.history = [];
+                    editor.currentHistoryIndex = -1;
+                    updateStatus('历史记录已清空');
+                } else {
+                    updateStatus('错误：MIDI编辑器未初始化');
+                }
+            } catch (error) {
+                updateStatus('清空历史失败: ' + error.message);
+            }
+        }
+
+        function testCutSelected() {
+            try {
+                if (window.mainController && window.mainController.midiEditor) {
+                    const editor = window.mainController.midiEditor;
+                    if (editor.selectedNotes.length > 0) {
+                        editor.cutSelectedNotes();
+                        updateCutStatus(`已剪切 ${editor.selectedNotes.length} 个选中的音符`);
+                    } else {
+                        updateCutStatus('当前没有选中的音符，请先选中一些音符');
+                    }
+                } else {
+                    updateCutStatus('错误：MIDI编辑器未初始化');
+                }
+            } catch (error) {
+                updateCutStatus('剪切操作失败: ' + error.message);
+            }
+        }
+
+        function testCutAndPaste() {
+            try {
+                if (window.mainController && window.mainController.midiEditor) {
+                    const editor = window.mainController.midiEditor;
+                    if (editor.selectedNotes.length > 0) {
+                        // 先剪切
+                        editor.cutSelectedNotes();
+                        updateCutStatus('已剪切音符，现在粘贴...');
+                        
+                        // 然后粘贴
+                        setTimeout(() => {
+                            editor.pasteNotes();
+                            updateCutStatus('剪切后粘贴完成');
+                        }, 100);
+                    } else {
+                        updateCutStatus('当前没有选中的音符，请先选中一些音符');
+                    }
+                } else {
+                    updateCutStatus('错误：MIDI编辑器未初始化');
+                }
+            } catch (error) {
+                updateCutStatus('剪切粘贴操作失败: ' + error.message);
+            }
+        }
+
+        function testSelectAllAndCut() {
+            try {
+                if (window.mainController && window.mainController.midiEditor) {
+                    const editor = window.mainController.midiEditor;
+                    // 先全选
+                    editor.selectAllNotes();
+                    updateCutStatus(`已全选 ${editor.selectedNotes.length} 个音符`);
+                    
+                    // 然后剪切
+                    if (editor.selectedNotes.length > 0) {
+                        editor.cutSelectedNotes();
+                        updateCutStatus(`已剪切所有选中的音符`);
+                    }
+                } else {
+                    updateCutStatus('错误：MIDI编辑器未初始化');
+                }
+            } catch (error) {
+                updateCutStatus('全选剪切操作失败: ' + error.message);
+            }
+        }
+
+        function updateStatus(message) {
+            document.getElementById('status').textContent = new Date().toLocaleTimeString() + ': ' + message;
+        }
+
+        function updateCutStatus(message) {
+            document.getElementById('cutStatus').textContent = new Date().toLocaleTimeString() + ': ' + message;
+        }
+
+        // 监听键盘事件
+        document.addEventListener('keydown', function(e) {
+            if (e.ctrlKey || e.metaKey) {
+                switch (e.code) {
+                    case 'KeyZ':
+                        e.preventDefault();
+                        testUndo();
+                        break;
+                    case 'KeyY':
+                        e.preventDefault();
+                        testRedo();
+                        break;
+                }
+            }
+        });
+
+        // 页面加载完成后的初始化
+        window.addEventListener('load', function() {
+            updateStatus('剪切操作历史记录测试页面已加载');
+            updateCutStatus('请按照测试步骤进行操作');
+        });
+    </script>
+</body>
+</html>

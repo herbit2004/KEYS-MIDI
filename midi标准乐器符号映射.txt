@@ -1,0 +1,129 @@
+编号	乐器名称（中文）	乐器名称（英文）	类型
+0	大钢琴	Acoustic Grand Piano	键盘
+1	亮音钢琴	Bright Acoustic Bright Piano	键盘
+2	电钢琴	Electric Grand Piano	键盘
+3	Honky-tonk 钢琴	Honky-tonk Piano	键盘
+4	电钢琴	Electric Grand Piano	键盘
+5	颤音电钢琴	Electric Piano 2	键盘
+6	羽管键琴	Harpsichord	键盘
+7	击弦古钢琴	Clavinet	键盘
+8	celesta	Celesta	键盘
+9	钟琴	Glockenspiel	打击乐
+10	音乐盒	Music Box	打击乐
+11	颤音琴	Vibraphone	打击乐
+12	马林巴	Marimba	打击乐
+13	木琴	Xylophone	打击乐
+14	tubular bells	Tubular Bells	打击乐
+15	颤音琴	Dulcimer	弦乐
+16	竖琴	Harp	弦乐
+17	timpani	Timpani	打击乐
+18	弦乐合奏	String Ensemble 1	弦乐
+19	弦乐合奏	String Ensemble 2	弦乐
+20	合成弦乐	Synth Strings 1	合成器
+21	合成弦乐	Synth Strings 2	合成器
+22	choir aahs	Choir Aahs	人声
+23	voice oohs	Voice Oohs	人声
+24	合成人声	Synth Choir	合成器
+25	管弦乐打击乐	Orchestra Hit	打击乐
+26	小号	Trumpet	铜管
+27	长号	Trombone	铜管
+28	大号	Tuba	铜管
+29	-muted trumpet	Muted Trumpet	铜管
+30	圆号	French Horn	铜管
+31	铜管合奏	Brass Section	铜管
+32	合成铜管	Synth Brass 1	合成器
+33	合成铜管	Synth Brass 2	合成器
+34	高音萨克斯	Soprano Sax	木管
+35	中音萨克斯	Alto Sax	木管
+36	次中音萨克斯	Tenor Sax	木管
+37	上低音萨克斯	Baritone Sax	木管
+38	单簧管	Clarinet	木管
+39	低音单簧管	Bass Clarinet	木管
+40	双簧管	Oboe	木管
+41	英国管	English Horn	木管
+42	巴松管	Bassoon	木管
+43	低音管	Contrabassoon	木管
+44	长笛	Flute	木管
+45	短笛	Piccolo	木管
+46	recorder	Recorder	木管
+47	排箫	Pan Flute	木管
+48	吹口哨	Blown Bottle	音效
+49	shakuhachi	Shakuhachi	民族乐器
+50	尺八	Whistle	民族乐器
+51	ocarina	Ocarina	民族乐器
+52	合成主音	Lead 1 (square)	合成器
+53	合成主音	Lead 2 (sawtooth)	合成器
+54	合成主音	Lead 3 (calliope)	合成器
+55	合成主音	Lead 4 (chiff)	合成器
+56	合成主音	Lead 5 (charang)	合成器
+57	合成主音	Lead 6 (voice)	合成器
+58	合成主音	Lead 7 (fifths)	合成器
+59	合成主音	Lead 8 (bass + lead)	合成器
+60	合成垫音	Pad 1 (new age)	合成器
+61	合成垫音	Pad 2 (warm)	合成器
+62	合成垫音	Pad 3 (polysynth)	合成器
+63	合成垫音	Pad 4 (choir)	合成器
+64	合成垫音	Pad 5 (bowed)	合成器
+65	合成垫音	Pad 6 (metallic)	合成器
+66	合成垫音	Pad 7 (halo)	合成器
+67	合成垫音	Pad 8 (sweep)	合成器
+68	合成效果	FX 1 (rain)	效果音
+69	合成效果	FX 2 (soundtrack)	效果音
+70	合成效果	FX 3 (crystal)	效果音
+71	合成效果	FX 4 (atmosphere)	效果音
+72	合成效果	FX 5 (brightness)	效果音
+73	合成效果	FX 6 (goblins)	效果音
+74	合成效果	FX 7 (echoes)	效果音
+75	合成效果	FX 8 (sci-fi)	效果音
+76	acoustic guitar (nylon)	Acoustic Guitar (nylon)	吉他
+77	acoustic guitar (steel)	Acoustic Guitar (steel)	吉他
+78	electric guitar (jazz)	Electric Guitar (jazz)	吉他
+79	electric guitar (clean)	Electric Guitar (clean)	吉他
+80	electric guitar (muted)	Electric Guitar (muted)	吉他
+81	失真电吉他	Overdriven Guitar	吉他
+82	吉他独奏	Distortion Guitar	吉他
+83	吉他泛音	Guitar Harmonics	吉他
+84	原声贝司	Acoustic Bass	贝司
+85	电贝司（指弹）	Electric Bass (finger)	贝司
+86	电贝司（拨片）	Electric Bass (pick)	贝司
+87	fretless bass	Fretless Bass	贝司
+88	slap bass 1	Slap Bass 1	贝司
+89	slap bass 2	Slap Bass 2	贝司
+90	合成贝司	Synth Bass 1	合成器
+91	合成贝司	Synth Bass 2	合成器
+92	小提琴	Violin	弦乐
+93	中提琴	Viola	弦乐
+94	大提琴	Cello	弦乐
+95	低音提琴	Contrabass	弦乐
+96	颤音琴	Tremolo Strings	弦乐
+97	pizzicato strings	Pizzicato Strings	弦乐
+98	orchestral harp	Orchestral Harp	弦乐
+99	timpani	Timpani	打击乐
+100	合奏弦乐	String Ensemble 1	弦乐
+101	合奏弦乐	String Ensemble 2	弦乐
+102	合成弦乐	Synth Strings 1	合成器
+103	合成弦乐	Synth Strings 2	合成器
+104	合唱 “啊” 音	Choir Aahs	人声
+105	人声 “哦” 音	Voice Oohs	人声
+106	合成合唱	Synth Choir	合成器
+107	管弦乐打击乐	Orchestra Hit	打击乐
+108	小号	Trumpet	铜管
+109	长号	Trombone	铜管
+110	大号	Tuba	铜管
+111	弱音小号	Muted Trumpet	铜管
+112	圆号	French Horn	铜管
+113	铜管合奏	Brass Section	铜管
+114	合成铜管	Synth Brass 1	合成器
+115	合成铜管	Synth Brass 2	合成器
+116	高音萨克斯	Soprano Sax	木管
+117	中音萨克斯	Alto Sax	木管
+118	次中音萨克斯	Tenor Sax	木管
+119	上低音萨克斯	Baritone Sax	木管
+120	单簧管	Clarinet	木管
+121	低音单簧管	Bass Clarinet	木管
+122	双簧管	Oboe	木管
+123	英国管	English Horn	木管
+124	巴松管	Bassoon	木管
+125	低音管	Contrabassoon	木管
+126	长笛	Flute	木管
+127	短笛	Piccolo	木管
