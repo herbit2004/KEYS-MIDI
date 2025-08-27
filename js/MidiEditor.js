@@ -98,6 +98,12 @@ export class MidiEditor {
     this.pixelsPerNote = this.canvas.height / 128;
     this.pixelsPerNote = this.canvas.height / 128;
     
+    // 当前正在播放的音符集合，用于高亮显示
+    this.activePlayNotes = new Set();
+    
+    // 初始化音符播放和停止的监听器
+    this.setupNotePlaybackListeners();
+    
     // 鼠标输入功能状态
     this.isMouseInputEnabled = false; // 鼠标输入功能默认关闭
     this.isMousePressed = false; // 鼠标是否按下
@@ -390,6 +396,33 @@ export class MidiEditor {
     
     // 开始动画循环
     this.animate();
+  }
+  
+  // 设置音符播放和停止的监听器
+  setupNotePlaybackListeners() {
+    // 保存原始的playNote和stopNote方法
+    const originalPlayNote = this.audioEngine.playNote.bind(this.audioEngine);
+    const originalStopNote = this.audioEngine.stopNote.bind(this.audioEngine);
+    
+    // 重写playNote方法，添加高亮逻辑
+    this.audioEngine.playNote = (note, velocity = 0.8) => {
+      // 添加到活动音符集合
+      this.activePlayNotes.add(note);
+      // 触发重绘
+      this.draw();
+      // 调用原始方法
+      originalPlayNote(note, velocity);
+    };
+    
+    // 重写stopNote方法，移除高亮
+    this.audioEngine.stopNote = (note, instrumentId = null) => {
+      // 从活动音符集合中移除
+      this.activePlayNotes.delete(note);
+      // 触发重绘
+      this.draw();
+      // 调用原始方法
+      originalStopNote(note, instrumentId);
+    };
   }
   
   // 计算pixelsPerSecond
@@ -2255,8 +2288,15 @@ export class MidiEditor {
     
     // 用深浅交错的背景色替代每个音高的细线
     for (let i = 0; i < 128; i++) {
-      // 交替使用两种背景色
-      if (i % 2 === 0) {
+      // 检查当前音高是否正在播放
+      if (this.activePlayNotes.has(i)) {
+        // 高亮当前播放的音高行
+        if (i % 2 === 0) {
+          this.ctx.fillStyle = '#333333'; // 深色高亮
+        } else {
+          this.ctx.fillStyle = '#333333'; // 浅色高亮
+        }
+      } else if (i % 2 === 0) {
         this.ctx.fillStyle = '#1a1a1a'; // 深色
       } else {
         this.ctx.fillStyle = '#121212'; // 浅色
@@ -3606,9 +3646,9 @@ export class MidiEditor {
     const baseNote = 127 - Math.floor(pos.y / noteHeight);
     this.mouseInputNote = Math.max(0, Math.min(127, baseNote));
     
-    // 播放音符
+    // 播放音符 - 力度设置为100以匹配直接演奏音量
     const currentInstrument = this.audioEngine.currentInstrument;
-    this.audioEngine.playNote(this.mouseInputNote, 0.8, false, currentInstrument);
+    this.audioEngine.playNote(this.mouseInputNote, 100, false, currentInstrument);
     
     // 立即绘制临时音符（按下时就显示）
     this.draw();
