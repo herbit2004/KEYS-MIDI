@@ -3,6 +3,7 @@
     "sampledPiano": {
       "name": "采样钢琴",
       "color": "#426fec",
+      "midiProgram": 0,
       "synth": {
         "type": "Sampler",
         "options": {
@@ -61,6 +62,7 @@
     "sampledOldPiano": {
       "name": "采样老钢琴",
       "color": "#696969",
+      "midiProgram": 0,
       "synth": {
         "type": "Sampler",
         "options": {
@@ -104,6 +106,7 @@
     "sampledRhodes": {
       "name": "采样Rhodes",
       "color": "#9b66f2",
+      "midiProgram": 4,
       "synth": {
         "type": "Sampler",
         "options": {
@@ -183,6 +186,7 @@
     "sampledYamahaDX7": {
       "name": "采样DX7",
       "color": "#3cb371",
+      "midiProgram": 16,
       "synth": {
         "type": "Sampler",
         "options": {
@@ -223,6 +227,7 @@
     "sampledGuitar": {
       "name": "采样吉他",
       "color": "#dd5e30",
+      "midiProgram": 24,
       "synth": {
         "type": "Sampler",
         "options": {
@@ -259,6 +264,7 @@
     "sampledGuitar2": {
       "name": "采样吉他2",
       "color": "#e9967a",
+      "midiProgram": 24,
       "synth": {
         "type": "Sampler",
         "options": {
@@ -300,6 +306,7 @@
     "sampledMutedGuitar": {
       "name": "采样闷音电吉他",
       "color": "#663300",
+      "midiProgram": 25,
       "synth": {
         "type": "Sampler",
         "options": {
@@ -332,6 +339,7 @@
     "sampledNylonGuitar": {
       "name": "采样尼龙吉他",
       "color": "#8B4513",
+      "midiProgram": 25,
       "synth": {
         "type": "Sampler",
         "options": {
@@ -366,6 +374,7 @@
     "sampledCleanElectricGuitar": {
       "name": "采样清音电吉他",
       "color": "#90EE90",
+      "midiProgram": 27,
       "synth": {
         "type": "Sampler",
         "options": {
@@ -400,6 +409,7 @@
     "sampledBass": {
       "name": "采样贝斯",
       "color": "#088060",
+      "midiProgram": 32,
       "synth": {
         "type": "Sampler",
         "options": {
@@ -438,6 +448,7 @@
     "sampledString": {
       "name": "采样弦乐",
       "color": "#78c647",
+      "midiProgram": 48,
       "synth": {
         "type": "Sampler",
         "options": {
@@ -492,6 +503,7 @@
     "sampledTrumpet": {
       "name": "采样小号",
       "color": "#A2B9C7",
+      "midiProgram": 56,
       "synth": {
         "type": "Sampler",
         "options": {
@@ -532,6 +544,7 @@
     "sampledClarinet": {
       "name": "采样单簧管",
       "color": "#20B2AA",
+      "midiProgram": 71,
       "synth": {
         "type": "Sampler",
         "options": {
@@ -569,6 +582,7 @@
     "sampledXylophone": {
       "name": "采样木琴",
       "color": "#f0e68c",
+      "midiProgram": 13,
       "synth": {
         "type": "Sampler",
         "options": {
@@ -606,6 +620,7 @@
     "sampledHarp": {
       "name": "采样竖琴",
       "color": "#D8BFD8",
+      "midiProgram": 46,
       "synth": {
         "type": "Sampler",
         "options": {
@@ -649,6 +664,7 @@
     "sampledSacphone": {
       "name": "采样萨克斯风",
       "color": "#FF8C00",
+      "midiProgram": 66,
       "synth": {
         "type": "Sampler",
         "options": {
@@ -690,6 +706,7 @@
     "sampledPercussion": {
       "name": "采样打击乐",
       "color": "#F54F4F",
+      "midiProgram": 0,
       "synth": {
         "type": "Sampler",
         "options": {
@@ -765,6 +782,7 @@
     "piano": {
       "name": "合成钢琴",
       "color": "#4fa5f5",
+      "midiProgram": 0,
       "synth": {
         "type": "PolySynth",
         "options": {
@@ -822,6 +840,7 @@
     "guitar": {
       "name": "合成吉他",
       "color": "#efd23e",
+      "midiProgram": 24,
       "synth": {
         "type": "PolySynth",
         "options": {
@@ -884,6 +903,7 @@
     "electricGuitar": {
       "name": "合成电吉他",
       "color": "#ef2083",
+      "midiProgram": 27,
       "synth": {
         "type": "PolySynth",
         "options": {
@@ -930,6 +950,7 @@
     "acousticBass": {
       "name": "合成贝斯",
       "color": "#42657b",
+      "midiProgram": 32,
       "synth": {
         "type": "PolySynth",
         "options": {
@@ -997,6 +1018,7 @@
     "uprightBass": {
       "name": "合成低音提琴",
       "color": "#75460f",
+      "midiProgram": 43,
       "synth": {
         "type": "PolySynth",
         "options": {

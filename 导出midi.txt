@@ -1,0 +1,267 @@
+index.html打击乐映射.txt打击乐映射.txtinstruments.jsonMidiEditor.js要为 KEYS-MIDI 项目拓展导出 MIDI 功能，需要从数据转换、标准适配、功能实现三个维度进行设计，以下是具体方案：
+一、核心实现步骤
+引入 MIDI 文件生成工具
+推荐使用成熟的 MIDI 处理库（如 midi-writer-js 或 web-midi-api），简化 MIDI 文件结构的手动构建工作。
+示例安装：npm install midi-writer-js
+梳理现有音符数据结构
+从 MidiEditor.js 可知，音符数据存储在 this.tracks 中（按音色分组），每个音符应包含：
+音高（MIDI note number，如 60 对应 C4）
+起始时间（需转换为 MIDI ticks 单位）
+时长（需转换为 MIDI ticks 单位）
+力度（velocity，0-127）
+所属音色（用于映射 MIDI 乐器编号）
+实现 MIDI 文件生成逻辑
+核心是将 tracks 数据转换为 MIDI 规范的轨道结构，关键代码框架：
+javascript
+运行
+import MidiWriter from 'midi-writer-js';
+
+class MidiExporter {
+  export(tracks, bpm, instrumentsConfig) {
+    // 1. 创建MIDI文件对象
+    const midi = new MidiWriter.Writer();
+    
+    // 2. 设置全局速度（BPM转换为MIDI tempo事件）
+    midi.setTempo(bpm);
+    
+    // 3. 遍历每个轨道（按音色分组）
+    tracks.forEach((track, index) => {
+      const midiTrack = new MidiWriter.Track();
+      const instrumentId = track.instrumentId;
+      
+      // 4. 设置乐器（映射MIDI标准乐器编号）
+      const midiProgram = instrumentsConfig.getMidiProgram(instrumentId);
+      midiTrack.addEvent(new MidiWriter.ProgramChangeEvent({
+        programNumber: midiProgram,
+        channel: index % 16 // MIDI通道（0-15，10为打击乐专用）
+      }));
+      
+      // 5. 添加音符事件
+      track.notes.forEach(note => {
+        midiTrack.addEvent(new MidiWriter.NoteEvent({
+          pitch: [note.midiNote], // 音高
+          duration: this.convertToMidiDuration(note.duration, bpm), // 时长（ticks）
+          velocity: note.velocity, // 力度（0-127）
+          startTick: this.convertToTicks(note.startTime, bpm) // 起始时间（ticks）
+        }));
+      });
+      
+      midi.addTrack(midiTrack);
+    });
+    
+    // 6. 生成并下载MIDI文件
+    this.downloadMidi(midi.buildFile());
+  }
+  
+  // 时间单位转换（项目内时间 -> MIDI ticks）
+  convertToTicks(timeInSeconds, bpm) {
+    const ppq = 480; // 每四分音符的脉冲数（PPQN，可配置）
+    return Math.round(timeInSeconds * (bpm / 60) * ppq);
+  }
+  
+  // 下载文件
+  downloadMidi(blob) {
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'keys-midi-export.mid';
+    a.click();
+  }
+}
+
+二、必须适配的 MIDI 标准
+乐器编号（Program Change）
+必须适配！MIDI 标准定义了 128 种乐器编号（0-127），例如：
+0：钢琴（Acoustic Grand Piano）
+24：钢弦吉他（Acoustic Guitar (steel)）
+48：弦乐合奏（String Ensemble 1）
+实现方式：在 instruments.json 中为每个音色添加 midiProgram 字段，映射到标准编号：
+json
+{
+  "instruments": {
+    "myPiano": {
+      "name": "我的钢琴",
+      "midiProgram": 0, // 对应MIDI标准钢琴
+      "synth": { ... }
+    },
+    "myGuitar": {
+      "name": "我的吉他",
+      "midiProgram": 24, // 对应MIDI标准钢弦吉他
+      "synth": { ... }
+    }
+  }
+}
+
+打击乐通道（Channel 10）
+MIDI 标准规定 通道 10（0-based 索引为 9） 为打击乐专用通道，且打击乐音高对应特定音色（如 36 = 底鼓、38 = 军鼓，见 打击乐映射.txt）。
+需特别处理：
+若轨道为打击乐音色，强制分配到通道 9（10 通道）
+确保打击乐音高（如 36-81）与 MIDI 标准映射一致（项目已有 打击乐映射.txt，可直接复用）
+时间与速度规范
+MIDI 文件使用 ticks（脉冲） 作为时间单位，需通过 BPM 和 PPQN（每四分音符脉冲数，建议设为 480）转换项目内的时间单位（如秒或像素）。
+必须包含 tempo 事件（微秒 / 四分音符），由项目中的 BPM 计算得出：tempo = 60,000,000 / BPM。
+力度范围（Velocity）
+MIDI 音符力度为 0-127，需确保项目内的力度参数（如音量滑块值）映射到此范围（例如：项目内 0-100 → 转换为 0-127）。
+三、其他需要适配的细节
+多轨道结构
+MIDI 文件支持多轨道，需将项目中按音色分组的 tracks 对应到 MIDI 的多个轨道，每个轨道独立设置乐器编号和通道。
+元数据（可选）
+可添加 MIDI 文件元数据提升兼容性：
+轨道名称（对应音色名称）
+版权信息（如 KEYS-MIDI Export）
+时间签名（项目中默认 4/4，需写入 MIDI 事件）
+导出 UI 集成
+在现有编辑器界面（参考 index.html 中的 MIDI 编辑器按钮）添加 “导出 MIDI” 按钮，绑定点击事件调用导出逻辑：
+html
+预览
+<button id="export-midi-button">导出MIDI</button>
+
+javascript
+运行
+// 在MidiEditor.js中绑定事件
+this.exportButton = document.getElementById('export-midi-button');
+this.exportButton.addEventListener('click', () => {
+  const exporter = new MidiExporter();
+  exporter.export(this.tracks, this.bpm, this.instrumentConfig);
+});
+
+
+兼容性测试
+导出后需在主流音乐软件（如 Logic Pro、FL Studio、Audacity）中验证：
+乐器音色是否正确（依赖 Program Change 映射）
+节奏和时长是否与项目内播放一致
+打击乐是否在正确通道且音色匹配
+
+通过以上步骤，即可实现符合 MIDI 标准的导出功能，确保导出文件能在其他音乐软件中正常使用。
+
+
+
+以下是对于多轨道对齐问题的解决方法参考：
+多轨道 MIDI 导出时的时间错位问题，核心原因是MIDI 文件的时间基准统一性和轨道内事件时序的相对性没有处理好。结合你的项目场景，解决方案需要从「时间基准对齐」「单位换算一致性」「事件时序规范化」三个层面入手，具体如下：
+一、核心问题分析
+MIDI 文件的时间系统有两个关键特性，也是导致错位的常见原因：
+
+全局时间基准：所有轨道共享同一个时间轴（基于 PPQN 和 Tempo），轨道间的时间差由事件的绝对时间决定，而非轨道独立计时。
+相对时间存储：MIDI 轨道内的事件以「delta time」（相对于上一个事件的时间差）存储，而非绝对时间，若计算错误会导致累积偏差。
+
+你的场景中，“不同轨道第一个音符时间不同” 是正常现象，但错位说明：
+
+各轨道的时间没有基于同一个全局起始点（如所有轨道都以项目的「0 秒」为基准）；
+单位换算（秒 → ticks）时使用了不一致的参数（如 PPQN 或 BPM）；
+轨道内事件的 delta time 计算错误（如未按时间顺序排序事件）。
+二、解决方案步骤
+1. 统一全局时间基准
+所有轨道必须以项目的「绝对时间 0 点」为起点，无论轨道是否有音符，时间轴完全对齐。
+
+具体操作：
+
+遍历所有轨道的音符，提取项目中最早的音符 startTime 作为全局参考点（通常是 0，若有延迟则统一偏移）；
+所有轨道的音符时间（startTime、endTime）都基于此 0 点计算，确保时间轴完全同步。
+
+javascript
+运行
+// 示例：获取全局最小时间（确保所有轨道时间基于0点）
+const allNotes = [];
+this.tracks.forEach(track => {
+  track.notes.forEach(note => allNotes.push(note));
+});
+const globalStartTime = allNotes.length > 0 
+  ? Math.min(...allNotes.map(note => note.startTime)) 
+  : 0; // 全局起始点
+2. 严格统一单位换算参数
+MIDI 的 ticks 计算依赖两个固定参数，必须在所有轨道中保持一致：
+
+PPQN（Pulses Per Quarter Note）：每四分音符的脉冲数（建议项目中固定为 480，不要动态修改）；
+Tempo（速度）：微秒 / 四分音符（由项目 BPM 计算：tempo = 60,000,000 / BPM）。
+
+换算公式（将项目中的「秒」转换为 MIDI「ticks」）：
+
+javascript
+运行
+// 固定PPQN（全局唯一，所有轨道共用）
+const PPQN = 480;
+
+// 转换函数（秒 → ticks）
+convertSecondsToTicks(seconds, bpm) {
+  const quarterNotesPerSecond = bpm / 60; // 每秒多少个四分音符
+  return Math.round(seconds * quarterNotesPerSecond * PPQN);
+}
+
+关键：所有轨道的音符时间转换必须使用同一个 PPQN 和 BPM，禁止为不同轨道单独设置。
+3. 规范轨道内事件的时序与 delta time
+MIDI 轨道内的事件（如 Note On、Note Off、Program Change）必须按时间顺序排列，且用「delta time」（相对于上一个事件的 ticks 差）存储，而非绝对时间。
+
+处理流程：
+
+对每个轨道的所有事件（包括乐器选择、音符）按绝对时间排序；
+计算每个事件与前一个事件的时间差（delta time），作为 MIDI 事件的间隔。
+
+javascript
+运行
+// 示例：处理单个轨道的事件时序
+processTrackEvents(trackNotes, globalStartTime, bpm) {
+  // 1. 为轨道添加「乐器选择事件」（Program Change），放在最前面
+  const events = [
+    {
+      type: 'programChange',
+      time: 0, // 轨道开始就切换乐器
+      program: track.instrumentMidiProgram
+    }
+  ];
+
+  // 2. 转换所有音符为Note On/Off事件（基于全局时间）
+  trackNotes.forEach(note => {
+    // 基于全局0点计算绝对时间（秒）
+    const noteOnTime = note.startTime - globalStartTime;
+    const noteOffTime = note.endTime - globalStartTime;
+
+    // 转换为ticks
+    const onTicks = this.convertSecondsToTicks(noteOnTime, bpm);
+    const offTicks = this.convertSecondsToTicks(noteOffTime, bpm);
+
+    events.push(
+      { type: 'noteOn', time: onTicks, note: note.midiNote, velocity: note.velocity },
+      { type: 'noteOff', time: offTicks, note: note.midiNote }
+    );
+  });
+
+  // 3. 按绝对时间排序所有事件（关键步骤，避免时序混乱）
+  events.sort((a, b) => a.time - b.time);
+
+  // 4. 计算delta time（相对于前一个事件的差）
+  let lastTime = 0;
+  return events.map(event => {
+    const delta = event.time - lastTime;
+    lastTime = event.time;
+    return { ...event, delta };
+  });
+}
+4. 全局 Tempo 事件统一设置
+MIDI 文件的第一个轨道（通常是「 tempo 轨道」）需要包含全局 Tempo 事件，确保所有轨道使用相同的速度基准。其他轨道无需重复设置 tempo。
+
+javascript
+运行
+// 示例：创建全局Tempo轨道
+createTempoTrack(bpm) {
+  const tempoTrack = new MidiWriter.Track();
+  // 计算tempo（微秒/四分音符）
+  const tempo = Math.round(60000000 / bpm);
+  // 在时间0点设置tempo（所有轨道共享）
+  tempoTrack.addEvent(new MidiWriter.MetaEvent({
+    type: 'tempo',
+    tempo,
+    delta: 0
+  }));
+  return tempoTrack;
+}
+三、项目适配建议（结合现有代码）
+复用 MidiEditor 的时间数据：
+从 MidiEditor.tracks 中提取每个轨道的 notes，其中的 startTime 和 endTime 是项目内的绝对时间（秒），直接基于此转换即可，无需额外偏移。
+处理延音踏板（Sustain）：
+若项目中有延音踏板（如 MainController 中的 sustainPedalPressed），需在 MIDI 中转换为「控制变化事件」（Control Change 64），放在对应轨道的事件流中，避免音符时长计算错误。
+测试验证：
+导出后用 Audacity 或 FL Studio 检查：
+所有轨道的时间轴是否对齐（可通过「对齐到网格」功能验证）；
+不同轨道的相同时间点（如 1 秒处）是否在同一位置。
+总结
+多轨道错位的核心解决方案是：「一个时间基准、一套换算参数、严格事件排序」。确保所有轨道共享全局 0 点、PPQN 和 Tempo，并用 delta time 正确记录事件间隔，即可解决时间比例和错位问题。

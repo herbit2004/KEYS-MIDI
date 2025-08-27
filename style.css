@@ -691,7 +691,6 @@ input:checked + .slider:before {
 }
 
 .export-import-button img {
-    filter: invert(100%);
     transition: all 0.2s ease;
 }
 
@@ -748,10 +747,10 @@ input:checked + .slider:before {
     transform: scale(1.1);
 }
 
-/* 一键吸附按钮样式 */
-#snap-all-button, #snap-duration-button {
+/* 下拉菜单按钮统一样式 */
+.dropdown-menu-button {
     background: rgba(255, 255, 255, 0.1);
-    border: 1px solid rgba(255, 255, 255, 0.2);
+    border: none;
     border-radius: 3px;
     color: #cccccc;
     cursor: pointer;
@@ -760,16 +759,17 @@ input:checked + .slider:before {
     font-size: 0.7rem;
     font-weight: 400;
     height: 28px;
-    width: 120px;
-    margin: 2px 0;
+    width: 125px;
+    margin: 8px auto 0;
+    display: block;
 }
 
-#snap-all-button:hover, #snap-duration-button:hover {
+.dropdown-menu-button:hover {
     background: rgba(255, 255, 255, 0.15);
     transform: scale(1.02);
 }
 
-#snap-all-button:active, #snap-duration-button:active {
+.dropdown-menu-button:active {
     transform: scale(0.98);
 }
 
@@ -813,6 +813,10 @@ input:checked + .slider:before {
     background-color: rgba(37, 37, 37, 0.8);
     padding: 10px;
     border-radius: 4px;
+}
+
+.export-control {
+    position: relative;
 }
 
 /* MIDI编辑器信息显示区域样式 */

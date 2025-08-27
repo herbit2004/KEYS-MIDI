@@ -252,7 +252,7 @@
                     </button>
                 </div>
                 
-                <!-- BPM、拍/小节、节拍器和自动吸附控制组 -->
+                <!-- 合并的控制组：包含BPM、拍/小节、节拍器、自动吸附和文件操作 -->
                 <div class="control-group">
                     <!-- BPM 输入框 -->
                     <div class="bpm-control">
@@ -265,48 +265,54 @@
                         <input type="number" id="beats-per-measure-input" class="beats-per-measure-input" min="0" max="10" value="4">
                     </div>
                     <!-- 节拍器开关 -->
-                <div class="metronome-control">
-                    <button class="midi-editor-button metronome-snap-button">
-                        <img src="icons/metronome.svg" alt="节拍器" id="metronome-icon" class="control-icon">
-                    </button>
-                    <!-- 节拍器音量控制栏 -->
-                <div class="control-slider-container" id="metronome-volume-container" style="display: none;">
-                    <div class="slider-description">节拍器音量</div>
-                    <div class="slider-value" id="metronome-volume-value">-25 dB</div>
-                    <input type="range" id="metronome-volume" class="control-slider" min="-60" max="0" value="-25" step="1">
-                </div>
-                </div>
-                <!-- 自动吸附开关 -->
-                <div class="snap-control">
-                    <button class="midi-editor-button metronome-snap-button">
-                        <img src="icons/snap.svg" alt="自动吸附" id="snap-icon" class="control-icon">
-                    </button>
-                    <!-- 自动吸附灵敏度控制栏 -->
-                <div class="control-slider-container" id="snap-sensitivity-container" style="display: none;">
-                    <div class="slider-description">吸附灵敏度</div>
-                    <div class="slider-value" id="snap-sensitivity-value">15</div>
-                    <input type="range" id="snap-sensitivity" class="control-slider" min="0" max="50" value="15" step="1">
-                    <!-- 新增吸附精度选择 -->
-                    <div class="snap-precision-control">
-                        <div class="slider-description">吸附精度</div>
-                        <div class="slider-value" id="snap-precision-value">1/1</div>
-                        <input type="range" id="snap-precision" class="control-slider" min="1" max="10" value="1" step="1">
+                    <div class="metronome-control">
+                        <button class="midi-editor-button metronome-snap-button">
+                            <img src="icons/metronome.svg" alt="节拍器" id="metronome-icon" class="control-icon">
+                        </button>
+                        <!-- 节拍器音量控制栏 -->
+                        <div class="control-slider-container" id="metronome-volume-container" style="display: none;">
+                            <div class="slider-description">节拍器音量</div>
+                            <div class="slider-value" id="metronome-volume-value">-25 dB</div>
+                            <input type="range" id="metronome-volume" class="control-slider" min="-60" max="0" value="-25" step="1">
+                        </div>
                     </div>
-                    <!-- 一键吸附触发按钮 -->
-                    <button id="snap-all-button" class="midi-editor-button" style="margin-top: 10px; width: 100%;">一键吸附触发</button>
-                    <!-- 一键吸附时长按钮 -->
-                    <button id="snap-duration-button" class="midi-editor-button" style="margin-top: 10px; width: 100%;">一键吸附时长</button>
-                </div>
-                </div>
-                </div>
-                
-                <!-- 文件操作组 -->
-                <div class="control-group">
-                    <button id="save-button-editor" class="midi-editor-button export-import-button">
-                        <img src="icons/export.svg" alt="保存">
-                    </button>
-                    <button id="load-button-editor" class="midi-editor-button export-import-button">
-                        <img src="icons/import.svg" alt="导入">
+                    <!-- 自动吸附开关 -->
+                    <div class="snap-control">
+                        <button class="midi-editor-button metronome-snap-button">
+                            <img src="icons/snap.svg" alt="自动吸附" id="snap-icon" class="control-icon">
+                        </button>
+                        <!-- 自动吸附灵敏度控制栏 -->
+                        <div class="control-slider-container" id="snap-sensitivity-container" style="display: none;">
+                            <div class="slider-description">吸附灵敏度</div>
+                            <div class="slider-value" id="snap-sensitivity-value">15</div>
+                            <input type="range" id="snap-sensitivity" class="control-slider" min="0" max="50" value="15" step="1">
+                            <!-- 新增吸附精度选择 -->
+                            <div class="snap-precision-control">
+                                <div class="slider-description">吸附精度</div>
+                                <div class="slider-value" id="snap-precision-value">1/1</div>
+                                <input type="range" id="snap-precision" class="control-slider" min="1" max="10" value="1" step="1">
+                            </div>
+                            <!-- 一键吸附触发按钮 -->
+                            <button id="snap-all-button" class="midi-editor-button dropdown-menu-button">一键吸附触发</button>
+                            <!-- 一键吸附时长按钮 -->
+                            <button id="snap-duration-button" class="midi-editor-button dropdown-menu-button">一键吸附时长</button>
+                        </div>
+                    </div>
+                    <!-- 导出控制 -->
+                    <div class="export-control">
+                        <button id="save-button-editor" class="midi-editor-button metronome-snap-button">
+                            <img src="icons/export.svg" alt="保存" class="control-icon">
+                        </button>
+                        <!-- 导出选项菜单 -->
+                        <div class="control-slider-container" id="export-options-container" style="display: none; opacity: 0; transition: opacity 0.2s;">
+                            <div class="slider-description">导出格式</div>
+                            <button id="export-json-button" class="midi-editor-button dropdown-menu-button">导出JSON</button>
+                            <button id="export-midi-button" class="midi-editor-button dropdown-menu-button">导出MIDI</button>
+                        </div>
+                    </div>
+                    <!-- 导入按钮 -->
+                    <button id="load-button-editor" class="midi-editor-button metronome-snap-button">
+                        <img src="icons/import.svg" alt="导入" class="control-icon">
                     </button>
                 </div>
                 
@@ -440,6 +446,7 @@
     </div>
     
     <script src="https://cdnjs.cloudflare.com/ajax/libs/tone/14.8.49/Tone.js"></script>
+    <script src="js/MidiExporter.js" type="module"></script>
     <script src="js/main.js" type="module"></script>
     <script src="js/VisualManager.js" type="module"></script>
     <script>

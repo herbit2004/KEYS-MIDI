@@ -1,4 +1,6 @@
 // MIDI编辑器模块
+import { MidiExporter } from './MidiExporter.js';
+
 export class MidiEditor {
   constructor(audioEngine, keyMapper, snapToggle) {
     this.audioEngine = audioEngine;
@@ -88,6 +90,9 @@ export class MidiEditor {
     
     // 鼠标位置跟踪
     this.lastMousePosition = null; // 最后一次鼠标位置
+    
+    // MIDI导出器
+    this.midiExporter = new MidiExporter();
     
     // 时间轴缩放
     this.pixelsPerNote = this.canvas.height / 128;
@@ -200,27 +205,36 @@ export class MidiEditor {
       metronomeIcon.addEventListener('click', toggleMetronome);
       
       // 鼠标进入节拍器控制区域
-      metronomeControl.addEventListener('mouseenter', () => {
-        clearTimeout(metronomeHoverTimeout);
-        
-        // 先隐藏其他容器
-        const snapContainer = document.getElementById('snap-sensitivity-container');
-        if (snapContainer && snapContainer.style.display === 'block') {
-          snapContainer.style.opacity = '0';
-          snapContainer.style.transition = 'opacity 0.2s ease';
-          setTimeout(() => {
-            snapContainer.style.display = 'none';
-          }, 200);
-        }
-        
-        // 显示节拍器滑块容器
-        metronomeContainer.style.display = 'block';
-        metronomeContainer.style.opacity = '0';
-        metronomeContainer.style.transition = 'opacity 0.2s ease';
-        // 强制重绘以确保动画效果
-        metronomeContainer.offsetHeight;
-        metronomeContainer.style.opacity = '1';
-      });
+        metronomeControl.addEventListener('mouseenter', () => {
+          clearTimeout(metronomeHoverTimeout);
+          
+          // 先隐藏其他容器
+          const snapContainer = document.getElementById('snap-sensitivity-container');
+          if (snapContainer && snapContainer.style.display === 'block') {
+            snapContainer.style.opacity = '0';
+            snapContainer.style.transition = 'opacity 0.2s ease';
+            setTimeout(() => {
+              snapContainer.style.display = 'none';
+            }, 200);
+          }
+          
+          const exportContainer = document.getElementById('export-options-container');
+          if (exportContainer && exportContainer.style.display === 'block') {
+            exportContainer.style.opacity = '0';
+            exportContainer.style.transition = 'opacity 0.2s ease';
+            setTimeout(() => {
+              exportContainer.style.display = 'none';
+            }, 200);
+          }
+          
+          // 显示节拍器滑块容器
+          metronomeContainer.style.display = 'block';
+          metronomeContainer.style.opacity = '0';
+          metronomeContainer.style.transition = 'opacity 0.2s ease';
+          // 强制重绘以确保动画效果
+          metronomeContainer.offsetHeight;
+          metronomeContainer.style.opacity = '1';
+        });
       
       // 鼠标离开节拍器控制区域
       metronomeControl.addEventListener('mouseleave', () => {
@@ -275,24 +289,33 @@ export class MidiEditor {
       snapIcon.addEventListener('click', toggleSnap);
       
       // 鼠标进入自动吸附控制区域
-      snapControl.addEventListener('mouseenter', () => {
-        clearTimeout(snapHoverTimeout);
-        
-        // 先隐藏其他容器
-        const metronomeContainer = document.getElementById('metronome-volume-container');
-        if (metronomeContainer && metronomeContainer.style.display === 'block') {
-          metronomeContainer.style.opacity = '0';
-          metronomeContainer.style.transition = 'opacity 0.2s ease';
-          setTimeout(() => {
-            metronomeContainer.style.display = 'none';
-          }, 200);
-        }
-        
-        // 显示自动吸附滑块容器
-        snapContainer.style.display = 'block';
-        snapContainer.style.opacity = '0';
-        snapContainer.style.transition = 'opacity 0.2s ease';
-        // 强制重绘以确保动画效果
+        snapControl.addEventListener('mouseenter', () => {
+          clearTimeout(snapHoverTimeout);
+          
+          // 先隐藏其他容器
+          const metronomeContainer = document.getElementById('metronome-volume-container');
+          if (metronomeContainer && metronomeContainer.style.display === 'block') {
+            metronomeContainer.style.opacity = '0';
+            metronomeContainer.style.transition = 'opacity 0.2s ease';
+            setTimeout(() => {
+              metronomeContainer.style.display = 'none';
+            }, 200);
+          }
+          
+          const exportContainer = document.getElementById('export-options-container');
+          if (exportContainer && exportContainer.style.display === 'block') {
+            exportContainer.style.opacity = '0';
+            exportContainer.style.transition = 'opacity 0.2s ease';
+            setTimeout(() => {
+              exportContainer.style.display = 'none';
+            }, 200);
+          }
+          
+          // 显示自动吸附滑块容器
+          snapContainer.style.display = 'block';
+          snapContainer.style.opacity = '0';
+          snapContainer.style.transition = 'opacity 0.2s ease';
+          // 强制重绘以确保动画效果
         snapContainer.offsetHeight;
         snapContainer.style.opacity = '1';
       });
@@ -404,10 +427,104 @@ export class MidiEditor {
       }
     });
     
-    // 保存按钮
-    this.saveButton.addEventListener('click', () => {
-      this.saveRecording();
-    });
+    // 导出控制区域交互逻辑
+    const exportControl = document.querySelector('.export-control');
+    const exportContainer = document.getElementById('export-options-container');
+    const saveButton = document.getElementById('save-button-editor');
+    
+    if (exportControl && exportContainer && saveButton) {
+      let exportHoverTimeout;
+      
+      // 鼠标进入导出控制区域
+      exportControl.addEventListener('mouseenter', () => {
+        clearTimeout(exportHoverTimeout);
+        
+        // 先隐藏其他容器
+        const metronomeContainer = document.getElementById('metronome-volume-container');
+        const snapContainer = document.getElementById('snap-sensitivity-container');
+        
+        if (metronomeContainer && metronomeContainer.style.display === 'block') {
+          metronomeContainer.style.opacity = '0';
+          metronomeContainer.style.transition = 'opacity 0.2s ease';
+          setTimeout(() => {
+            metronomeContainer.style.display = 'none';
+          }, 200);
+        }
+        
+        if (snapContainer && snapContainer.style.display === 'block') {
+          snapContainer.style.opacity = '0';
+          snapContainer.style.transition = 'opacity 0.2s ease';
+          setTimeout(() => {
+            snapContainer.style.display = 'none';
+          }, 200);
+        }
+        
+        // 显示导出菜单容器
+        exportContainer.style.display = 'block';
+        exportContainer.style.opacity = '0';
+        exportContainer.style.transition = 'opacity 0.2s ease';
+        // 强制重绘以确保动画效果
+        exportContainer.offsetHeight;
+        exportContainer.style.opacity = '1';
+      });
+      
+      // 鼠标离开导出控制区域
+      exportControl.addEventListener('mouseleave', () => {
+        exportHoverTimeout = setTimeout(() => {
+          if (exportContainer.style.display === 'block') {
+            exportContainer.style.opacity = '0';
+            exportContainer.style.transition = 'opacity 0.2s ease';
+            setTimeout(() => {
+              exportContainer.style.display = 'none';
+            }, 200);
+          }
+        }, 200);
+      });
+      
+      // 鼠标进入导出菜单容器
+      exportContainer.addEventListener('mouseenter', () => {
+        clearTimeout(exportHoverTimeout);
+      });
+      
+      // 鼠标离开导出菜单容器
+      exportContainer.addEventListener('mouseleave', () => {
+        exportHoverTimeout = setTimeout(() => {
+          if (exportContainer.style.display === 'block') {
+            exportContainer.style.opacity = '0';
+            exportContainer.style.transition = 'opacity 0.2s ease';
+            setTimeout(() => {
+              exportContainer.style.display = 'none';
+            }, 200);
+          }
+        }, 200);
+      });
+    }
+    
+    // 导出JSON按钮
+    const exportJsonButton = document.getElementById('export-json-button');
+    if (exportJsonButton) {
+      exportJsonButton.addEventListener('click', () => {
+        this.saveRecording();
+        // 隐藏导出菜单
+        const exportContainer = document.getElementById('export-options-container');
+        if (exportContainer) {
+          exportContainer.style.display = 'none';
+        }
+      });
+    }
+    
+    // 导出MIDI按钮
+    const exportMidiButton = document.getElementById('export-midi-button');
+    if (exportMidiButton) {
+      exportMidiButton.addEventListener('click', () => {
+        this.exportMidi();
+        // 隐藏导出菜单
+        const exportContainer = document.getElementById('export-options-container');
+        if (exportContainer) {
+          exportContainer.style.display = 'none';
+        }
+      });
+    }
     
     // 导入按钮
     this.loadButton.addEventListener('click', () => {
@@ -905,6 +1022,31 @@ export class MidiEditor {
     URL.revokeObjectURL(url);
     
     console.log('录制内容已保存');
+  }
+  
+  // 导出MIDI文件
+  exportMidi() {
+    if (this.tracks.length === 0) {
+      alert('没有录制内容可导出');
+      return;
+    }
+    
+    try {
+      // 获取音色配置
+      const instrumentConfig = window.mainController ? window.mainController.instrumentConfig : null;
+      if (!instrumentConfig) {
+        alert('无法获取音色配置');
+        return;
+      }
+      
+      // 调用MIDI导出器
+      this.midiExporter.export(this.tracks, this.bpm, this.beatsPerMeasure, instrumentConfig);
+      
+      console.log('MIDI文件导出成功');
+    } catch (error) {
+      console.error('MIDI导出失败:', error);
+      alert('MIDI导出失败: ' + error.message);
+    }
   }
   
   // 导入录制内容
