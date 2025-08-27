@@ -423,13 +423,13 @@ export class MidiEditor {
     const originalStopNote = this.audioEngine.stopNote.bind(this.audioEngine);
     
     // 重写playNote方法，添加高亮逻辑
-    this.audioEngine.playNote = (note, velocity = 0.8) => {
+    this.audioEngine.playNote = (note, velocity = 0.8, allowRetrigger = false, instrumentId = null) => {
       // 添加到活动音符集合
       this.activePlayNotes.add(note);
       // 触发重绘
       this.draw();
-      // 调用原始方法
-      originalPlayNote(note, velocity);
+      // 调用原始方法，传递所有参数
+      originalPlayNote(note, velocity, allowRetrigger, instrumentId);
     };
     
     // 重写stopNote方法，移除高亮
