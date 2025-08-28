@@ -3006,9 +3006,6 @@ export class MidiEditor {
     
     console.log('moveNotesToInstrument: Selected notes count:', this.selectedNotes.length);
     
-    // 保存操作到历史记录
-    this.saveToHistory('moveNotesToInstrument');
-    
     // 获取或创建目标轨道
     console.log('moveNotesToInstrument: Getting or creating track for instrumentId:', instrumentId);
     const targetTrack = this.getOrCreateTrack(instrumentId);
@@ -3088,6 +3085,9 @@ export class MidiEditor {
         console.error(`加载音色 ${instrumentId} 失败:`, err);
       });
     }
+    
+    // 保存操作到历史记录（在操作完成后）
+    this.saveToHistory('moveNotesToInstrument');
   }
   
   // 更新选中的音符引用（移动音符后需要更新）
@@ -4421,7 +4421,7 @@ export class MidiEditor {
     // 检查操作冷却时间
     // 注意：某些操作类型不应用冷却时间，以确保每次操作都能单独保存到历史记录
     const now = Date.now();
-    const noCooldownActions = ['paste', 'delete', 'cut', 'recording', 'mouse_input', 'import', 'snap_position', 'snap_duration', 'bpm_change', 'beats_per_measure_change', 'visibility_change'];
+    const noCooldownActions = ['paste', 'delete', 'cut', 'recording', 'mouse_input', 'import', 'snap_position', 'snap_duration', 'bpm_change', 'beats_per_measure_change', 'visibility_change', 'changeVelocity', 'moveNotesToInstrument'];
     
     // 恢复冷却时间检查（排除关键操作类型）
     if (!noCooldownActions.includes(actionType) && now - this.lastActionTime < this.actionCooldown) {
@@ -4434,7 +4434,7 @@ export class MidiEditor {
     
     // 检查是否应该保存历史
     // 对于某些关键操作，总是保存历史，确保每个操作都有独立的历史节点
-    const alwaysSaveActions = ['paste', 'delete', 'cut', 'recording', 'mouse_input', 'visibility_change'];
+    const alwaysSaveActions = ['paste', 'delete', 'cut', 'recording', 'mouse_input', 'visibility_change', 'changeVelocity', 'moveNotesToInstrument'];
     const shouldSave = alwaysSaveActions.includes(actionType) || this.hasStateChanged(currentState);
     
     if (!shouldSave) {
