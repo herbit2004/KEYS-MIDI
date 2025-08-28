@@ -1398,6 +1398,11 @@ export class MidiEditor {
 
   // 处理键盘事件
   handleKeyDown(e) {
+    // 如果有右键菜单显示，先关闭菜单
+    if (this.contextMenu && this.contextMenu.style.display === 'block') {
+      this.hideContextMenu();
+    }
+
     if (e.code === 'Space') {
       this.isSpacePressed = true;
       console.log('延音踏板激活');
@@ -1497,6 +1502,11 @@ export class MidiEditor {
   }
 
   handleKeyUp(e) {
+    // 如果有右键菜单显示，先关闭菜单
+    if (this.contextMenu && this.contextMenu.style.display === 'block') {
+      this.hideContextMenu();
+    }
+
     if (e.code === 'Space') {
       this.isSpacePressed = false;
       console.log('延音踏板释放');
