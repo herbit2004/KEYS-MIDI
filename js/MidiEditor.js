@@ -75,6 +75,7 @@ export class MidiEditor {
     this.clipboard = [];
     this.hasDragged = false; // 是否发生了拖拽
     this.pendingDeselect = null; // 待取消选中的音符
+    this.dragReferenceNote = null; // 拖拽基准音符
     this.dragStartX = 0;
     this.dragStartY = 0;
     this.dragOffsetX = 0;
@@ -1813,6 +1814,9 @@ export class MidiEditor {
       this.selectedNotes.push(noteRef);
     }
     
+    // 设置拖拽基准音符为当前被按住的音符
+    this.dragReferenceNote = noteRef;
+    
     // 计算拖拽偏移量（使用被按住的音符作为参考）
     const referenceNote = noteRef.note; // 使用被按住的音符作为参考
     const noteX = referenceNote.startTime * this.pixelsPerBeat;
@@ -1865,8 +1869,8 @@ export class MidiEditor {
   
   // 移动音符
   moveNote(x, y) {
-    // 计算被按住音符的新时间位置
-    const referenceNote = this.selectedNotes.find(note => note === this.pendingDeselect) || this.selectedNotes[0];
+    // 使用拖拽基准音符作为参考
+    const referenceNote = this.dragReferenceNote ? this.dragReferenceNote.note : this.selectedNotes[0].note;
     // 将像素位置转换为拍数
     let newStartTime = (x - this.dragOffsetX) / this.pixelsPerBeat;
     const duration = referenceNote.endTime - referenceNote.startTime;
@@ -1907,8 +1911,8 @@ export class MidiEditor {
   
   // 调整音符左边缘
   resizeNoteLeft(x) {
-    // 只调整被按住的音符的左边缘
-    const referenceNote = this.selectedNotes.find(note => note === this.pendingDeselect) || this.selectedNotes[0];
+    // 使用拖拽基准音符作为参考
+    const referenceNote = this.dragReferenceNote ? this.dragReferenceNote.note : this.selectedNotes[0].note;
     // 将像素位置转换为拍数
     let newStartTime = x / this.pixelsPerBeat;
     
@@ -1935,8 +1939,8 @@ export class MidiEditor {
   
   // 调整音符右边缘
   resizeNoteRight(x) {
-    // 只调整被按住的音符的右边缘
-    const referenceNote = this.selectedNotes.find(note => note === this.pendingDeselect) || this.selectedNotes[0];
+    // 使用拖拽基准音符作为参考
+    const referenceNote = this.dragReferenceNote ? this.dragReferenceNote.note : this.selectedNotes[0].note;
     // 将像素位置转换为拍数
     let newEndTime = x / this.pixelsPerBeat;
     
@@ -3480,6 +3484,7 @@ export class MidiEditor {
     this.isSelecting = false;
     this.hasDragged = false;
     this.pendingDeselect = null;
+    this.dragReferenceNote = null; // 清除拖拽基准音符
     this.pendingPlayheadPosition = undefined;
     this.dragType = null;
     this.dragOffsetX = 0;
@@ -3708,13 +3713,28 @@ export class MidiEditor {
       const noteX = note.startTime * this.pixelsPerBeat;
       const noteWidth = (note.endTime - note.startTime) * this.pixelsPerBeat;
       
+      // 检查是否有多选状态
+      const isMultiSelected = this.selectedNotes.length > 1;
+      
       // 根据鼠标位置设置不同的光标样式
       if (pos.x < noteX + 5) {
-        // 鼠标在左边缘，设置为左向右箭头
-        this.canvas.style.cursor = 'w-resize';
+        // 鼠标在左边缘
+        if (isMultiSelected) {
+          // 多选状态下不显示拉伸光标，显示移动光标
+          this.canvas.style.cursor = 'pointer';
+        } else {
+          // 单选状态下显示拉伸光标
+          this.canvas.style.cursor = 'w-resize';
+        }
       } else if (pos.x > noteX + noteWidth - 5) {
-        // 鼠标在右边缘，设置为右向左箭头
-        this.canvas.style.cursor = 'e-resize';
+        // 鼠标在右边缘
+        if (isMultiSelected) {
+          // 多选状态下不显示拉伸光标，显示移动光标
+          this.canvas.style.cursor = 'pointer';
+        } else {
+          // 单选状态下显示拉伸光标
+          this.canvas.style.cursor = 'e-resize';
+        }
       } else {
         // 鼠标在音符内部，设置为手指箭头
         this.canvas.style.cursor = 'pointer';
