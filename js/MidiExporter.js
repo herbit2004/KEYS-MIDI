@@ -154,10 +154,17 @@ export class MidiExporter {
     const noteEvents = this.createNoteEvents(track.notes, trackIndex, bpm);
     events.push(...noteEvents);
     
-    // 设置轨道结束事件
+    // 计算轨道结束时间（最后一个音符的结束时间）
+    let endTime = 0;
+    if (track.notes.length > 0) {
+      endTime = Math.max(...track.notes.map(note => note.endTime));
+    }
+    const endTicks = this.convertBeatsToTicks(endTime, bpm);
+    
+    // 设置轨道结束事件 - 修复：在最后一个音符之后
     events.push({
       ...this.createEndOfTrackEvent(0),
-      time: 0
+      time: endTicks
     });
     
     // 按时间排序所有事件
@@ -189,10 +196,17 @@ export class MidiExporter {
     const noteEvents = this.createNoteEvents(allDrumNotes, this.CHANNEL_DRUMS, bpm);
     events.push(...noteEvents);
     
-    // 设置轨道结束事件
+    // 计算轨道结束时间（最后一个音符的结束时间）
+    let endTime = 0;
+    if (allDrumNotes.length > 0) {
+      endTime = Math.max(...allDrumNotes.map(note => note.endTime));
+    }
+    const endTicks = this.convertBeatsToTicks(endTime, bpm);
+    
+    // 设置轨道结束事件 - 修复：在最后一个音符之后
     events.push({
       ...this.createEndOfTrackEvent(0),
-      time: 0
+      time: endTicks
     });
     
     // 按时间排序所有事件
@@ -280,10 +294,12 @@ export class MidiExporter {
 
   // 创建Note On事件
   createNoteOnEvent(time, channel, note, velocity) {
+    // 修复：确保力度值在0-127范围内
+    const clampedVelocity = Math.max(0, Math.min(127, Math.round(velocity)));
     return {
       type: 'channel',
       status: 0x90 | channel, // Note On
-      data: [note, velocity]
+      data: [note, clampedVelocity]
     };
   }
 
@@ -428,7 +444,8 @@ export class MidiExporter {
 
   // 下载MIDI文件
   downloadMidiFile(midiData) {
-    const blob = new Blob([midiData], { type: 'audio/midi' });
+    // 修复：使用正确的MIME类型
+    const blob = new Blob([midiData], { type: 'audio/midi; charset=binary' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
