@@ -94,6 +94,11 @@ export class MidiEditor {
     // 自定义对话框状态
     this.isCustomDialogOpen = false; // 自定义对话框是否打开
     
+    // 交互禁用标志
+    this.keyboardEventsDisabled = false;
+    this.globalClickDisabled = false;
+    this.contextMenuDisabled = false;
+    
     // MIDI导出器
     this.midiExporter = new MidiExporter();
     
@@ -623,49 +628,62 @@ export class MidiEditor {
     });
     
     // 键盘事件
-    document.addEventListener('keydown', (e) => this.handleKeyDown(e));
-    document.addEventListener('keyup', (e) => this.handleKeyUp(e));
+    document.addEventListener('keydown', (e) => {
+      if (!this.keyboardEventsDisabled) {
+        this.handleKeyDown(e);
+      }
+    });
+    document.addEventListener('keyup', (e) => {
+      if (!this.keyboardEventsDisabled) {
+        this.handleKeyUp(e);
+      }
+    });
     
     // 全局点击事件，用于取消选中音符
     document.addEventListener('click', (e) => {
-      // 检查点击是否发生在canvas外部
-      if (!this.canvas.contains(e.target) && this.selectedNotes.length > 0) {
-        // 取消选中所有音符
-        this.selectedNotes = [];
-        this.draw();
-        this.updateInfoDisplay();
+      if (!this.globalClickDisabled) {
+        // 检查点击是否发生在canvas外部
+        if (!this.canvas.contains(e.target) && this.selectedNotes.length > 0) {
+          // 取消选中所有音符
+          this.selectedNotes = [];
+          this.draw();
+          this.updateInfoDisplay();
+        }
       }
     });
     
     // 点击canvas内部时关闭滑块容器与右键菜单
     this.canvas.addEventListener('click', (e) => {
-      // 先关闭右键菜单
-      if (this.contextMenu && this.contextMenu.style.display === 'block') {
-        this.hideContextMenu();
+      if (!this.contextMenuDisabled) {
+        // 先关闭右键菜单
+        if (this.contextMenu && this.contextMenu.style.display === 'block') {
+          this.hideContextMenu();
+        }
+        
+        const metronomeContainer = document.getElementById('metronome-volume-container');
+        const snapContainer = document.getElementById('snap-sensitivity-container');
+        
+        // 关闭节拍器滑块容器
+        if (metronomeContainer && metronomeContainer.style.display === 'block') {
+          metronomeContainer.style.opacity = '0';
+          metronomeContainer.style.transition = 'opacity 0.2s ease';
+          setTimeout(() => {
+            metronomeContainer.style.display = 'none';
+          }, 200);
+        }
+        
+        // 关闭自动吸附滑块容器
+        if (snapContainer && snapContainer.style.display === 'block') {
+          snapContainer.style.opacity = '0';
+          snapContainer.style.transition = 'opacity 0.2s ease';
+          setTimeout(() => {
+            snapContainer.style.display = 'none';
+          }, 200);
+        }
+        
+        // 阻止事件冒泡，避免触发全局点击事件
+        e.stopPropagation();
       }
-      const metronomeContainer = document.getElementById('metronome-volume-container');
-      const snapContainer = document.getElementById('snap-sensitivity-container');
-      
-      // 关闭节拍器滑块容器
-      if (metronomeContainer && metronomeContainer.style.display === 'block') {
-        metronomeContainer.style.opacity = '0';
-        metronomeContainer.style.transition = 'opacity 0.2s ease';
-        setTimeout(() => {
-          metronomeContainer.style.display = 'none';
-        }, 200);
-      }
-      
-      // 关闭自动吸附滑块容器
-      if (snapContainer && snapContainer.style.display === 'block') {
-        snapContainer.style.opacity = '0';
-        snapContainer.style.transition = 'opacity 0.2s ease';
-        setTimeout(() => {
-          snapContainer.style.display = 'none';
-        }, 200);
-      }
-      
-      // 阻止事件冒泡，避免触发全局点击事件
-      e.stopPropagation();
     });
     
     // 鼠标按下事件
@@ -1401,11 +1419,6 @@ export class MidiEditor {
 
   // 处理键盘事件
   handleKeyDown(e) {
-    // 如果有自定义对话框显示，不处理键盘事件
-    if (this.isCustomDialogOpen) {
-      return;
-    }
-    
     // 如果有右键菜单显示，先关闭菜单
     if (this.contextMenu && this.contextMenu.style.display === 'block') {
       this.hideContextMenu();
@@ -1510,11 +1523,6 @@ export class MidiEditor {
   }
 
   handleKeyUp(e) {
-    // 如果有自定义对话框显示，不处理键盘事件
-    if (this.isCustomDialogOpen) {
-      return;
-    }
-    
     // 如果有右键菜单显示，先关闭菜单
     if (this.contextMenu && this.contextMenu.style.display === 'block') {
       this.hideContextMenu();
@@ -2719,7 +2727,7 @@ export class MidiEditor {
     });
     // 捕获阶段的全局按下也关闭，确保任何位置（包括canvas）都能关闭
     document.addEventListener('mousedown', (e) => {
-      if (this.contextMenu && this.contextMenu.style.display === 'block') {
+      if (!this.contextMenuDisabled && this.contextMenu && this.contextMenu.style.display === 'block') {
         // 检查点击是否发生在主菜单或二级菜单外
         if (!this.contextMenu.contains(e.target) && 
             (!this.toneSubmenu || !this.toneSubmenu.contains(e.target))) {
@@ -3175,6 +3183,9 @@ export class MidiEditor {
     // 设置对话框显示标志
     this.isCustomDialogOpen = true;
     
+    // 禁用整个页面的交互
+    this.disablePageInteraction();
+    
     // 清空对话框内容
     this.customDialog.innerHTML = '';
     
@@ -3280,6 +3291,39 @@ export class MidiEditor {
     }
     // 清除对话框显示标志
     this.isCustomDialogOpen = false;
+    
+    // 恢复整个页面的交互
+    this.enablePageInteraction();
+  }
+  
+  // 禁用整个页面的交互
+  disablePageInteraction() {
+    // 禁用canvas的交互
+    this.canvas.style.pointerEvents = 'none';
+    
+    // 禁用键盘事件
+    this.keyboardEventsDisabled = true;
+    
+    // 禁用全局点击事件
+    this.globalClickDisabled = true;
+    
+    // 禁用右键菜单
+    this.contextMenuDisabled = true;
+  }
+  
+  // 恢复整个页面的交互
+  enablePageInteraction() {
+    // 恢复canvas的交互
+    this.canvas.style.pointerEvents = 'auto';
+    
+    // 恢复键盘事件
+    this.keyboardEventsDisabled = false;
+    
+    // 恢复全局点击事件
+    this.globalClickDisabled = false;
+    
+    // 恢复右键菜单
+    this.contextMenuDisabled = false;
   }
   
   // 显示力度输入对话框
