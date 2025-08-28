@@ -91,6 +91,9 @@ export class MidiEditor {
     // 鼠标位置跟踪
     this.lastMousePosition = null; // 最后一次鼠标位置
     
+    // 自定义对话框状态
+    this.isCustomDialogOpen = false; // 自定义对话框是否打开
+    
     // MIDI导出器
     this.midiExporter = new MidiExporter();
     
@@ -1398,6 +1401,11 @@ export class MidiEditor {
 
   // 处理键盘事件
   handleKeyDown(e) {
+    // 如果有自定义对话框显示，不处理键盘事件
+    if (this.isCustomDialogOpen) {
+      return;
+    }
+    
     // 如果有右键菜单显示，先关闭菜单
     if (this.contextMenu && this.contextMenu.style.display === 'block') {
       this.hideContextMenu();
@@ -1502,6 +1510,11 @@ export class MidiEditor {
   }
 
   handleKeyUp(e) {
+    // 如果有自定义对话框显示，不处理键盘事件
+    if (this.isCustomDialogOpen) {
+      return;
+    }
+    
     // 如果有右键菜单显示，先关闭菜单
     if (this.contextMenu && this.contextMenu.style.display === 'block') {
       this.hideContextMenu();
@@ -2617,6 +2630,12 @@ export class MidiEditor {
     const noteHeight = height / 128;
     
     for (const noteRef of this.selectedNotes) {
+      // 检查音符引用是否有效
+      if (!noteRef || !noteRef.note) {
+        console.warn('drawSelectedNotes: Invalid noteRef detected, skipping');
+        continue;
+      }
+      
       const x = noteRef.startTime * this.pixelsPerBeat;
       const y = height - (noteRef.midiNote * noteHeight);
       const widthValue = (noteRef.endTime - noteRef.startTime) * this.pixelsPerBeat;
@@ -2637,7 +2656,7 @@ export class MidiEditor {
   
   // 绘制悬停音符高光
   drawHoveredNote() {
-    if (!this.hoveredNote) return;
+    if (!this.hoveredNote || !this.hoveredNote.note) return;
     
     const width = this.canvas.width;
     const height = this.canvas.height;
@@ -2670,6 +2689,12 @@ export class MidiEditor {
     this.contextMenu.style.display = 'none';
     document.body.appendChild(this.contextMenu);
 
+    // 创建音色二级菜单容器
+    this.toneSubmenu = document.createElement('div');
+    this.toneSubmenu.className = 'editor-context-menu editor-context-submenu';
+    this.toneSubmenu.style.display = 'none';
+    document.body.appendChild(this.toneSubmenu);
+
     // 菜单项配置：文本、快捷键、处理器、可用性判断
     this.contextMenuItems = [
       { key: 'undo', label: '撤回', hint: 'Ctrl+Z', handler: () => this.undo(), enable: () => this.canUndo() },
@@ -2678,6 +2703,9 @@ export class MidiEditor {
       { key: 'copy', label: '复制', hint: 'Ctrl+C', handler: () => this.copySelectedNotes(), enable: () => this.selectedNotes && this.selectedNotes.length > 0 },
       { key: 'paste', label: '粘贴', hint: 'Ctrl+V', handler: () => this.pasteNotes(), enable: () => this.clipboard && this.clipboard.length > 0 },
       { key: 'delete', label: '删除', hint: 'Delete', handler: () => this.deleteSelectedNotes(), enable: () => this.selectedNotes && this.selectedNotes.length > 0 },
+      { key: 'divider-1', type: 'divider' },
+      { key: 'tone', label: '音色', hint: '', handler: () => {}, enable: () => this.selectedNotes && this.selectedNotes.length > 0 },
+      { key: 'velocity', label: '力度', hint: '', handler: () => this.showVelocityInput(), enable: () => this.selectedNotes && this.selectedNotes.length > 0 },
     ];
 
     // 点击空白处关闭（冒泡阶段）
@@ -2692,11 +2720,22 @@ export class MidiEditor {
     // 捕获阶段的全局按下也关闭，确保任何位置（包括canvas）都能关闭
     document.addEventListener('mousedown', (e) => {
       if (this.contextMenu && this.contextMenu.style.display === 'block') {
-        if (!this.contextMenu.contains(e.target)) {
+        // 检查点击是否发生在主菜单或二级菜单外
+        if (!this.contextMenu.contains(e.target) && 
+            (!this.toneSubmenu || !this.toneSubmenu.contains(e.target))) {
           this.hideContextMenu();
         }
       }
     }, true);
+    
+    // 为二级菜单添加独立的点击事件处理
+    // 注意：这里可能会干扰单个菜单项的点击事件，所以移除这个监听器
+    // if (this.toneSubmenu) {
+    //   this.toneSubmenu.addEventListener('click', (e) => {
+    //     console.log('二级菜单被点击:', e.target);
+    //     e.stopPropagation();
+    //   });
+    // }
     // 窗口滚动或尺寸变化时关闭
     window.addEventListener('scroll', () => this.hideContextMenu());
     window.addEventListener('resize', () => this.hideContextMenu());
@@ -2709,21 +2748,89 @@ export class MidiEditor {
     // 构建菜单内容
     this.contextMenu.innerHTML = '';
     for (const item of this.contextMenuItems) {
+      if (item.type === 'divider') {
+        // 添加分隔线
+        const divider = document.createElement('div');
+        divider.className = 'editor-context-divider';
+        this.contextMenu.appendChild(divider);
+        continue;
+      }
+
       const enabled = typeof item.enable === 'function' ? !!item.enable() : true;
       const el = document.createElement('div');
       el.className = 'editor-context-item' + (enabled ? '' : ' disabled');
       const text = document.createElement('span');
       text.className = 'label';
-      text.textContent = item.label;
+      
       const hint = document.createElement('span');
       hint.className = 'hint';
       hint.textContent = item.hint || '';
+      
+      // 特殊处理音色和力度项的显示
+      if (item.key === 'tone' && enabled) {
+        // 检查选中音符的音色是否统一
+        const toneInfo = this.checkUniformProperty('instrument');
+        console.log('音色菜单项调试 - toneInfo:', toneInfo);
+        text.textContent = '音色';
+        
+        // 如果音色统一，显示当前音色名称
+        if (toneInfo.uniform && toneInfo.value) {
+          console.log('音色菜单项调试 - 音色统一，值为:', toneInfo.value);
+          const instrumentNames = window.mainController?.instrumentConfig?.getAllInstrumentNames();
+          console.log('音色菜单项调试 - instrumentNames:', instrumentNames);
+          const instrumentName = instrumentNames ? instrumentNames[toneInfo.value] : toneInfo.value;
+          console.log('音色菜单项调试 - 最终音色名称:', instrumentName);
+          hint.textContent = instrumentName || toneInfo.value;
+        } else {
+          console.log('音色菜单项调试 - 音色不统一或无值');
+        }
+        
+        el.dataset.uniformTone = !toneInfo.uniform;
+        
+        // 悬停时显示音色二级菜单
+        el.addEventListener('mouseenter', (e) => {
+          this.showToneSubmenu(clientX, clientY);
+        });
+        el.addEventListener('mouseleave', (e) => {
+          // 延迟隐藏，避免快速移动时闪烁
+          setTimeout(() => {
+            if (!this.toneSubmenu.matches(':hover') && !el.matches(':hover')) {
+              this.hideToneSubmenu();
+            }
+          }, 200);
+        });
+        
+        // 点击音色项时也显示二级菜单
+        el.addEventListener('click', (e) => {
+          e.stopPropagation();
+          this.showToneSubmenu(clientX, clientY);
+        });
+      } else if (item.key === 'velocity' && enabled) {
+        // 检查选中音符的力度是否统一
+        const velocityInfo = this.checkUniformProperty('velocity');
+        console.log('力度菜单项调试 - velocityInfo:', velocityInfo);
+        text.textContent = '力度';
+        
+        // 如果力度统一，显示当前力度值
+        if (velocityInfo.uniform && velocityInfo.value !== null) {
+          console.log('力度菜单项调试 - 力度统一，值为:', velocityInfo.value);
+          hint.textContent = velocityInfo.value.toString();
+        } else {
+          console.log('力度菜单项调试 - 力度不统一或无值');
+        }
+        
+        el.dataset.uniformVelocity = !velocityInfo.uniform;
+      } else {
+        text.textContent = item.label;
+      }
       el.appendChild(text);
       el.appendChild(hint);
-      if (enabled) {
+      
+      if (enabled && item.key !== 'tone') {
         el.addEventListener('click', (e) => {
           e.stopPropagation();
           this.hideContextMenu();
+          this.hideToneSubmenu();
           item.handler();
         });
       }
@@ -2752,6 +2859,468 @@ export class MidiEditor {
     if (this.contextMenu) {
       this.contextMenu.style.display = 'none';
     }
+    this.hideToneSubmenu();
+  }
+
+  // 显示音色二级菜单
+  showToneSubmenu(clientX, clientY) {
+    if (!this.toneSubmenu) {
+      console.error('showToneSubmenu: toneSubmenu not initialized');
+      return;
+    }
+    if (!window.mainController) {
+      console.error('showToneSubmenu: window.mainController not available');
+      return;
+    }
+    if (!window.mainController.instrumentConfig) {
+      console.error('showToneSubmenu: instrumentConfig not available');
+      return;
+    }
+
+    // 清空二级菜单
+    this.toneSubmenu.innerHTML = '';
+    
+    // 获取音色列表
+    const instrumentNames = window.mainController.instrumentConfig.getAllInstrumentNames();
+    console.log('showToneSubmenu: Available instruments:', Object.keys(instrumentNames));
+    console.log('showToneSubmenu: Instrument names object:', instrumentNames);
+    console.log('showToneSubmenu: Instruments count:', Object.keys(instrumentNames).length);
+    
+    for (const instrumentId in instrumentNames) {
+      console.log('showToneSubmenu: Creating menu item for instrumentId:', instrumentId);
+      const item = document.createElement('div');
+      item.className = 'editor-context-item';
+      const text = document.createElement('span');
+      text.className = 'label';
+      
+      // 检查音色是否已加载
+      if (window.mainController.audioEngine.loadingManager && 
+          window.mainController.audioEngine.loadingManager.isInstrumentLoaded(instrumentId)) {
+        // 已加载的音色：正常显示
+        text.textContent = instrumentNames[instrumentId];
+      } else {
+        // 未加载的音色：添加云朵图标前缀
+        text.textContent = `☁ ${instrumentNames[instrumentId]}`;
+      }
+      
+      item.appendChild(text);
+      item.setAttribute('data-instrument-id', instrumentId);
+      
+      // 添加点击事件
+      item.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const clickedInstrumentId = e.currentTarget.getAttribute('data-instrument-id');
+        console.log('音色菜单项被点击，instrumentId:', clickedInstrumentId);
+        this.hideContextMenu();
+        this.hideToneSubmenu();
+        this.moveNotesToInstrument(clickedInstrumentId);
+      });
+      
+      this.toneSubmenu.appendChild(item);
+    }
+    
+    // 定位并显示二级菜单（在主菜单右侧）
+    const contextMenuRect = this.contextMenu.getBoundingClientRect();
+    this.toneSubmenu.style.left = (contextMenuRect.right + 5) + 'px';
+    this.toneSubmenu.style.top = contextMenuRect.top + 'px';
+    this.toneSubmenu.style.display = 'block';
+    
+    // 防止溢出屏幕
+    const submenuRect = this.toneSubmenu.getBoundingClientRect();
+    if (submenuRect.right > window.innerWidth) {
+      this.toneSubmenu.style.left = (contextMenuRect.left - submenuRect.width - 5) + 'px';
+    }
+    if (submenuRect.bottom > window.innerHeight) {
+      this.toneSubmenu.style.top = Math.max(0, window.innerHeight - submenuRect.height) + 'px';
+    }
+    
+    // 为二级菜单添加点击事件捕获，防止冒泡到document
+    // 注意：这里可能会干扰单个菜单项的点击事件，所以移除这个监听器
+    // this.toneSubmenu.addEventListener('click', (e) => {
+    //   e.stopPropagation();
+    // }, true);
+  }
+  
+  // 隐藏音色二级菜单
+  hideToneSubmenu() {
+    if (this.toneSubmenu) {
+      this.toneSubmenu.style.display = 'none';
+    }
+  }
+  
+  // 检查选中音符的指定属性是否统一，并返回统一值
+  checkUniformProperty(property) {
+    if (!this.selectedNotes || this.selectedNotes.length === 0) return { uniform: false, value: null };
+    
+    let firstValue;
+    
+    // 特殊处理音色属性
+    if (property === 'instrument') {
+      firstValue = this.selectedNotes[0].track.instrument;
+      for (let i = 1; i < this.selectedNotes.length; i++) {
+        if (this.selectedNotes[i].track.instrument !== firstValue) {
+          return { uniform: false, value: null };
+        }
+      }
+    } else {
+      // 其他属性直接从音符获取
+      firstValue = this.selectedNotes[0].note[property];
+      for (let i = 1; i < this.selectedNotes.length; i++) {
+        if (this.selectedNotes[i].note[property] !== firstValue) {
+          return { uniform: false, value: null };
+        }
+      }
+    }
+    
+    return { uniform: true, value: firstValue };
+  }
+  
+  // 将选中的音符移动到指定音色组
+  moveNotesToInstrument(instrumentId) {
+    console.log('=== moveNotesToInstrument 开始执行 ===');
+    console.log('moveNotesToInstrument called with instrumentId:', instrumentId);
+    console.log('moveNotesToInstrument: window.mainController exists:', !!window.mainController);
+    console.log('moveNotesToInstrument: selectedNotes exists:', !!this.selectedNotes);
+    console.log('moveNotesToInstrument: selectedNotes length:', this.selectedNotes ? this.selectedNotes.length : 0);
+    
+    if (!instrumentId) {
+      console.error('moveNotesToInstrument: No instrumentId provided');
+      return;
+    }
+    if (!this.selectedNotes || this.selectedNotes.length === 0) {
+      console.log('moveNotesToInstrument: No notes selected to move');
+      return;
+    }
+    
+    console.log('moveNotesToInstrument: Selected notes count:', this.selectedNotes.length);
+    
+    // 保存操作到历史记录
+    this.saveToHistory('moveNotesToInstrument');
+    
+    // 获取或创建目标轨道
+    console.log('moveNotesToInstrument: Getting or creating track for instrumentId:', instrumentId);
+    const targetTrack = this.getOrCreateTrack(instrumentId);
+    console.log('moveNotesToInstrument: Target track:', targetTrack);
+    
+    // 记录需要移动的音符
+    const notesToMove = [];
+    let skippedNotesCount = 0;
+    
+    // 遍历所有选中的音符引用
+    for (const noteRef of this.selectedNotes) {
+      const note = noteRef.note;
+      const sourceTrack = noteRef.track;
+      
+      // 如果音符已经在目标轨道上，跳过
+      if (sourceTrack.instrument === instrumentId) {
+        skippedNotesCount++;
+        continue;
+      }
+      
+      // 创建音符副本
+      const noteCopy = {
+        midiNote: note.midiNote,
+        startTime: note.startTime,
+        endTime: note.endTime,
+        velocity: note.velocity,
+        played: note.played
+      };
+      
+      // 添加到目标轨道
+      targetTrack.notes.push(noteCopy);
+      
+      // 记录需要从源轨道移除的音符
+      notesToMove.push({ sourceTrack, noteIndex: noteRef.noteIndex });
+    }
+    
+    console.log('moveNotesToInstrument: Notes to move count:', notesToMove.length);
+    console.log('moveNotesToInstrument: Skipped notes (already on target track):', skippedNotesCount);
+    
+    // 从源轨道移除音符（需要按索引倒序移除，避免索引变化问题）
+    console.log('moveNotesToInstrument: Processing notes removal from source tracks...');
+    notesToMove.sort((a, b) => b.noteIndex - a.noteIndex).forEach(item => {
+      item.sourceTrack.notes.splice(item.noteIndex, 1);
+      
+      // 如果源轨道为空，从轨道列表中移除
+      if (item.sourceTrack.notes.length === 0) {
+        const trackIndex = this.tracks.indexOf(item.sourceTrack);
+        if (trackIndex !== -1) {
+          this.tracks.splice(trackIndex, 1);
+          // 从可见音色集合中移除
+          this.visibleInstruments.delete(item.sourceTrack.instrument);
+          this.updateInstrumentVisibilityPanel();
+        }
+      }
+    });
+    
+    // 刷新选中的音符引用前记录选中状态
+    console.log('Before updateSelectedNoteRefs: selected notes count:', this.selectedNotes.length);
+    
+    // 刷新选中的音符引用
+    this.updateSelectedNoteRefs();
+    
+    // 刷新后记录选中状态
+    console.log('After updateSelectedNoteRefs: selected notes count:', this.selectedNotes.length);
+    
+    // 清理无效的选中音符引用
+    this.selectedNotes = this.selectedNotes.filter(noteRef => noteRef && noteRef.note);
+    console.log('After filtering invalid refs: selected notes count:', this.selectedNotes.length);
+    
+    // 重绘编辑器
+    this.draw();
+    
+    // 如果是未加载的音色，触发加载
+    if (window.mainController && 
+        !window.mainController.audioEngine.loadingManager.isInstrumentLoaded(instrumentId)) {
+      window.mainController.audioEngine.loadInstrumentLazy(instrumentId).catch(err => {
+        console.error(`加载音色 ${instrumentId} 失败:`, err);
+      });
+    }
+  }
+  
+  // 更新选中的音符引用（移动音符后需要更新）
+  updateSelectedNoteRefs() {
+    const updatedSelectedNotes = [];
+    
+    console.log('updateSelectedNoteRefs called. Original selected notes count:', this.selectedNotes.length);
+    
+    // 如果没有选中的音符，直接返回
+    if (!this.selectedNotes || this.selectedNotes.length === 0) {
+      console.log('No selected notes to update');
+      return;
+    }
+    
+    // 为每个原始选中的音符创建一个唯一标识符
+    const originalNoteIdentifiers = this.selectedNotes
+      .filter(noteRef => noteRef && noteRef.note) // 过滤掉无效的引用
+      .map(noteRef => ({
+        midiNote: noteRef.note.midiNote,
+        startTime: noteRef.note.startTime,
+        endTime: noteRef.note.endTime,
+        velocity: noteRef.note.velocity
+      }));
+    
+    // 遍历所有轨道和音符，寻找匹配的音符
+    for (let trackIndex = 0; trackIndex < this.tracks.length; trackIndex++) {
+      const track = this.tracks[trackIndex];
+      for (let noteIndex = 0; noteIndex < track.notes.length; noteIndex++) {
+        const currentNote = track.notes[noteIndex];
+        
+        // 检查这个音符是否与原始选中的任何一个音符匹配
+        // 注意：这里不比较轨道的instrument ID，因为音符可能被移动到了新轨道
+        const isSelected = originalNoteIdentifiers.some(originalNote => 
+          originalNote.midiNote === currentNote.midiNote &&
+          Math.abs(originalNote.startTime - currentNote.startTime) < 0.001 &&
+          Math.abs(originalNote.endTime - currentNote.endTime) < 0.001 &&
+          originalNote.velocity === currentNote.velocity
+        );
+        
+        if (isSelected) {
+          console.log('Found matching note:', currentNote.midiNote, 'at track:', track.instrument);
+          updatedSelectedNotes.push(this.createNoteReference(track, noteIndex));
+        }
+      }
+    }
+    
+    console.log('updateSelectedNoteRefs: Updated selected notes count:', updatedSelectedNotes.length);
+    
+    this.selectedNotes = updatedSelectedNotes;
+  }
+  
+  // 初始化自定义对话框
+  initCustomDialog() {
+    if (this.customDialog) return;
+    
+    // 创建对话框遮罩
+    this.dialogOverlay = document.createElement('div');
+    this.dialogOverlay.className = 'custom-dialog-overlay';
+    this.dialogOverlay.style.position = 'fixed';
+    this.dialogOverlay.style.top = '0';
+    this.dialogOverlay.style.left = '0';
+    this.dialogOverlay.style.width = '100%';
+    this.dialogOverlay.style.height = '100%';
+    this.dialogOverlay.style.backgroundColor = 'rgba(0, 0, 0, 0.5)';
+    this.dialogOverlay.style.zIndex = '20000';
+    this.dialogOverlay.style.display = 'none';
+    
+    // 创建对话框容器
+    this.customDialog = document.createElement('div');
+    this.customDialog.className = 'custom-dialog';
+    this.customDialog.style.position = 'fixed';
+    this.customDialog.style.left = '50%';
+    this.customDialog.style.top = '50%';
+    this.customDialog.style.transform = 'translate(-50%, -50%)';
+    this.customDialog.style.backgroundColor = '#252525';
+    this.customDialog.style.border = '1px solid #444';
+    this.customDialog.style.borderRadius = '6px';
+    this.customDialog.style.padding = '20px';
+    this.customDialog.style.minWidth = '300px';
+    this.customDialog.style.zIndex = '20001';
+    this.customDialog.style.display = 'none';
+    
+    // 添加到document
+    document.body.appendChild(this.dialogOverlay);
+    document.body.appendChild(this.customDialog);
+    
+    // 点击遮罩关闭对话框
+    this.dialogOverlay.addEventListener('click', () => {
+      this.hideCustomDialog();
+    });
+  }
+  
+  // 显示自定义对话框
+  showCustomDialog(title, message, inputPlaceholder, onConfirm) {
+    this.initCustomDialog();
+    
+    // 设置对话框显示标志
+    this.isCustomDialogOpen = true;
+    
+    // 清空对话框内容
+    this.customDialog.innerHTML = '';
+    
+    // 设置标题
+    const titleElement = document.createElement('h3');
+    titleElement.style.color = '#e0e0e0';
+    titleElement.style.margin = '0 0 15px 0';
+    titleElement.textContent = title;
+    this.customDialog.appendChild(titleElement);
+    
+    // 设置消息
+    const messageElement = document.createElement('p');
+    messageElement.style.color = '#e0e0e0';
+    messageElement.style.margin = '0 0 15px 0';
+    messageElement.textContent = message;
+    this.customDialog.appendChild(messageElement);
+    
+    // 如果需要输入框
+    if (inputPlaceholder) {
+      const inputContainer = document.createElement('div');
+      inputContainer.style.marginBottom = '15px';
+      
+      const inputElement = document.createElement('input');
+      inputElement.type = 'number';
+      inputElement.style.width = '100%';
+      inputElement.style.padding = '8px';
+      inputElement.style.backgroundColor = '#1a1a1a';
+      inputElement.style.border = '1px solid #444';
+      inputElement.style.borderRadius = '4px';
+      inputElement.style.color = '#e0e0e0';
+      inputElement.placeholder = inputPlaceholder;
+      inputElement.min = '0';
+      inputElement.max = '100';
+      
+      inputContainer.appendChild(inputElement);
+      this.customDialog.appendChild(inputContainer);
+    }
+    
+    // 创建按钮容器
+    const buttonContainer = document.createElement('div');
+    buttonContainer.style.display = 'flex';
+    buttonContainer.style.justifyContent = 'flex-end';
+    buttonContainer.style.gap = '10px';
+    
+    // 创建取消按钮
+    const cancelButton = document.createElement('button');
+    cancelButton.textContent = '取消';
+    cancelButton.style.padding = '8px 15px';
+    cancelButton.style.backgroundColor = '#444';
+    cancelButton.style.border = 'none';
+    cancelButton.style.borderRadius = '4px';
+    cancelButton.style.color = '#e0e0e0';
+    cancelButton.style.cursor = 'pointer';
+    
+    cancelButton.addEventListener('click', () => {
+      this.hideCustomDialog();
+    });
+    
+    // 创建确认按钮
+    const confirmButton = document.createElement('button');
+    confirmButton.textContent = '确认';
+    confirmButton.style.padding = '8px 15px';
+    confirmButton.style.backgroundColor = '#007acc';
+    confirmButton.style.border = 'none';
+    confirmButton.style.borderRadius = '4px';
+    confirmButton.style.color = 'white';
+    confirmButton.style.cursor = 'pointer';
+    
+    confirmButton.addEventListener('click', () => {
+      let inputValue = null;
+      if (inputPlaceholder) {
+        const inputElement = this.customDialog.querySelector('input');
+        inputValue = inputElement.value;
+      }
+      
+      this.hideCustomDialog();
+      
+      if (onConfirm) {
+        onConfirm(inputValue);
+      }
+    });
+    
+    buttonContainer.appendChild(cancelButton);
+    buttonContainer.appendChild(confirmButton);
+    this.customDialog.appendChild(buttonContainer);
+    
+    // 显示对话框
+    this.dialogOverlay.style.display = 'block';
+    this.customDialog.style.display = 'block';
+    
+    // 聚焦输入框
+    const inputElement = this.customDialog.querySelector('input');
+    if (inputElement) {
+      inputElement.focus();
+    }
+  }
+  
+  // 隐藏自定义对话框
+  hideCustomDialog() {
+    if (this.dialogOverlay && this.customDialog) {
+      this.dialogOverlay.style.display = 'none';
+      this.customDialog.style.display = 'none';
+    }
+    // 清除对话框显示标志
+    this.isCustomDialogOpen = false;
+  }
+  
+  // 显示力度输入对话框
+  showVelocityInput() {
+    if (!this.selectedNotes || this.selectedNotes.length === 0) return;
+    
+    // 使用自定义对话框替代prompt
+    this.showCustomDialog(
+      '设置力度',
+      '请输入力度值 (0-100)',
+      '力度值',
+      (velocity) => {
+        // 验证输入
+        if (velocity !== null && velocity !== undefined) {
+          const velocityValue = parseInt(velocity, 10);
+          if (!isNaN(velocityValue) && velocityValue >= 0 && velocityValue <= 100) {
+            // 保存操作到历史记录
+            this.saveToHistory('changeVelocity');
+            
+            // 更新所有选中音符的力度
+            for (const noteRef of this.selectedNotes) {
+              noteRef.note.velocity = velocityValue;
+            }
+            
+            // 重绘编辑器
+            this.draw();
+          } else if (velocity.trim() !== '') {
+            // 显示错误提示
+            this.showCustomDialog(
+              '输入错误',
+              '请输入有效的力度值 (0-100)',
+              null,
+              () => {
+                // 错误提示关闭后，重新显示力度输入框
+                this.showVelocityInput();
+              }
+            );
+          }
+        }
+      }
+    );
   }
 
   // 是否可撤回
@@ -4231,7 +4800,7 @@ export class MidiEditor {
       this.isVelocityAdjusting = false;
       this.velocityAdjustTimeout = null;
       console.log('力度调节完成，保存历史状态');
-    }, 1500);
+    }, 500);
   }
   
   // 检查鼠标是否移动离开音符位置并处理

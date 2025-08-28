@@ -4,10 +4,16 @@
   z-index: 10000;
   min-width: 160px;
   background: #1f1f1f;
-  border: 1px solid #333;
+  border: 0px solid #333;
   border-radius: 6px;
   box-shadow: 0 8px 20px rgba(0,0,0,0.45);
   padding: 6px 0;
+  max-height: 400px;
+  overflow-y: auto;
+}
+
+.editor-context-submenu {
+  z-index: 10001;
 }
 
 .editor-context-item {
@@ -19,6 +25,7 @@
   font-size: 13px;
   color: #ddd;
   cursor: pointer;
+  white-space: nowrap;
 }
 
 .editor-context-item:hover {
@@ -37,6 +44,18 @@
 
 .editor-context-item.disabled .hint {
   color: #555;
+}
+
+.editor-context-divider {
+  height: 1px;
+  background-color: #333;
+  margin: 4px 0;
+}
+
+/* 移除斜体样式，保持正常字体 */
+.editor-context-item[data-uniform-tone="true"],
+.editor-context-item[data-uniform-velocity="true"] {
+  /* 保持正常字体样式 */
 }
 /* 全局样式 */
 * {
