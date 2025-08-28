@@ -1,3 +1,43 @@
+/* MIDI编辑器右键菜单 */
+.editor-context-menu {
+  position: fixed;
+  z-index: 10000;
+  min-width: 160px;
+  background: #1f1f1f;
+  border: 1px solid #333;
+  border-radius: 6px;
+  box-shadow: 0 8px 20px rgba(0,0,0,0.45);
+  padding: 6px 0;
+}
+
+.editor-context-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 8px 14px;
+  font-size: 13px;
+  color: #ddd;
+  cursor: pointer;
+}
+
+.editor-context-item:hover {
+  background: #2a2a2a;
+}
+
+.editor-context-item .hint {
+  color: #888;
+  font-size: 12px;
+}
+
+.editor-context-item.disabled {
+  color: #666;
+  cursor: default;
+}
+
+.editor-context-item.disabled .hint {
+  color: #555;
+}
 /* 全局样式 */
 * {
     margin: 0;
@@ -435,6 +475,25 @@ input[type="range"]::-moz-range-thumb {
 
 .reset-button:hover {
     background-color: #ff5e5e;
+}
+
+/* 统一 RESET/RELEASE 宽度 */
+.reset-button,
+.release-button {
+  width: 80px;
+  text-align: center;
+}
+
+/* Release 按钮：与 reset 一致但改为黄色主题 */
+.release-button {
+  background: linear-gradient(180deg, #ffa726, #fb8c00);
+  border-color: #ef6c00;
+  color: #1a1a1a;
+}
+
+.release-button:hover {
+  background: linear-gradient(180deg, #ffb74d, #ffa726);
+  border-color: #ef6c00;
 }
 
 /* MIDI编辑器控制按钮样式 */

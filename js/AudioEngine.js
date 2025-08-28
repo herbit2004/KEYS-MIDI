@@ -642,6 +642,25 @@ export class AudioEngine {
     this.activeNotes.delete(noteKey);
   }
 
+  // 停止所有正在播放的音符
+  stopAllNotes() {
+    try {
+      for (const [key, noteInfo] of this.activeNotes.entries()) {
+        if (noteInfo.type === 'sampler') {
+          if (noteInfo.noteName && noteInfo.synth && noteInfo.synth.triggerRelease) {
+            noteInfo.synth.triggerRelease(noteInfo.noteName);
+          }
+        } else if (noteInfo.type === 'synth') {
+          if (noteInfo.frequency && noteInfo.synth && noteInfo.synth.triggerRelease) {
+            noteInfo.synth.triggerRelease(noteInfo.frequency);
+          }
+        }
+      }
+    } finally {
+      this.activeNotes.clear();
+    }
+  }
+
   // 控制全局延迟效果
   setGlobalDelay(params) {
     const { delayTime, feedback, wet } = params;

@@ -218,6 +218,32 @@ export class MainController {
       this.keyMapper.resetTranspose();
       this.visualManager.updateStatus(this.keyMapper.octaveShift, this.keyMapper.keyTurning);
     });
+
+    // 释放按钮：释放所有正在演奏的音符
+    const releaseBtn = document.getElementById('release');
+    if (releaseBtn) {
+      releaseBtn.addEventListener('click', () => {
+        // 释放音频层所有活动音符
+        if (this.audioEngine && typeof this.audioEngine.stopAllNotes === 'function') {
+          this.audioEngine.stopAllNotes();
+        }
+
+        // 同步释放视觉层所有按键
+        if (this.visualManager && typeof this.visualManager.releaseAllKeys === 'function') {
+          this.visualManager.releaseAllKeys();
+        } else {
+          // 若没有批量API，则尝试基于已知按键集合释放
+          if (this.visualManager && this.visualManager.currentPressedKey) {
+            this.visualManager.releaseKey(this.visualManager.currentPressedKey);
+          }
+        }
+
+        // 清空延音队列
+        if (this.sustainedNotes) {
+          this.sustainedNotes.clear();
+        }
+      });
+    }
   }
   
   // 绑定映射选择事件

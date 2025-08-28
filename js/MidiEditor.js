@@ -409,6 +409,9 @@ export class MidiEditor {
     this.resizeCanvas();
     window.addEventListener('resize', () => this.resizeCanvas());
     
+    // 创建右键菜单
+    this.initContextMenu();
+
     // 开始动画循环
     this.animate();
     
@@ -631,8 +634,12 @@ export class MidiEditor {
       }
     });
     
-    // 点击canvas内部时关闭滑块容器
+    // 点击canvas内部时关闭滑块容器与右键菜单
     this.canvas.addEventListener('click', (e) => {
+      // 先关闭右键菜单
+      if (this.contextMenu && this.contextMenu.style.display === 'block') {
+        this.hideContextMenu();
+      }
       const metronomeContainer = document.getElementById('metronome-volume-container');
       const snapContainer = document.getElementById('snap-sensitivity-container');
       
@@ -660,6 +667,8 @@ export class MidiEditor {
     
     // 鼠标按下事件
     this.canvas.addEventListener('mousedown', (e) => {
+      // 右键不参与常规交互（交给自定义菜单）
+      if (e.button === 2) return;
       if (this.isRecording || this.isPlaying) return;
       
       const pos = this.getMousePosition(e);
@@ -2643,6 +2652,107 @@ export class MidiEditor {
     this.instrumentConfig = config;
   }
 
+  // 初始化右键菜单
+  initContextMenu() {
+    // 创建菜单容器
+    this.contextMenu = document.createElement('div');
+    this.contextMenu.className = 'editor-context-menu';
+    this.contextMenu.style.display = 'none';
+    document.body.appendChild(this.contextMenu);
+
+    // 菜单项配置：文本、快捷键、处理器、可用性判断
+    this.contextMenuItems = [
+      { key: 'undo', label: '撤回', hint: 'Ctrl+Z', handler: () => this.undo(), enable: () => this.canUndo() },
+      { key: 'redo', label: '恢复', hint: 'Ctrl+Y', handler: () => this.redo(), enable: () => this.canRedo() },
+      { key: 'cut', label: '剪切', hint: 'Ctrl+X', handler: () => this.cutSelectedNotes(), enable: () => this.selectedNotes && this.selectedNotes.length > 0 },
+      { key: 'copy', label: '复制', hint: 'Ctrl+C', handler: () => this.copySelectedNotes(), enable: () => this.selectedNotes && this.selectedNotes.length > 0 },
+      { key: 'paste', label: '粘贴', hint: 'Ctrl+V', handler: () => this.pasteNotes(), enable: () => this.clipboard && this.clipboard.length > 0 },
+      { key: 'delete', label: '删除', hint: 'Delete', handler: () => this.deleteSelectedNotes(), enable: () => this.selectedNotes && this.selectedNotes.length > 0 },
+    ];
+
+    // 点击空白处关闭（冒泡阶段）
+    document.addEventListener('click', (e) => {
+      if (this.contextMenu && this.contextMenu.style.display === 'block') {
+        // 若点击在菜单外则关闭
+        if (!this.contextMenu.contains(e.target)) {
+          this.hideContextMenu();
+        }
+      }
+    });
+    // 捕获阶段的全局按下也关闭，确保任何位置（包括canvas）都能关闭
+    document.addEventListener('mousedown', (e) => {
+      if (this.contextMenu && this.contextMenu.style.display === 'block') {
+        if (!this.contextMenu.contains(e.target)) {
+          this.hideContextMenu();
+        }
+      }
+    }, true);
+    // 窗口滚动或尺寸变化时关闭
+    window.addEventListener('scroll', () => this.hideContextMenu());
+    window.addEventListener('resize', () => this.hideContextMenu());
+  }
+
+  // 显示右键菜单
+  showContextMenu(clientX, clientY) {
+    if (!this.contextMenu) return;
+
+    // 构建菜单内容
+    this.contextMenu.innerHTML = '';
+    for (const item of this.contextMenuItems) {
+      const enabled = typeof item.enable === 'function' ? !!item.enable() : true;
+      const el = document.createElement('div');
+      el.className = 'editor-context-item' + (enabled ? '' : ' disabled');
+      const text = document.createElement('span');
+      text.className = 'label';
+      text.textContent = item.label;
+      const hint = document.createElement('span');
+      hint.className = 'hint';
+      hint.textContent = item.hint || '';
+      el.appendChild(text);
+      el.appendChild(hint);
+      if (enabled) {
+        el.addEventListener('click', (e) => {
+          e.stopPropagation();
+          this.hideContextMenu();
+          item.handler();
+        });
+      }
+      this.contextMenu.appendChild(el);
+    }
+
+    // 定位并显示
+    this.contextMenu.style.left = clientX + 'px';
+    this.contextMenu.style.top = clientY + 'px';
+    this.contextMenu.style.display = 'block';
+
+    // 防止溢出屏幕
+    const rect = this.contextMenu.getBoundingClientRect();
+    const dx = Math.max(0, rect.right - window.innerWidth);
+    const dy = Math.max(0, rect.bottom - window.innerHeight);
+    if (dx > 0) {
+      this.contextMenu.style.left = clientX - dx + 'px';
+    }
+    if (dy > 0) {
+      this.contextMenu.style.top = clientY - dy + 'px';
+    }
+  }
+
+  // 隐藏右键菜单
+  hideContextMenu() {
+    if (this.contextMenu) {
+      this.contextMenu.style.display = 'none';
+    }
+  }
+
+  // 是否可撤回
+  canUndo() {
+    return this.history && this.currentHistoryIndex > 0;
+  }
+
+  // 是否可恢复
+  canRedo() {
+    return this.history && this.currentHistoryIndex < this.history.length - 1;
+  }
   // 获取音符颜色
   getNoteColor(instrumentId) {
     if (!this.instrumentConfig || !instrumentId) {
@@ -2846,6 +2956,12 @@ export class MidiEditor {
     observer.observe(canvasParent, {
       childList: true,
       subtree: true
+    });
+
+    // 自定义右键菜单：阻止默认并展示菜单
+    this.canvas.addEventListener('contextmenu', (e) => {
+      e.preventDefault();
+      this.showContextMenu(e.clientX, e.clientY);
     });
   }
 
