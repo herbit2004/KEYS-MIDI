@@ -3006,6 +3006,14 @@ export class MidiEditor {
     
     console.log('moveNotesToInstrument: Selected notes count:', this.selectedNotes.length);
     
+    // 保存原始选中音符的完整信息，用于操作完成后重新选中
+    const originalSelectedNotes = this.selectedNotes.map(noteRef => ({
+      midiNote: noteRef.note.midiNote,
+      startTime: noteRef.note.startTime,
+      endTime: noteRef.note.endTime,
+      velocity: noteRef.note.velocity
+    }));
+    
     // 获取或创建目标轨道
     console.log('moveNotesToInstrument: Getting or creating track for instrumentId:', instrumentId);
     const targetTrack = this.getOrCreateTrack(instrumentId);
@@ -3062,18 +3070,29 @@ export class MidiEditor {
       }
     });
     
-    // 刷新选中的音符引用前记录选中状态
-    console.log('Before updateSelectedNoteRefs: selected notes count:', this.selectedNotes.length);
+    // 重新选中移动后的音符
+    this.selectedNotes = [];
+    for (const originalNote of originalSelectedNotes) {
+      // 在所有轨道中查找匹配的音符
+      for (let trackIndex = 0; trackIndex < this.tracks.length; trackIndex++) {
+        const track = this.tracks[trackIndex];
+        for (let noteIndex = 0; noteIndex < track.notes.length; noteIndex++) {
+          const currentNote = track.notes[noteIndex];
+          
+          // 检查是否匹配（不比较velocity，因为可能被修改）
+          if (originalNote.midiNote === currentNote.midiNote &&
+              Math.abs(originalNote.startTime - currentNote.startTime) < 0.001 &&
+              Math.abs(originalNote.endTime - currentNote.endTime) < 0.001) {
+            
+            console.log('Re-selecting moved note:', currentNote.midiNote, 'at track:', track.instrument);
+            this.selectedNotes.push(this.createNoteReference(track, noteIndex));
+            break; // 找到匹配的音符后跳出内层循环
+          }
+        }
+      }
+    }
     
-    // 刷新选中的音符引用
-    this.updateSelectedNoteRefs();
-    
-    // 刷新后记录选中状态
-    console.log('After updateSelectedNoteRefs: selected notes count:', this.selectedNotes.length);
-    
-    // 清理无效的选中音符引用
-    this.selectedNotes = this.selectedNotes.filter(noteRef => noteRef && noteRef.note);
-    console.log('After filtering invalid refs: selected notes count:', this.selectedNotes.length);
+    console.log('After re-selecting: selected notes count:', this.selectedNotes.length);
     
     // 重绘编辑器
     this.draw();
@@ -3103,13 +3122,13 @@ export class MidiEditor {
     }
     
     // 为每个原始选中的音符创建一个唯一标识符
+    // 注意：我们不包含velocity，因为力度修改后velocity会变化
     const originalNoteIdentifiers = this.selectedNotes
       .filter(noteRef => noteRef && noteRef.note) // 过滤掉无效的引用
       .map(noteRef => ({
         midiNote: noteRef.note.midiNote,
         startTime: noteRef.note.startTime,
-        endTime: noteRef.note.endTime,
-        velocity: noteRef.note.velocity
+        endTime: noteRef.note.endTime
       }));
     
     // 遍历所有轨道和音符，寻找匹配的音符
@@ -3120,11 +3139,11 @@ export class MidiEditor {
         
         // 检查这个音符是否与原始选中的任何一个音符匹配
         // 注意：这里不比较轨道的instrument ID，因为音符可能被移动到了新轨道
+        // 也不比较velocity，因为力度修改后velocity会变化
         const isSelected = originalNoteIdentifiers.some(originalNote => 
           originalNote.midiNote === currentNote.midiNote &&
           Math.abs(originalNote.startTime - currentNote.startTime) < 0.001 &&
-          Math.abs(originalNote.endTime - currentNote.endTime) < 0.001 &&
-          originalNote.velocity === currentNote.velocity
+          Math.abs(originalNote.endTime - currentNote.endTime) < 0.001
         );
         
         if (isSelected) {
@@ -3334,6 +3353,14 @@ export class MidiEditor {
   showVelocityInput() {
     if (!this.selectedNotes || this.selectedNotes.length === 0) return;
     
+    // 保存原始选中音符信息，用于对话框关闭后重新选中
+    const originalSelectedNotes = this.selectedNotes.map(noteRef => ({
+      midiNote: noteRef.note.midiNote,
+      startTime: noteRef.note.startTime,
+      endTime: noteRef.note.endTime,
+      velocity: noteRef.note.velocity
+    }));
+    
     // 使用自定义对话框替代prompt
     this.showCustomDialog(
       '设置力度',
@@ -3352,8 +3379,35 @@ export class MidiEditor {
               noteRef.note.velocity = velocityValue;
             }
             
-            // 重绘编辑器
-            this.draw();
+            // 延迟重新选中音符，确保对话框完全关闭后再执行
+            setTimeout(() => {
+              // 重新选中音符以确保选中状态正确
+              this.selectedNotes = [];
+              for (const originalNote of originalSelectedNotes) {
+                // 在所有轨道中查找匹配的音符
+                for (let trackIndex = 0; trackIndex < this.tracks.length; trackIndex++) {
+                  const track = this.tracks[trackIndex];
+                  for (let noteIndex = 0; noteIndex < track.notes.length; noteIndex++) {
+                    const currentNote = track.notes[noteIndex];
+                    
+                    // 检查是否匹配（不比较velocity，因为刚刚被修改）
+                    if (originalNote.midiNote === currentNote.midiNote &&
+                        Math.abs(originalNote.startTime - currentNote.startTime) < 0.001 &&
+                        Math.abs(originalNote.endTime - currentNote.endTime) < 0.001) {
+                      
+                      console.log('Re-selecting velocity-changed note:', currentNote.midiNote, 'at track:', track.instrument);
+                      this.selectedNotes.push(this.createNoteReference(track, noteIndex));
+                      break; // 找到匹配的音符后跳出内层循环
+                    }
+                  }
+                }
+              }
+              
+              console.log('Velocity change completed, re-selected notes count:', this.selectedNotes.length);
+              
+              // 重绘编辑器
+              this.draw();
+            }, 100); // 延迟100ms确保对话框完全关闭
           } else if (velocity.trim() !== '') {
             // 显示错误提示
             this.showCustomDialog(
@@ -3361,8 +3415,10 @@ export class MidiEditor {
               '请输入有效的力度值 (0-100)',
               null,
               () => {
-                // 错误提示关闭后，重新显示力度输入框
-                this.showVelocityInput();
+                // 错误提示关闭后，延迟重新显示力度输入框，确保选中状态正确
+                setTimeout(() => {
+                  this.showVelocityInput();
+                }, 100);
               }
             );
           }
@@ -3754,6 +3810,11 @@ export class MidiEditor {
 
   // 处理鼠标释放事件
   handleMouseUp(e) {
+    // 如果自定义对话框打开，不处理鼠标事件
+    if (this.isCustomDialogOpen) {
+      return;
+    }
+    
     if (this.isSelecting) {
       // 处理框选结束
       this.handleSelectionEnd();
@@ -4622,11 +4683,16 @@ export class MidiEditor {
       return;
     }
     
+    // 如果自定义对话框打开，不处理音符释放
+    if (this.isCustomDialogOpen) {
+      return;
+    }
+    
     // 如果当前有选中的音符，且鼠标释放，检查是否需要保存历史
     if (this.selectedNotes.length > 0 && !this.isEditing && !this.isSelecting) {
       // 延迟检查，避免在拖拽过程中触发
       setTimeout(() => {
-        if (this.selectedNotes.length > 0 && !this.isEditing && !this.isSelecting && !this.isUndoRedoOperation) {
+        if (this.selectedNotes.length > 0 && !this.isEditing && !this.isSelecting && !this.isUndoRedoOperation && !this.isCustomDialogOpen) {
           // 检查是否有待保存的历史状态
           if (this.pendingHistorySave) {
             this.saveToHistory(this.lastActionType || 'selection_release');
@@ -4639,6 +4705,12 @@ export class MidiEditor {
   // 释放所有已选中的音符
   releaseSelectedNotes() {
     if (this.selectedNotes.length === 0) {
+      return;
+    }
+    
+    // 如果自定义对话框打开，不释放音符
+    if (this.isCustomDialogOpen) {
+      console.log('对话框打开中，跳过音符释放');
       return;
     }
     
