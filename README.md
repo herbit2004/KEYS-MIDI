@@ -1,10 +1,10 @@
 # KEYS-MIDI 虚拟钢琴
 
-一个功能完整的基于Web的虚拟钢琴应用，支持MIDI输入、音频合成、采样音色、打击乐、MIDI编辑和撤回/恢复功能。
+一个功能完整的基于Web的虚拟钢琴应用，支持MIDI输入、音频合成、采样音色、打击乐、MIDI编辑、撤回/恢复功能、右键菜单编辑、力度控制、音色切换等高级功能。
 
 ## 🎹 项目概述
 
-KEYS-MIDI是一个基于Web Audio API和Tone.js构建的虚拟钢琴应用，采用模块化架构设计，支持实时演奏、MIDI编辑、多轨道录制、音色管理和MIDI导出等功能。
+KEYS-MIDI是一个基于Web Audio API和Tone.js构建的虚拟钢琴应用，采用模块化架构设计，支持实时演奏、MIDI编辑、多轨道录制、音色管理、MIDI导出、高级编辑功能等。项目经过持续优化，现已支持完整的音乐制作工作流程。
 
 ## 🏗️ 项目架构
 
@@ -142,6 +142,7 @@ createStateSnapshot() {
 - `recording`: 录制操作
 - `mouse_input`: 鼠标输入
 - `velocity_change`: 力度调节
+- `moveNotesToInstrument`: 音色切换
 - `snap_position`: 位置吸附
 - `snap_duration`: 时长吸附
 - `bpm_change`: BPM修改
@@ -280,6 +281,98 @@ class MidiExporter {
 - 实时音频反馈
 - 自动轨道分配
 
+### 8. 右键菜单编辑系统 (MidiEditor.js)
+
+**实现思路：**
+- 基于Canvas右键事件实现上下文菜单
+- 动态菜单项状态管理
+- 支持子菜单和快捷键提示
+
+**核心功能：**
+- 编辑操作：撤销、重做、剪切、复制、粘贴、删除
+- 音符属性：力度设置、音色切换
+- 动态状态：根据当前状态启用/禁用菜单项
+- 快捷键提示：显示对应操作的键盘快捷键
+
+**技术实现：**
+```javascript
+// 右键菜单配置
+const contextMenuItems = [
+  { id: 'undo', label: '撤销', shortcut: 'Ctrl+Z', action: () => this.undo() },
+  { id: 'redo', label: '重做', shortcut: 'Ctrl+Y', action: () => this.redo() },
+  { id: 'cut', label: '剪切', shortcut: 'Ctrl+X', action: () => this.cutNotes() },
+  { id: 'copy', label: '复制', shortcut: 'Ctrl+C', action: () => this.copyNotes() },
+  { id: 'paste', label: '粘贴', shortcut: 'Ctrl+V', action: () => this.pasteNotes() },
+  { id: 'delete', label: '删除', shortcut: 'Delete', action: () => this.deleteSelectedNotes() },
+  { id: 'velocity', label: '设置力度', action: () => this.showVelocityInput() },
+  { id: 'instrument', label: '改变音色', submenu: true }
+];
+```
+
+### 9. 自定义对话框系统 (MidiEditor.js)
+
+**实现思路：**
+- 完全自定义的模态对话框实现
+- 页面交互隔离机制
+- 支持输入验证和错误处理
+
+**功能特性：**
+- 力度输入对话框
+- 错误提示对话框
+- 页面交互完全隔离
+- 输入验证和格式化
+
+**交互隔离机制：**
+```javascript
+// 禁用页面交互
+disablePageInteraction() {
+  this.canvas.style.pointerEvents = 'none';
+  this.keyboardEventsDisabled = true;
+  this.globalClickDisabled = true;
+  this.contextMenuDisabled = true;
+}
+
+// 恢复页面交互
+enablePageInteraction() {
+  this.canvas.style.pointerEvents = 'auto';
+  this.keyboardEventsDisabled = false;
+  this.globalClickDisabled = false;
+  this.contextMenuDisabled = false;
+}
+```
+
+### 10. 音符选择状态管理 (MidiEditor.js)
+
+**实现思路：**
+- 复杂的选择状态保持机制
+- 支持跨轨道音符操作
+- 操作后自动重新选中
+
+**核心功能：**
+- 音色切换后保持选中状态
+- 力度修改后保持选中状态
+- 多选音符拖拽优化
+- 光标样式智能切换
+
+**状态保持机制：**
+```javascript
+// 保存原始选中音符信息
+const originalSelectedNotes = this.selectedNotes.map(noteRef => ({
+  midiNote: noteRef.note.midiNote,
+  startTime: noteRef.note.startTime,
+  endTime: noteRef.note.endTime,
+  velocity: noteRef.note.velocity
+}));
+
+// 操作完成后重新选中
+setTimeout(() => {
+  this.selectedNotes = [];
+  for (const originalNote of originalSelectedNotes) {
+    // 在所有轨道中查找匹配的音符并重新选中
+  }
+}, 100);
+```
+
 ## 🔧 扩展开发指南
 
 ### 添加新音色
@@ -352,6 +445,30 @@ class MidiEditor {
 }
 ```
 
+### 扩展右键菜单
+
+```javascript
+// 在MidiEditor.js中添加新的菜单项
+const newMenuItem = {
+  id: 'custom_action',
+  label: '自定义操作',
+  shortcut: 'Ctrl+Shift+A',
+  action: () => this.performCustomAction()
+};
+
+// 添加到contextMenuItems数组
+this.contextMenuItems.push(newMenuItem);
+```
+
+### 添加自定义对话框
+
+```javascript
+// 在MidiEditor.js中添加新的对话框
+showCustomInputDialog(title, message, onConfirm) {
+  this.showCustomDialog(title, message, '输入提示', onConfirm);
+}
+```
+
 ### 自定义MIDI导出格式
 
 ```javascript
@@ -401,6 +518,33 @@ npm run build
 - **MIDI处理**: 自定义MIDI文件生成器
 - **模块化**: ES6 Modules
 
+## 🆕 最新功能更新
+
+### 右键菜单编辑系统
+- **完整的上下文菜单**：支持撤销、重做、剪切、复制、粘贴、删除等编辑操作
+- **动态状态管理**：根据当前应用状态智能启用/禁用菜单项
+- **快捷键提示**：每个菜单项显示对应的键盘快捷键
+- **子菜单支持**：力度设置和音色切换支持二级菜单
+- **智能关闭**：键盘操作或点击空白区域时自动关闭菜单
+
+### 自定义对话框系统
+- **完全隔离的交互**：对话框期间完全禁用页面交互，防止意外操作
+- **输入验证**：力度输入支持0-100范围验证和错误提示
+- **状态保持**：操作完成后自动保持音符选中状态
+- **错误处理**：支持错误提示和重新输入机制
+
+### 智能状态管理
+- **音色切换优化**：切换音色后自动保持音符选中状态
+- **力度修改优化**：修改力度后自动保持音符选中状态
+- **多选拖拽优化**：多选拖拽以当前按住的音符为基准
+- **智能光标显示**：多选状态下显示移动光标而非拉伸光标
+
+### 历史记录扩展
+- **音色切换记录**：音色切换操作支持撤回/恢复
+- **力度修改记录**：力度修改操作支持撤回/恢复
+- **操作冷却优化**：关键操作不受冷却时间限制
+- **状态快照优化**：更精确的状态变化检测
+
 ## 📊 性能优化
 
 ### 懒加载机制
@@ -418,9 +562,43 @@ npm run build
 - 事件节流
 - 状态更新批处理
 
+### 交互优化
+- 页面交互隔离机制
+- 事件处理优化
+- 状态管理优化
+
 ## 🔗 相关资源
 
 - [Tone.js 文档](https://tonejs.github.io/)
 - [Web Audio API](https://developer.mozilla.org/en-US/docs/Web/API/Web_Audio_API)
 - [MIDI 标准](https://www.midi.org/)
 - [Canvas API](https://developer.mozilla.org/en-US/docs/Web/API/Canvas_API)
+
+## 📝 版本更新日志
+
+### v2.0.0 (最新版本)
+- ✨ 新增右键菜单编辑系统
+- ✨ 新增自定义对话框系统
+- ✨ 新增智能状态管理
+- ✨ 新增音色切换和力度修改历史记录
+- ✨ 新增多选拖拽优化
+- ✨ 新增智能光标显示
+- ✨ 新增页面交互隔离机制
+- 🐛 修复音色切换后选中状态丢失问题
+- 🐛 修复力度修改后选中状态丢失问题
+- 🐛 修复多选拖拽基准点问题
+- 🐛 修复MIDI导出格式兼容性问题
+- 🐛 修复历史记录冷却时间问题
+- 🔧 优化事件处理机制
+- 🔧 优化状态管理逻辑
+- 🔧 优化用户交互体验
+
+### v1.0.0
+- 🎹 基础虚拟钢琴功能
+- 🎼 MIDI编辑器
+- 🎵 多轨道支持
+- 🎛️ 音色管理系统
+- 📁 文件导入导出
+- ↩️ 撤回/恢复功能
+- 🎯 鼠标静态输入
+- 🎚️ 音频效果器
