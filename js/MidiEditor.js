@@ -1510,7 +1510,7 @@ export class MidiEditor {
         case 'Delete':
             // 删除所有选中的音符
             this.deleteSelectedNotes();
-            // 删除操作已经在deleteSelectedNotes中保存历史，不需要在这里再次保存
+            hasChanged = true; // 标记为有变化
             break;
       }
       
@@ -1554,11 +1554,10 @@ export class MidiEditor {
   deleteSelectedNotes() {
     if (this.selectedNotes.length === 0) return;
     
-    // 先删除音符
-    this.deleteSelectedNotesWithoutHistory();
-    
-    // 然后保存删除后的状态
+    // 保存删除前的状态
     this.saveToHistory('delete');
+    
+    this.deleteSelectedNotesWithoutHistory();
   }
 
   // 删除选中音符（不记录历史）
@@ -4364,6 +4363,9 @@ export class MidiEditor {
         
         // 创建幽灵元素作为拖拽指示器
         createGhostElement();
+        
+        // 设置按钮为半透明，让用户知道正在拖拽
+        button.style.opacity = '0.3';
       }
       
       // 如果已经有幽灵元素，则更新其位置
@@ -4485,8 +4487,7 @@ export class MidiEditor {
 
   // 切换音色可见性
   toggleInstrumentVisibility(instrumentId) {
-    // 保存切换前的状态
-    this.saveToHistory('visibility_change');
+    // 不记录历史，因为这只是UI状态调整，不影响音符内容
     
     if (this.visibleInstruments.has(instrumentId)) {
       // 隐藏音色
@@ -4508,8 +4509,7 @@ export class MidiEditor {
 
   // 只显示指定音色，隐藏其他所有音色
   showOnlyInstrument(instrumentId) {
-    // 保存操作前的状态
-    this.saveToHistory('visibility_change');
+    // 不记录历史，因为这只是UI状态调整，不影响音符内容
     
     // 停止所有正在播放的音符
     for (const track of this.tracks) {
@@ -4559,7 +4559,7 @@ export class MidiEditor {
     // 检查操作冷却时间
     // 注意：某些操作类型不应用冷却时间，以确保每次操作都能单独保存到历史记录
     const now = Date.now();
-    const noCooldownActions = ['paste', 'delete', 'cut', 'recording', 'mouse_input', 'import', 'snap_position', 'snap_duration', 'bpm_change', 'beats_per_measure_change', 'visibility_change', 'changeVelocity', 'moveNotesToInstrument'];
+    const noCooldownActions = ['paste', 'delete', 'cut', 'recording', 'mouse_input', 'import', 'snap_position', 'snap_duration', 'bpm_change', 'beats_per_measure_change', 'changeVelocity', 'moveNotesToInstrument'];
     
     // 恢复冷却时间检查（排除关键操作类型）
     if (!noCooldownActions.includes(actionType) && now - this.lastActionTime < this.actionCooldown) {
@@ -4572,17 +4572,13 @@ export class MidiEditor {
     
     // 检查是否应该保存历史
     // 对于某些关键操作，总是保存历史，确保每个操作都有独立的历史节点
-    const alwaysSaveActions = ['paste', 'delete', 'cut', 'recording', 'mouse_input', 'visibility_change', 'changeVelocity', 'moveNotesToInstrument'];
+    const alwaysSaveActions = ['paste', 'delete', 'cut', 'recording', 'mouse_input', 'changeVelocity', 'moveNotesToInstrument'];
     const shouldSave = alwaysSaveActions.includes(actionType) || this.hasStateChanged(currentState);
     
     if (!shouldSave) {
       console.log(`状态没有变化，不保存历史: ${actionType}`);
       return;
     }
-    
-
-    
-
     
     // 移除当前索引之后的所有历史记录
     this.history = this.history.slice(0, this.currentHistoryIndex + 1);
@@ -4612,11 +4608,10 @@ export class MidiEditor {
   createStateSnapshot() {
     return {
       tracks: JSON.parse(JSON.stringify(this.tracks)),
-      visibleInstruments: new Set(this.visibleInstruments),
       selectedNotes: [], // 不保存选中状态，因为撤回后应该清空选中
-      playheadPosition: this.playheadPosition,
       bpm: this.bpm,
       beatsPerMeasure: this.beatsPerMeasure
+      // 不保存 visibleInstruments 和 playheadPosition，因为这些都是UI状态，不影响音符内容
     };
   }
 
@@ -4634,20 +4629,8 @@ export class MidiEditor {
       return true;
     }
     
-    // 比较可见音色
-    if (newState.visibleInstruments.size !== lastState.visibleInstruments.size) {
-      return true;
-    }
-    
-    for (const instrument of newState.visibleInstruments) {
-      if (!lastState.visibleInstruments.has(instrument)) {
-        return true;
-      }
-    }
-    
-    // 比较其他属性
-    const otherChanged = newState.playheadPosition !== lastState.playheadPosition ||
-           newState.bpm !== lastState.bpm ||
+    // 比较其他属性（不比较可见性和播放头位置，因为这些都是UI状态）
+    const otherChanged = newState.bpm !== lastState.bpm ||
            newState.beatsPerMeasure !== lastState.beatsPerMeasure;
     
     return otherChanged;
@@ -4708,15 +4691,14 @@ export class MidiEditor {
     // 恢复轨道数据
     this.tracks = JSON.parse(JSON.stringify(state.tracks));
     
-    // 恢复可见音色
-    this.visibleInstruments = new Set(state.visibleInstruments);
+    // 不恢复可见音色，保持当前的UI状态
+    // this.visibleInstruments 保持不变
     
     // 清空选中状态
     this.selectedNotes = [];
     
-    // 恢复播放头位置
-    this.playheadPosition = state.playheadPosition;
-    this.setPlayheadPosition(this.playheadPosition);
+    // 不恢复播放头位置，保持当前的播放位置
+    // this.playheadPosition 保持不变
     
     // 恢复BPM和拍数设置
     this.bpm = state.bpm;

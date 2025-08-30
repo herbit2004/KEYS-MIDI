@@ -44,7 +44,7 @@ export class MidiExporter {
     const instrumentTracks = [];
     
     tracks.forEach(track => {
-      if (this.isDrumInstrument(track.instrument)) {
+      if (this.isDrumInstrument(track.instrument, instrumentConfig)) {
         drumTracks.push(track);
       } else {
         instrumentTracks.push(track);
@@ -458,8 +458,14 @@ export class MidiExporter {
   }
 
   // 判断是否为打击乐音色
-  isDrumInstrument(instrumentId) {
-    // 根据音色ID判断是否为打击乐
+  isDrumInstrument(instrumentId, instrumentConfig) {
+    // 从配置文件中读取isDrum参数
+    const config = instrumentConfig.getInstrumentConfig(instrumentId);
+    if (config && config.isDrum !== undefined) {
+      return config.isDrum;
+    }
+    
+    // 如果没有配置isDrum参数，使用旧的判断方式作为后备
     const drumInstruments = ['sampledPercussion', 'percussion'];
     return drumInstruments.some(drum => instrumentId.includes(drum));
   }

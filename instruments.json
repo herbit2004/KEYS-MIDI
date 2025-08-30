@@ -4,6 +4,7 @@
       "name": "采样钢琴",
       "color": "#426fec",
       "midiProgram": 0,
+      "isDrum": false,
       "synth": {
         "type": "Sampler",
         "options": {
@@ -63,6 +64,7 @@
       "name": "采样老钢琴",
       "color": "#696969",
       "midiProgram": 0,
+      "isDrum": false,
       "synth": {
         "type": "Sampler",
         "options": {
@@ -228,6 +230,7 @@
       "name": "采样吉他",
       "color": "#dd5e30",
       "midiProgram": 24,
+      "isDrum": false,
       "synth": {
         "type": "Sampler",
         "options": {
@@ -265,6 +268,7 @@
       "name": "采样吉他2",
       "color": "#e9967a",
       "midiProgram": 24,
+      "isDrum": false,
       "synth": {
         "type": "Sampler",
         "options": {
@@ -307,6 +311,7 @@
       "name": "采样闷音电吉他",
       "color": "#663300",
       "midiProgram": 25,
+      "isDrum": false,
       "synth": {
         "type": "Sampler",
         "options": {
@@ -410,6 +415,7 @@
       "name": "采样贝斯",
       "color": "#088060",
       "midiProgram": 32,
+      "isDrum": false,
       "synth": {
         "type": "Sampler",
         "options": {
@@ -583,6 +589,7 @@
       "name": "采样木琴",
       "color": "#f0e68c",
       "midiProgram": 13,
+      "isDrum": false,
       "synth": {
         "type": "Sampler",
         "options": {
@@ -707,6 +714,7 @@
       "name": "采样打击乐",
       "color": "#F54F4F",
       "midiProgram": 0,
+      "isDrum": true,
       "synth": {
         "type": "Sampler",
         "options": {
