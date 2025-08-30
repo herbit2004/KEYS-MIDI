@@ -1510,7 +1510,7 @@ export class MidiEditor {
         case 'Delete':
             // 删除所有选中的音符
             this.deleteSelectedNotes();
-            hasChanged = true; // 标记为有变化
+            // 删除操作已经在deleteSelectedNotes中保存历史，不需要在这里再次保存
             break;
       }
       
@@ -1554,10 +1554,11 @@ export class MidiEditor {
   deleteSelectedNotes() {
     if (this.selectedNotes.length === 0) return;
     
-    // 保存删除前的状态
-    this.saveToHistory('delete');
-    
+    // 先删除音符
     this.deleteSelectedNotesWithoutHistory();
+    
+    // 然后保存删除后的状态
+    this.saveToHistory('delete');
   }
 
   // 删除选中音符（不记录历史）
@@ -3909,12 +3910,12 @@ export class MidiEditor {
     this.instrumentVisibilityPanel.className = 'instrument-visibility-panel';
     this.instrumentVisibilityPanel.style.cssText = `
       position: absolute;
-      top: 90px;
+      top: 95px;
       left: 30px;
       display: flex;
-      flex-direction: row;
-      gap: 15px;
-      align-items: center;
+      flex-direction: column;
+      gap: 12px;
+      align-items: flex-start;
       justify-content: flex-start;
       padding: 8px 10px;
       background-color: transparent;
@@ -3922,6 +3923,8 @@ export class MidiEditor {
       margin-top: 5px;
       z-index: 1000;
       pointer-events: auto;
+      max-height: calc(100vh - 150px);
+      overflow-y: auto;
     `;
     
     // 添加到MIDI编辑器容器中，在控制栏下面
@@ -4070,6 +4073,12 @@ export class MidiEditor {
         this.toggleInstrumentVisibility(instrumentId);
       });
       
+      // 添加双击事件 - 只显示当前音色，隐藏其他所有音色
+      button.addEventListener('dblclick', (e) => {
+        e.preventDefault(); // 防止双击选中文本
+        this.showOnlyInstrument(instrumentId);
+      });
+      
       // 添加悬停效果
       button.addEventListener('mouseenter', () => {
         button.style.transform = 'scale(1.2)';
@@ -4116,7 +4125,10 @@ export class MidiEditor {
     // 如果已有提示，直接更新内容
     if (this.currentTooltip) {
       const instrumentName = this.getInstrumentName(instrumentId);
-      this.currentTooltip.textContent = instrumentName;
+      this.currentTooltip.innerHTML = `
+        <div>${instrumentName}</div>
+        <div style="font-size: 10px; color: #aaa; margin-top: 2px;">单击: 切换显示 | 双击: 只显示此音色</div>
+      `;
       
       // 更新位置
       const buttonRect = button.getBoundingClientRect();
@@ -4135,7 +4147,10 @@ export class MidiEditor {
     // 创建提示元素
     this.currentTooltip = document.createElement('div');
     this.currentTooltip.className = 'instrument-tooltip';
-    this.currentTooltip.textContent = instrumentName;
+    this.currentTooltip.innerHTML = `
+      <div>${instrumentName}</div>
+      <div style="font-size: 10px; color: #aaa; margin-top: 2px;">单击: 切换显示 | 双击: 只显示此音色</div>
+    `;
     this.currentTooltip.style.cssText = `
       position: fixed;
       background-color: #252525;
@@ -4215,6 +4230,12 @@ export class MidiEditor {
       this.toggleInstrumentVisibility(instrumentId);
     });
     
+    // 重新添加双击事件 - 只显示当前音色，隐藏其他所有音色
+    newButton.addEventListener('dblclick', (e) => {
+      e.preventDefault(); // 防止双击选中文本
+      this.showOnlyInstrument(instrumentId);
+    });
+    
     // 添加悬浮事件
     newButton.addEventListener('mouseenter', () => {
       newButton.style.transform = 'scale(1.2)';
@@ -4250,6 +4271,10 @@ export class MidiEditor {
     let offsetY = 0;
     let ghostElement = null;
     let parent = this.instrumentVisibilityPanel;
+    let originalOpacity = ''; // 保存原始透明度
+    let originalBorderColor = ''; // 保存原始边框颜色
+    let originalPosition = ''; // 保存原始定位
+    let originalZIndex = ''; // 保存原始层级
     
     // 鼠标按下事件 - 开始拖拽
     button.addEventListener('mousedown', (e) => {
@@ -4267,9 +4292,13 @@ export class MidiEditor {
       offsetX = e.clientX - rect.left;
       offsetY = e.clientY - rect.top;
       
-      // 存储原始位置
+      // 存储原始状态
       originalX = button.style.left || '';
       originalY = button.style.top || '';
+      originalOpacity = button.style.opacity || '';
+      originalBorderColor = button.style.borderColor || '';
+      originalPosition = button.style.position || '';
+      originalZIndex = button.style.zIndex || '';
       
       // 添加全局事件监听
       document.addEventListener('mousemove', onMouseMove);
@@ -4280,18 +4309,40 @@ export class MidiEditor {
     function createGhostElement() {
       ghostElement = document.createElement('div');
       ghostElement.className = 'ghost-drag-element';
+      
+      // 根据按钮的隐藏状态设置幽灵元素的样式
+      const isHidden = button.classList.contains('hidden');
+      const baseOpacity = isHidden ? 0.5 : 1;
+      const borderColor = isHidden ? '#666' : '#00ccff';
+      
       ghostElement.style.cssText = `
         width: 24px;
         height: 24px;
         border-radius: 50%;
         background-color: ${button.style.backgroundColor};
-        border: 2px solid #00ccff;
+        border: 2px solid ${borderColor};
         box-shadow: 0 0 10px rgba(0, 204, 255, 0.7);
         position: fixed;
         z-index: 3000;
         pointer-events: none;
-        opacity: 0.9;
+        opacity: ${baseOpacity * 0.9};
       `;
+      
+      // 如果按钮是隐藏状态，添加斜杠
+      if (isHidden) {
+        const slash = document.createElement('div');
+        slash.style.cssText = `
+          position: absolute;
+          top: 50%;
+          left: 50%;
+          transform: translate(-50%, -50%) rotate(45deg);
+          width: 2px;
+          height: 18px;
+          background-color: #666;
+          transition: all 0.2s ease;
+        `;
+        ghostElement.appendChild(slash);
+      }
       
       document.body.appendChild(ghostElement);
     }
@@ -4306,10 +4357,10 @@ export class MidiEditor {
       
       // 如果是第一次移动且移动距离超过阈值，则开始拖拽
       if (!ghostElement && (Math.abs(deltaX) > 5 || Math.abs(deltaY) > 5)) {
-        // 设置按钮为相对定位
+        // 设置按钮为相对定位，但保持原始透明度
         button.style.position = 'relative';
         button.style.zIndex = '2000';
-        button.style.opacity = '0.6';
+        // 不改变透明度，保持原始状态（包括隐藏状态的0.5透明度）
         
         // 创建幽灵元素作为拖拽指示器
         createGhostElement();
@@ -4347,10 +4398,11 @@ export class MidiEditor {
     function onMouseUp() {
       if (!isDragging || !draggedButton) return;
       
-      // 恢复按钮样式
-      draggedButton.style.position = '';
-      draggedButton.style.zIndex = '';
-      draggedButton.style.opacity = '1';
+      // 恢复按钮原始状态
+      draggedButton.style.position = originalPosition;
+      draggedButton.style.zIndex = originalZIndex;
+      draggedButton.style.opacity = originalOpacity;
+      draggedButton.style.borderColor = originalBorderColor;
       draggedButton.style.left = originalX;
       draggedButton.style.top = originalY;
       
@@ -4454,6 +4506,31 @@ export class MidiEditor {
     this.draw();
   }
 
+  // 只显示指定音色，隐藏其他所有音色
+  showOnlyInstrument(instrumentId) {
+    // 保存操作前的状态
+    this.saveToHistory('visibility_change');
+    
+    // 停止所有正在播放的音符
+    for (const track of this.tracks) {
+      this.stopInstrumentNotes(track.instrument);
+    }
+    
+    // 清空可见音色集合
+    this.visibleInstruments.clear();
+    
+    // 只添加指定的音色
+    this.visibleInstruments.add(instrumentId);
+    
+    // 更新面板显示
+    this.updateInstrumentVisibilityPanel();
+    
+    // 重绘画布
+    this.draw();
+    
+    console.log(`只显示音色: ${instrumentId}`);
+  }
+
   // 停止指定音色的所有正在播放的音符
   stopInstrumentNotes(instrumentId) {
     // 遍历所有轨道，找到指定音色的正在播放的音符
@@ -4502,6 +4579,10 @@ export class MidiEditor {
       console.log(`状态没有变化，不保存历史: ${actionType}`);
       return;
     }
+    
+
+    
+
     
     // 移除当前索引之后的所有历史记录
     this.history = this.history.slice(0, this.currentHistoryIndex + 1);
