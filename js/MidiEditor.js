@@ -3967,6 +3967,9 @@ export class MidiEditor {
       return isVisible !== currentVisible;
     });
     
+    // 检查按钮顺序是否需要调整
+    const needsReorder = this.checkButtonOrderNeedsUpdate(existingButtons);
+    
     // 删除不需要的按钮（带动画）
     buttonsToRemove.forEach(button => {
       button.style.transform = 'scale(0)';
@@ -4072,9 +4075,9 @@ export class MidiEditor {
         this.toggleInstrumentVisibility(instrumentId);
       });
       
-      // 添加双击事件 - 只显示当前音色，隐藏其他所有音色
-      button.addEventListener('dblclick', (e) => {
-        e.preventDefault(); // 防止双击选中文本
+      // 添加右键事件 - 只显示当前音色，隐藏其他所有音色
+      button.addEventListener('contextmenu', (e) => {
+        e.preventDefault(); // 阻止默认右键菜单
         this.showOnlyInstrument(instrumentId);
       });
       
@@ -4111,6 +4114,11 @@ export class MidiEditor {
     });
     
     // 注意：不再在面板为空时重复创建所有按钮，避免初始化时重复元素
+    
+    // 如果需要重新排列按钮顺序，执行重新排列
+    if (needsReorder) {
+      this.reorderButtonsToMatchTracks();
+    }
   }
 
   // 显示音色名称提示
@@ -4126,7 +4134,7 @@ export class MidiEditor {
       const instrumentName = this.getInstrumentName(instrumentId);
       this.currentTooltip.innerHTML = `
         <div>${instrumentName}</div>
-        <div style="font-size: 10px; color: #aaa; margin-top: 2px;">单击: 切换显示 | 双击: 只显示此音色</div>
+        <div style="font-size: 10px; color: #aaa; margin-top: 2px;">单击: 切换显示 | 右键: 只显示此音色</div>
       `;
       
       // 更新位置
@@ -4148,7 +4156,7 @@ export class MidiEditor {
     this.currentTooltip.className = 'instrument-tooltip';
     this.currentTooltip.innerHTML = `
       <div>${instrumentName}</div>
-      <div style="font-size: 10px; color: #aaa; margin-top: 2px;">单击: 切换显示 | 双击: 只显示此音色</div>
+      <div style="font-size: 10px; color: #aaa; margin-top: 2px;">单击: 切换显示 | 右键: 只显示此音色</div>
     `;
     this.currentTooltip.style.cssText = `
       position: fixed;
@@ -4229,9 +4237,9 @@ export class MidiEditor {
       this.toggleInstrumentVisibility(instrumentId);
     });
     
-    // 重新添加双击事件 - 只显示当前音色，隐藏其他所有音色
-    newButton.addEventListener('dblclick', (e) => {
-      e.preventDefault(); // 防止双击选中文本
+    // 重新添加右键事件 - 只显示当前音色，隐藏其他所有音色
+    newButton.addEventListener('contextmenu', (e) => {
+      e.preventDefault(); // 阻止默认右键菜单
       this.showOnlyInstrument(instrumentId);
     });
     
@@ -4454,6 +4462,9 @@ export class MidiEditor {
         }
       }
       
+      // 检查轨道顺序是否发生了变化
+      const orderChanged = this.hasTracksOrderChanged(newTracksOrder);
+      
       // 保持原有的可见性状态
       const visibleInstrumentsSnapshot = new Set(this.visibleInstruments);
       
@@ -4466,6 +4477,12 @@ export class MidiEditor {
         this.visibleInstruments.add(id);
       });
       
+      // 如果轨道顺序发生了变化，记录历史
+      if (orderChanged) {
+        this.saveToHistory('tracks_reorder');
+        console.log('轨道顺序已改变，记录历史');
+      }
+      
       // 重绘画布以反映新的轨道顺序
       this.draw();
       
@@ -4474,6 +4491,67 @@ export class MidiEditor {
     
     // 绑定updateTracksOrder的this上下文
     updateTracksOrder = updateTracksOrder.bind(this);
+  }
+
+  // 检查轨道顺序是否发生变化
+  hasTracksOrderChanged(newTracksOrder) {
+    // 如果轨道数量不同，说明有变化
+    if (this.tracks.length !== newTracksOrder.length) {
+      return true;
+    }
+    
+    // 比较每个轨道的顺序
+    for (let i = 0; i < this.tracks.length; i++) {
+      if (this.tracks[i].instrument !== newTracksOrder[i].instrument) {
+        return true;
+      }
+    }
+    
+    return false;
+  }
+
+  // 检查按钮顺序是否需要更新
+  checkButtonOrderNeedsUpdate(existingButtons) {
+    if (!this.instrumentVisibilityPanel) return false;
+    
+    const currentButtonOrder = Array.from(existingButtons).map(button => button.dataset.instrumentId);
+    const expectedOrder = this.tracks.map(track => track.instrument);
+    
+    // 比较按钮顺序和轨道顺序
+    if (currentButtonOrder.length !== expectedOrder.length) {
+      return true;
+    }
+    
+    for (let i = 0; i < currentButtonOrder.length; i++) {
+      if (currentButtonOrder[i] !== expectedOrder[i]) {
+        return true;
+      }
+    }
+    
+    return false;
+  }
+
+  // 重新排列按钮以匹配轨道顺序
+  reorderButtonsToMatchTracks() {
+    if (!this.instrumentVisibilityPanel) return;
+    
+    const buttons = Array.from(this.instrumentVisibilityPanel.children);
+    const buttonMap = new Map();
+    
+    // 创建按钮映射
+    buttons.forEach(button => {
+      buttonMap.set(button.dataset.instrumentId, button);
+    });
+    
+    // 按照轨道顺序重新排列按钮
+    this.tracks.forEach(track => {
+      const button = buttonMap.get(track.instrument);
+      if (button && button.parentNode) {
+        this.instrumentVisibilityPanel.appendChild(button);
+      }
+    });
+    
+    console.log('按钮顺序已重新排列以匹配轨道顺序');
   }
 
   // 清理空的轨道
@@ -4559,7 +4637,7 @@ export class MidiEditor {
     // 检查操作冷却时间
     // 注意：某些操作类型不应用冷却时间，以确保每次操作都能单独保存到历史记录
     const now = Date.now();
-    const noCooldownActions = ['paste', 'delete', 'cut', 'recording', 'mouse_input', 'import', 'snap_position', 'snap_duration', 'bpm_change', 'beats_per_measure_change', 'changeVelocity', 'moveNotesToInstrument'];
+    const noCooldownActions = ['paste', 'delete', 'cut', 'recording', 'mouse_input', 'import', 'snap_position', 'snap_duration', 'bpm_change', 'beats_per_measure_change', 'changeVelocity', 'moveNotesToInstrument', 'tracks_reorder'];
     
     // 恢复冷却时间检查（排除关键操作类型）
     if (!noCooldownActions.includes(actionType) && now - this.lastActionTime < this.actionCooldown) {
@@ -4572,7 +4650,7 @@ export class MidiEditor {
     
     // 检查是否应该保存历史
     // 对于某些关键操作，总是保存历史，确保每个操作都有独立的历史节点
-    const alwaysSaveActions = ['paste', 'delete', 'cut', 'recording', 'mouse_input', 'changeVelocity', 'moveNotesToInstrument'];
+    const alwaysSaveActions = ['paste', 'delete', 'cut', 'recording', 'mouse_input', 'changeVelocity', 'moveNotesToInstrument', 'tracks_reorder'];
     const shouldSave = alwaysSaveActions.includes(actionType) || this.hasStateChanged(currentState);
     
     if (!shouldSave) {
@@ -4708,7 +4786,7 @@ export class MidiEditor {
     this.updateBpmDisplay();
     this.updateBeatsPerMeasureDisplay();
     
-    // 更新音色显示控制面板
+    // 更新音色显示控制面板（这会重新排列按钮顺序以匹配轨道顺序）
     this.updateInstrumentVisibilityPanel();
     
     // 重新调整canvas大小
