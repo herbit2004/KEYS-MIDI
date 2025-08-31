@@ -286,25 +286,14 @@ body {
     margin-bottom: 8px;
 }
 
-.knob-container::before {
-    content: '';
-    position: absolute;
-    top: -4px;
-    left: -4px;
-    right: -4px;
-    bottom: -4px;
-    background-color: #1e1e1e;
-    border-radius: 50%;
-    z-index: 0;
-    transition: box-shadow 0.2s ease;
-}
+
 
 .knob {
     width: 100%;
     height: 100%;
     background-color: #2a2a2a;
     border-radius: 50%;
-    border: 2px solid #444;
+    border: 1px solid #1e1e1e;
     position: relative;
     cursor: pointer;
     transition: border-color 0.2s ease;
@@ -348,26 +337,38 @@ body {
 }
 
 .tone-select {
-    background-color: #252525;
+    background-color: #2d2d2d;
     color: white;
-    border: 1px solid #444;
+    border: none;
     border-radius: 4px;
     padding: 8px;
     width: 100%;
     margin-bottom: 10px;
     cursor: pointer;
+    /* 覆盖浏览器默认样式 */
+    -webkit-appearance: none;
+    -moz-appearance: none;
+    appearance: none;
 }
 
 .tone-select:hover {
-    border-color: #00ccff;
-    box-shadow: 0 0 10px rgba(0, 204, 255, 0.7);
+    /* 保持简单的悬停效果 */
 }
 
 .tone-select:focus {
-    border-color: #00ccff;
-    box-shadow: 0 0 10px rgba(0, 204, 255, 0.7);
     outline: none;
 }
+
+/* 确保所有select元素都没有描边 */
+select {
+    border: none !important;
+    outline: none !important;
+    box-shadow: none !important;
+    background-image: none !important;
+    background-color: #2d2d2d !important;
+}
+
+
 
 input[type="range"] {
     width: 100%;
@@ -446,6 +447,8 @@ input[type="range"]::-moz-range-thumb {
     width: 120px;
     margin-right: 10px;
     margin-bottom: 0;
+    background-color: #2d2d2d;
+    border: none;
 }
 
 .octave-controls, .transpose-controls {
@@ -455,9 +458,9 @@ input[type="range"]::-moz-range-thumb {
 }
 
 .octave-button, .transpose-button {
-    background-color: #333;
+    background-color: #2d2d2d; /* 色块背景 */
     color: white;
-    border: 1px solid #444;
+    border: none; /* 取消描边 */
     border-radius: 4px;
     width: 40px;
     height: 40px;
@@ -466,8 +469,7 @@ input[type="range"]::-moz-range-thumb {
 }
 
 .octave-button:hover, .transpose-button:hover {
-    background-color: #444;
-    border-color: #00ccff;
+    background-color: #00ccff; /* 悬停时变为蓝色 */
 }
 
 .octave-display, .transpose-display {
@@ -552,13 +554,14 @@ input[type="range"]::-moz-range-thumb {
 
 .bpm-input, .beats-per-measure-input {
     width: 60px;
-    padding: 4px;
-    border: 1px solid #444;
+    padding: 6px;
+    border: none;
     border-radius: 4px;
     font-size: 14px;
-    background-color: #252525;
+    background-color: #2a2a2a;
     color: white;
     text-align: center;
+    outline: none;
 }
 
 /* 节拍器开关样式 */
@@ -1044,6 +1047,8 @@ input:checked + .slider:before {
     margin-bottom: 0;
     padding: 5px 8px;
     font-size: 0.8rem;
+    background-color: #2d2d2d;
+    border: none;
 }
 
 .tone-selector .knob-label {
@@ -1060,8 +1065,8 @@ input:checked + .slider:before {
 
 .octave-button, .transpose-button {
     background-color: #2d2d2d;
-    color: #aaa;
-    border: 1px solid #444;
+    color: white;
+    border: none;
     border-radius: 3px;
     width: 30px;
     height: 30px;
@@ -1074,9 +1079,8 @@ input:checked + .slider:before {
 }
 
 .octave-button:hover, .transpose-button:hover {
-    background-color: #3d3d3d;
-    color: #ddd;
-    border-color: #00ccff;
+    background-color: #00ccff;
+    color: white;
 }
 
 .octave-display, .transpose-display {
@@ -1112,9 +1116,10 @@ input:checked + .slider:before {
 .choice-chips {
     display: inline-flex;
     gap: 6px;
-    background-color: transparent;
+    background-color: #2d2d2d; /* 更深的灰色背景 */
     padding: 3px;
     border-radius: 20px;
+    border: none !important;
 }
 
 .choice-chips input[type="radio"] {
@@ -1129,7 +1134,7 @@ input:checked + .slider:before {
     cursor: pointer;
     transition: all 0.2s ease;
     font-size: 0.8rem;
-    border: 1px solid transparent;
+    border: none; /* 取消描边 */
 }
 
 .choice-chips .chip:hover {
@@ -1141,7 +1146,7 @@ input:checked + .slider:before {
     background-color: #00ccff;
     color: #000;
     font-weight: bold;
-    border: 1px solid #00ccff;
+    border: none;
     box-shadow: 0 0 4px rgba(0, 204, 255, 0.5);
 }
 

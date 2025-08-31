@@ -18,8 +18,8 @@ export class VisualManager {
     this.hoveredKey = null;
     
     // 键盘布局参数
-    this.whiteKeyHeight = 200;
-    this.blackKeyHeight = 120;
+    this.whiteKeyHeight = 120;
+    this.blackKeyHeight = 70;
     
     // 初始化并监听窗口大小变化
     this.resizeCanvas();
@@ -55,7 +55,7 @@ export class VisualManager {
     
     // 设置canvas宽度，保持高度比例
     this.canvas.width = width;
-    this.canvas.height = 200; // 保持固定高度
+    this.canvas.height = 120; // 保持固定高度
     
     // 计算白键宽度
     const whiteKeyCount = 24; // 白键数量
@@ -107,11 +107,13 @@ drawWhiteKeys() {
       this.ctx.fillStyle = fillColor;
       
       // 绘制白键
-      this.ctx.fillRect(x, y, this.whiteKeyWidth - 2, this.whiteKeyHeight);
+      this.ctx.fillRect(x, y, this.whiteKeyWidth, this.whiteKeyHeight);
       
       // 绘制边框
-      this.ctx.strokeStyle = '#000000';
-      this.ctx.strokeRect(x, y, this.whiteKeyWidth - 2, this.whiteKeyHeight);
+      this.ctx.strokeStyle = '#ccc';
+      this.ctx.lineWidth = 0.5;
+      this.ctx.strokeRect(x, y, this.whiteKeyWidth, this.whiteKeyHeight);
+      this.ctx.lineWidth = 1;
       
       // 绘制按键标识
       this.ctx.fillStyle = '#000000';

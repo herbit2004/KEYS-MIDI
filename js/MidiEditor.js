@@ -2238,7 +2238,7 @@ export class MidiEditor {
     // 绘制预览播放头
     if (this.previewPlayheadPosition >= 0) {
       this.ctx.strokeStyle = 'rgba(0, 204, 255, 0.7)'; // 蓝色，半透明 (与UI中其他蓝色#00ccff一致)
-      this.ctx.lineWidth = 0.5; // 更细
+      this.ctx.lineWidth = 0.25; // 更细
       this.ctx.beginPath(); // 实线样式
       this.ctx.moveTo(this.previewPlayheadPosition, 0);
       this.ctx.lineTo(this.previewPlayheadPosition, this.canvas.height);
@@ -2260,7 +2260,7 @@ export class MidiEditor {
       
       // 绘制边框
       this.ctx.strokeStyle = 'rgba(0, 204, 255, 0.7)'; // 蓝色，半透明
-      this.ctx.lineWidth = 1;
+      this.ctx.lineWidth = 0.5;
       this.ctx.strokeRect(startX, startY, width, height);
     }
     
@@ -2462,7 +2462,7 @@ export class MidiEditor {
     
     // 绘制八度线（保留）
     this.ctx.strokeStyle = '#444';
-    this.ctx.lineWidth = 1;
+    this.ctx.lineWidth = 0.5;
     for (let i = 0; i < 128; i++) {
       if (i % 12 === 0) { // 每个八度绘制一条线
         const y = height - (i * noteHeight);
@@ -2476,7 +2476,7 @@ export class MidiEditor {
     // 绘制时间轴线
     // 拍线：更浅更细
     this.ctx.strokeStyle = '#444';  // 更浅的颜色
-    this.ctx.lineWidth = 0.25;      // 更细的线
+    this.ctx.lineWidth = 0.125;      // 更细的线
     
     // 每拍绘制一条垂直线
     for (let i = 0; i < width; i += this.pixelsPerBeat) {
@@ -2490,7 +2490,7 @@ export class MidiEditor {
     if (this.beatsPerMeasure > 0) {
       const pixelsPerMeasure = this.pixelsPerBeat * this.beatsPerMeasure;
       this.ctx.strokeStyle = '#444';  // 与拍线相同颜色
-      this.ctx.lineWidth = 0.25;      // 与拍线相同粗细
+      this.ctx.lineWidth = 0.125;      // 与拍线相同粗细
       for (let i = 0; i < width; i += pixelsPerMeasure) {
         this.ctx.beginPath();
         this.ctx.moveTo(i, 0);
@@ -2654,7 +2654,7 @@ export class MidiEditor {
       
       // 绘制高亮边框
       this.ctx.strokeStyle = '#ffcc00';
-      this.ctx.lineWidth = 2;
+      this.ctx.lineWidth = 1;
       this.ctx.strokeRect(x, y - noteHeight, widthValue, noteHeight);
       
       // 绘制调整手柄（只在单个音符被选中时显示）
@@ -2684,7 +2684,7 @@ export class MidiEditor {
     
     // 绘制高亮边框
     this.ctx.strokeStyle = '#ffffff';
-    this.ctx.lineWidth = 1;
+    this.ctx.lineWidth = 0.5;
     this.ctx.strokeRect(x, y - noteHeight, widthValue, noteHeight);
   }
   
