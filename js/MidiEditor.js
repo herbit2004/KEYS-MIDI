@@ -1554,10 +1554,11 @@ export class MidiEditor {
   deleteSelectedNotes() {
     if (this.selectedNotes.length === 0) return;
     
-    // 保存删除前的状态
-    this.saveToHistory('delete');
-    
+    // 先执行删除操作
     this.deleteSelectedNotesWithoutHistory();
+    
+    // 保存删除后的状态
+    this.saveToHistory('delete');
   }
 
   // 删除选中音符（不记录历史）
