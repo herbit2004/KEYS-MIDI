@@ -128,8 +128,8 @@ body {
     width: 30px;
     height: 30px;
     border-radius: 50%;
-    background: #444444; /* 灰色背景 */
-    border: 1px solid #666;
+    background: #2d2d2d; /* 深色填充 */
+    border: none; /* 取消轮廓描边 */
     cursor: pointer;
     transition: all 0.2s ease;
     display: flex;
@@ -141,8 +141,7 @@ body {
 }
 
 .help-button:hover {
-    background: #555555;
-    border-color: #777;
+    background: #333333; /* 更深的悬停颜色 */
 }
 
 .help-button:active {
@@ -229,7 +228,7 @@ body {
 /* 主显示屏样式 */
 .main-display {
     background-color: #121212;
-    border: 1px solid #444;
+    border: none;
     border-radius: 6px;
     padding: 10px 20px;
     width: 180px;
