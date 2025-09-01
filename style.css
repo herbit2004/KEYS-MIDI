@@ -375,30 +375,11 @@ input[type="range"] {
     appearance: none;
     height: 8px;
     border-radius: 4px;
-    background: #252525;
+    background: linear-gradient(to right, #00ccff var(--fill-percent, 0%), #252525 var(--fill-percent, 0%));
     outline: none;
 }
 
-input[type="range"]::-webkit-slider-thumb {
-    -webkit-appearance: none;
-    appearance: none;
-    width: 20px;
-    height: 20px;
-    border-radius: 50%;
-    background: #00ccff;
-    cursor: pointer;
-    box-shadow: 0 0 5px rgba(0, 204, 255, 0.7);
-}
 
-input[type="range"]::-moz-range-thumb {
-    width: 20px;
-    height: 20px;
-    border: none;
-    border-radius: 50%;
-    background: #00ccff;
-    cursor: pointer;
-    box-shadow: 0 0 5px rgba(0, 204, 255, 0.7);
-}
 
 .knob-label {
     font-size: 0.65rem;
@@ -675,13 +656,26 @@ input:checked + .slider:before {
     outline: none;
     -webkit-appearance: none;
     margin-top: 8px;
+    cursor: pointer;
+}
+
+.control-slider::-webkit-slider-track {
+    background: linear-gradient(to right, #00ccff var(--fill-percent, 0%), #444 var(--fill-percent, 0%));
+    border-radius: 4px;
+    height: 8px;
+}
+
+.control-slider::-moz-range-track {
+    background: linear-gradient(to right, #00ccff var(--fill-percent, 0%), #444 var(--fill-percent, 0%));
+    border-radius: 4px;
+    height: 8px;
 }
 
 .control-slider::-webkit-slider-thumb {
     -webkit-appearance: none;
     appearance: none;
-    width: 20px;
-    height: 20px;
+    width: 10px;
+    height: 10px;
     border-radius: 50%;
     background: #00ccff;
     cursor: pointer;
@@ -690,12 +684,12 @@ input:checked + .slider:before {
 }
 
 .control-slider::-moz-range-thumb {
-    width: 20px;
-    height: 20px;
+    width: 16px;
+    height: 16px;
     border-radius: 50%;
     background: #00ccff;
     cursor: pointer;
-    border: 2px solid #fff;
+    border: none;
     box-shadow: 0 0 5px rgba(0, 204, 255, 0.5);
 }
 
@@ -738,6 +732,12 @@ input:checked + .slider:before {
     box-sizing: border-box;
 }
 
+/* 特定按钮保持透明背景 */
+.metronome-snap-button,
+.fullscreen-button {
+    background: transparent !important;
+}
+
 .midi-editor-button:hover {
     background: transparent;
     transform: scale(1.05);
@@ -762,72 +762,37 @@ input:checked + .slider:before {
     opacity: 0.5;
 }
 
-/* 特定样式用于导出和导入按钮 */
-.export-import-button {
+/* 特定样式用于控制菜单按钮 */
+.metronome-snap-button,
+.fullscreen-button {
     border-radius: 0;
-    background: transparent;
     border: none;
 }
 
-.export-import-button:hover {
-    background: transparent;
+.metronome-snap-button:hover,
+.fullscreen-button:hover {
+    transform: scale(1.05);
 }
 
-.export-import-button img {
+.metronome-snap-button img,
+.fullscreen-button img {
     transition: all 0.2s ease;
 }
 
-.export-import-button:hover img {
+.metronome-snap-button:hover img,
+.fullscreen-button:hover img {
     transform: scale(1.15);
     filter: brightness(0) saturate(100%) invert(29%) sepia(89%) saturate(1492%) hue-rotate(180deg) brightness(101%) contrast(101%);
 }
 
-.export-import-button:active img {
-    transform: scale(1.1);
-}
-
-/* 特定样式用于节拍器和吸附功能按钮 */
-.metronome-snap-button {
-    border-radius: 0;
-    background: transparent;
-    border: none;
-}
-
-.metronome-snap-button:hover {
-    background: transparent;
-}
-
-.metronome-snap-button img {
-    transition: all 0.2s ease;
-}
-
-.metronome-snap-button:hover img {
-    transform: scale(1.15);
-    filter: brightness(0) saturate(100%) invert(29%) sepia(89%) saturate(1492%) hue-rotate(180deg) brightness(101%) contrast(101%);
-}
-
-.metronome-snap-button:active img {
+.metronome-snap-button:active img,
+.fullscreen-button:active img {
     transform: scale(1.1);
 }
 
 /* 特定样式用于全屏按钮 */
 .fullscreen-button {
-    border-radius: 0;
-    background: transparent;
     margin-left: auto; /* 将按钮推到容器右侧 */
-}
-
-.fullscreen-button img {
-    transition: all 0.2s ease;
-}
-
-.fullscreen-button:hover img {
-    transform: scale(1.15);
-    filter: brightness(0) saturate(100%) invert(29%) sepia(89%) saturate(1492%) hue-rotate(180deg) brightness(101%) contrast(101%); /* 蓝色效果 */
-}
-
-.fullscreen-button:active img {
-    transform: scale(1.1);
 }
 
 /* 下拉菜单按钮统一样式 */

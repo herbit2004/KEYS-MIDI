@@ -172,6 +172,12 @@ export class MidiEditor {
     const metronomeVolumeSlider = document.getElementById('metronome-volume');
     const metronomeVolumeValue = document.getElementById('metronome-volume-value');
     if (metronomeVolumeSlider) {
+      // 初始化滑块填充百分比
+      const min = parseFloat(metronomeVolumeSlider.min);
+      const max = parseFloat(metronomeVolumeSlider.max);
+      const initialFillPercent = ((this.metronomeVolume - min) / (max - min)) * 100;
+      metronomeVolumeSlider.style.setProperty('--fill-percent', `${initialFillPercent}%`);
+      
       metronomeVolumeSlider.addEventListener('input', (e) => {
         this.metronomeVolume = parseFloat(e.target.value);
         this.audioEngine.metronomeSynth.volume.value = this.metronomeVolume;
@@ -179,6 +185,9 @@ export class MidiEditor {
         if (metronomeVolumeValue) {
           metronomeVolumeValue.textContent = `${this.metronomeVolume} dB`;
         }
+        // 设置滑块填充百分比
+        const fillPercent = ((this.metronomeVolume - min) / (max - min)) * 100;
+        metronomeVolumeSlider.style.setProperty('--fill-percent', `${fillPercent}%`);
       });
     }
     
@@ -186,12 +195,21 @@ export class MidiEditor {
     const snapSensitivitySlider = document.getElementById('snap-sensitivity');
     const snapSensitivityValue = document.getElementById('snap-sensitivity-value');
     if (snapSensitivitySlider) {
+      // 初始化滑块填充百分比
+      const min = parseFloat(snapSensitivitySlider.min);
+      const max = parseFloat(snapSensitivitySlider.max);
+      const initialFillPercent = ((parseFloat(snapSensitivitySlider.value) - min) / (max - min)) * 100;
+      snapSensitivitySlider.style.setProperty('--fill-percent', `${initialFillPercent}%`);
+      
       snapSensitivitySlider.addEventListener('input', (e) => {
         this.snapSensitivity = parseFloat(e.target.value) / 100;
         // 更新显示值
         if (snapSensitivityValue) {
           snapSensitivityValue.textContent = e.target.value;
         }
+        // 设置滑块填充百分比
+        const fillPercent = ((parseFloat(e.target.value) - min) / (max - min)) * 100;
+        snapSensitivitySlider.style.setProperty('--fill-percent', `${fillPercent}%`);
       });
     }
     
@@ -199,12 +217,21 @@ export class MidiEditor {
     const snapPrecisionSlider = document.getElementById('snap-precision');
     const snapPrecisionValue = document.getElementById('snap-precision-value');
     if (snapPrecisionSlider) {
+      // 初始化滑块填充百分比
+      const min = parseFloat(snapPrecisionSlider.min);
+      const max = parseFloat(snapPrecisionSlider.max);
+      const initialFillPercent = ((parseFloat(snapPrecisionSlider.value) - min) / (max - min)) * 100;
+      snapPrecisionSlider.style.setProperty('--fill-percent', `${initialFillPercent}%`);
+      
       snapPrecisionSlider.addEventListener('input', (e) => {
         this.snapPrecision = parseInt(e.target.value);
         // 更新显示值为分数形式
         if (snapPrecisionValue) {
           snapPrecisionValue.textContent = `1/${e.target.value}`;
         }
+        // 设置滑块填充百分比
+        const fillPercent = ((parseFloat(e.target.value) - min) / (max - min)) * 100;
+        snapPrecisionSlider.style.setProperty('--fill-percent', `${fillPercent}%`);
       });
     }
     
