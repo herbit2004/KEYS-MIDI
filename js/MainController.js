@@ -470,11 +470,11 @@ export class MainController {
         updated = true;
         break;
       case 'arrowleft':
-        this.keyMapper.shiftKey(1);
+        this.keyMapper.shiftKey(-1);
         updated = true;
         break;
       case 'arrowright':
-        this.keyMapper.shiftKey(-1);
+        this.keyMapper.shiftKey(1);
         updated = true;
         break;
       default:
