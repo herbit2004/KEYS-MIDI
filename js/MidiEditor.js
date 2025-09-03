@@ -6,6 +6,9 @@ export class MidiEditor {
     this.audioEngine = audioEngine;
     this.keyMapper = keyMapper;
     this.instrumentConfig = null; // 音色配置引用
+
+    // 添加音色切换通知的CSS动画
+    this.addNotificationStyles();
     
     // 获取canvas元素
     this.canvas = document.getElementById('midi-editor');
@@ -4753,14 +4756,14 @@ export class MidiEditor {
     notification.className = 'loading-notification';
     notification.dataset.instrumentId = `change-${instrumentId}`;
     notification.style.cssText = `
-      background: rgba(45, 106, 236, 0.5);
+      background: rgba(255, 255, 255, 0.15);
       color: white;
       padding: 8px 16px;
       border-radius: 20px;
       font-family: 'Arial', sans-serif;
       font-size: 13px;
       backdrop-filter: blur(15px);
-      border: 1px solid rgba(255, 255, 255, 0.3);
+      border: 1px solid rgba(255, 255, 255, 0.2);
       box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
       display: flex;
       align-items: center;
@@ -4795,15 +4798,20 @@ export class MidiEditor {
 
     container.appendChild(notification);
 
-    // 2秒后自动移除通知
+    // 添加蓝色脉冲动画
+    notification.classList.add('completed');
+    notification.style.animation = 'instrumentChangePulse 1s ease-in-out';
+
+    // 动画完成后自动移除通知
     setTimeout(() => {
+      notification.classList.add('removing');
       notification.style.animation = 'slideOut 0.3s ease-in';
       setTimeout(() => {
         if (notification.parentNode) {
           notification.parentNode.removeChild(notification);
         }
       }, 300);
-    }, 2000);
+    }, 1500);
   }
 
   // 重新排列按钮以匹配轨道顺序
@@ -5116,6 +5124,19 @@ export class MidiEditor {
         }
       }, 50);
     }
+  }
+
+  // 添加音色切换通知的CSS动画样式
+  addNotificationStyles() {
+    const style = document.createElement('style');
+    style.textContent = `
+      @keyframes instrumentChangePulse {
+        0% { background: rgba(255, 255, 255, 0.15); }
+        50% { background: rgba(51, 114, 252, 0.6); }
+        100% { background: rgba(255, 255, 255, 0.15); }
+      }
+    `;
+    document.head.appendChild(style);
   }
 
   // 释放所有已选中的音符
