@@ -4798,14 +4798,15 @@ export class MidiEditor {
 
     container.appendChild(notification);
 
-    // 添加蓝色脉冲动画
+    // 添加蓝色脉冲动画，同时保持slideIn动画
     notification.classList.add('completed');
-    notification.style.animation = 'instrumentChangePulse 1s ease-in-out';
+    notification.style.animation = 'slideIn 0.3s ease-out, instrumentChangePulse 1s ease-in-out 0.3s';
 
     // 动画完成后自动移除通知
     setTimeout(() => {
       notification.classList.add('removing');
-      notification.style.animation = 'slideOut 0.3s ease-in';
+      // 同时应用slideOut动画和instrumentChangePulse动画
+      notification.style.animation = 'slideOut 0.3s ease-in, instrumentChangePulse 1s ease-in-out';
       setTimeout(() => {
         if (notification.parentNode) {
           notification.parentNode.removeChild(notification);

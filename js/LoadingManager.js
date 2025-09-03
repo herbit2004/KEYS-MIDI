@@ -174,9 +174,10 @@ export class LoadingManager {
     // 延迟后移除通知
     setTimeout(() => {
       notification.classList.add('removing');
+      notification.style.animation = 'slideOut 0.3s ease-in';
       setTimeout(() => {
         if (notification.parentNode) {
-        notification.remove();
+          notification.remove();
         }
       }, 300);
     }, 1500);
