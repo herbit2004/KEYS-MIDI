@@ -4439,7 +4439,7 @@ export class MidiEditor {
     }
     
     // 鼠标松开事件 - 结束拖拽
-    function onMouseUp() {
+    function onMouseUp(e) {
       if (!isDragging || !draggedButton) return;
       
       // 恢复按钮原始状态
@@ -4456,8 +4456,127 @@ export class MidiEditor {
         ghostElement = null;
       }
       
-      // 更新tracks数组顺序以反映DOM顺序
-      updateTracksOrder();
+      // 检查拖拽释放位置
+      const canvas = document.getElementById('midi-editor');
+      const canvasContainer = document.querySelector('.canvas-container');
+      const instrumentPanel = this.instrumentVisibilityPanel;
+      
+      // 检查是否在音色控制面板内
+      let isOverInstrumentPanel = false;
+      if (instrumentPanel && e) {
+        const panelRect = instrumentPanel.getBoundingClientRect();
+        isOverInstrumentPanel = e.clientX >= panelRect.left && 
+                               e.clientX <= panelRect.right && 
+                               e.clientY >= panelRect.top && 
+                               e.clientY <= panelRect.bottom;
+      }
+      
+      // 检查是否在可见的画布区域内
+      let isOverVisibleCanvas = false;
+      if (canvasContainer && e) {
+        const containerRect = canvasContainer.getBoundingClientRect();
+        
+        // 获取容器的实际可见尺寸（考虑overflow等样式）
+        const containerStyle = window.getComputedStyle(canvasContainer);
+        const visibleWidth = containerRect.width;
+        const visibleHeight = containerRect.height;
+        
+        // 检查鼠标是否在可见的画布容器区域内
+        isOverVisibleCanvas = e.clientX >= containerRect.left && 
+                             e.clientX <= containerRect.left + visibleWidth && 
+                             e.clientY >= containerRect.top && 
+                             e.clientY <= containerRect.top + visibleHeight;
+        
+        // 额外检查：确保容器在视口内可见
+        const isContainerVisible = containerRect.width > 0 && 
+                                  containerRect.height > 0 && 
+                                  containerRect.top < window.innerHeight && 
+                                  containerRect.bottom > 0 &&
+                                  containerRect.left < window.innerWidth && 
+                                  containerRect.right > 0;
+        
+        // 只有在容器可见时才认为在可见画布区域内
+        isOverVisibleCanvas = isOverVisibleCanvas && isContainerVisible;
+        
+        console.log('可见画布检测:', {
+          containerLeft: containerRect.left,
+          containerTop: containerRect.top,
+          visibleWidth: visibleWidth,
+          visibleHeight: visibleHeight,
+          isContainerVisible: isContainerVisible,
+          mouseX: e.clientX,
+          mouseY: e.clientY,
+          isOverVisibleCanvas: isOverVisibleCanvas
+        });
+      }
+      
+      // 检查鼠标下的元素是否是可见的画布相关元素
+      let isOverCanvasElement = false;
+      if (e) {
+        const elementUnderMouse = document.elementFromPoint(e.clientX, e.clientY);
+        if (elementUnderMouse) {
+          // 只检查可见的画布容器，不检查整个canvas
+          isOverCanvasElement = elementUnderMouse.closest('.canvas-container') &&
+                               elementUnderMouse.closest('.canvas-container').offsetParent !== null;
+        }
+      }
+      
+      // 最终判断：只有在可见画布区域且不在音色控制面板内时，才认为是拖拽到画布
+      const finalIsOverCanvas = (isOverVisibleCanvas || isOverCanvasElement) && !isOverInstrumentPanel;
+      
+      // 额外检查：如果拖拽距离太短，不触发音色切换（避免误触）
+      const dragDistance = Math.sqrt(
+        Math.pow(e.clientX - (parseInt(originalX) || 0), 2) + 
+        Math.pow(e.clientY - (parseInt(originalY) || 0), 2)
+      );
+      const minDragDistance = 20; // 最小拖拽距离阈值
+      
+      console.log('拖拽检测:', {
+        mouseX: e.clientX,
+        mouseY: e.clientY,
+        isOverInstrumentPanel: isOverInstrumentPanel,
+        isOverVisibleCanvas: isOverVisibleCanvas,
+        isOverCanvasElement: isOverCanvasElement,
+        dragDistance: dragDistance,
+        minDragDistance: minDragDistance,
+        finalResult: finalIsOverCanvas && dragDistance >= minDragDistance,
+        elementUnderMouse: e ? document.elementFromPoint(e.clientX, e.clientY) : null
+      });
+      
+      if (finalIsOverCanvas && dragDistance >= minDragDistance) {
+        // 拖拽到画布上，切换当前音色
+        const instrumentId = draggedButton.dataset.instrumentId;
+        console.log('✅ 触发音色切换:', instrumentId);
+        
+        if (instrumentId) {
+          try {
+            // 通过自定义事件通知主控制器切换音色
+            const changeInstrumentEvent = new CustomEvent('changeInstrument', {
+              detail: { instrumentId: instrumentId }
+            });
+            document.dispatchEvent(changeInstrumentEvent);
+            
+            console.log(`🎵 拖拽到画布，已发送切换音色事件: ${instrumentId}`);
+            
+            // 使用LoadingManager的通知系统显示音色切换成功
+            this.showInstrumentChangeNotification(instrumentId);
+          } catch (error) {
+            console.error('❌ 发送音色切换事件失败:', error);
+          }
+        } else {
+          console.log('❌ 无法切换音色: instrumentId 为空');
+        }
+      } else {
+        // 拖拽到其他地方，更新tracks数组顺序以反映DOM顺序
+        if (dragDistance < minDragDistance) {
+          console.log('📏 拖拽距离过短，不执行任何操作');
+        } else if (isOverInstrumentPanel) {
+          console.log('🎛️ 拖拽在音色控制面板内，执行音色顺序重排');
+        } else {
+          console.log('🔄 拖拽到其他区域，执行音色顺序重排');
+        }
+        updateTracksOrder();
+      }
       
       // 清理拖拽状态
       isDragging = false;
@@ -4525,6 +4644,9 @@ export class MidiEditor {
     
     // 绑定updateTracksOrder的this上下文
     updateTracksOrder = updateTracksOrder.bind(this);
+    
+    // 绑定onMouseUp的this上下文，确保能正确访问audioEngine
+    onMouseUp = onMouseUp.bind(this);
   }
 
   // 检查轨道顺序是否发生变化
@@ -4563,6 +4685,70 @@ export class MidiEditor {
     }
     
     return false;
+  }
+
+
+
+  // 显示音色切换通知（使用LoadingManager的通知样式）
+  showInstrumentChangeNotification(instrumentId) {
+    const container = document.getElementById('loading-notifications');
+    if (!container) return;
+
+    // 获取音色名称
+    const instrumentName = this.getInstrumentName(instrumentId);
+    
+    // 创建通知元素
+    const notification = document.createElement('div');
+    notification.className = 'loading-notification';
+    notification.dataset.instrumentId = `change-${instrumentId}`;
+    notification.style.cssText = `
+      background: rgba(0, 204, 255, 0.2);
+      color: white;
+      padding: 8px 16px;
+      border-radius: 20px;
+      font-family: 'Arial', sans-serif;
+      font-size: 13px;
+      backdrop-filter: blur(15px);
+      border: 1px solid rgba(0, 204, 255, 0.4);
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      min-width: 120px;
+      max-width: 200px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      animation: slideIn 0.3s ease-out;
+    `;
+
+    notification.innerHTML = `
+      <div style="
+        width: 12px;
+        height: 12px;
+        border: none;
+        color: #00ccff;
+        font-size: 12px;
+        font-weight: bold;
+        flex-shrink: 0;
+      ">🎵</div>
+      <span style="
+        overflow: hidden;
+        text-overflow: ellipsis;
+      ">已切换到: ${instrumentName}</span>
+    `;
+
+    container.appendChild(notification);
+
+    // 2秒后自动移除通知
+    setTimeout(() => {
+      notification.style.animation = 'slideOut 0.3s ease-in';
+      setTimeout(() => {
+        if (notification.parentNode) {
+          notification.parentNode.removeChild(notification);
+        }
+      }, 300);
+    }, 2000);
   }
 
   // 重新排列按钮以匹配轨道顺序

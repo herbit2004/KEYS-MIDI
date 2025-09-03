@@ -844,7 +844,6 @@ input:checked + .slider:before {
     background: rgba(30, 30, 30, 0.7);
     backdrop-filter: blur(3px);
     -webkit-backdrop-filter: blur(3px);
-    border-radius: 8px;
 }
 
 .midi-editor-container.fullscreen .midi-editor-wrapper {

@@ -57,6 +57,12 @@ export class MainController {
       this.updateToneSelectOptions();
     });
     
+    // 监听拖拽音色切换事件
+    document.addEventListener('changeInstrument', (event) => {
+      const { instrumentId } = event.detail;
+      this.changeInstrumentFromDrag(instrumentId);
+    });
+    
     // 加载音色配置并初始化音色
     this.loadInstruments();
   }
@@ -537,6 +543,23 @@ export class MainController {
         
         console.log(`停止音符: ${key} (MIDI: ${note})`);
       }
+    }
+  }
+  
+  // 处理拖拽音色切换
+  async changeInstrumentFromDrag(instrumentId) {
+    try {
+      console.log(`主控制器收到音色切换请求: ${instrumentId}`);
+      
+      // 切换音频引擎的音色
+      await this.audioEngine.changeInstrument(instrumentId);
+      
+      // 更新前端音色选择器
+      this.updateToneSelectOptions();
+      
+      console.log(`拖拽音色切换成功: ${instrumentId}`);
+    } catch (error) {
+      console.error('拖拽音色切换失败:', error);
     }
   }
   
