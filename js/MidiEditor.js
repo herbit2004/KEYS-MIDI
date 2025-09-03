@@ -4356,9 +4356,9 @@ export class MidiEditor {
       const baseOpacity = isHidden ? 0.5 : 1;
       const borderColor = isHidden ? '#666' : '#00ccff';
       
-      // 检查是否在全屏模式下，调整z-index确保可见性
+      // 检查是否在全屏模式下，调整z-index确保可见性（高于遮罩层级）
       const isFullscreen = document.querySelector('.midi-editor-container')?.classList.contains('fullscreen');
-      const zIndex = isFullscreen ? 10000 : 3000;
+      const zIndex = isFullscreen ? 10002 : 9500;
       
       ghostElement.style.cssText = `
         width: 24px;
@@ -4408,7 +4408,55 @@ export class MidiEditor {
         });
       }
     }
-    
+
+    // 更新页面遮罩效果 - 当拖拽出canvas范围时页面变暗
+    function updatePageOverlay(e) {
+      if (!ghostElement) return;
+
+      const canvasContainer = document.querySelector('.canvas-container');
+      const isFullscreen = document.querySelector('.midi-editor-container')?.classList.contains('fullscreen');
+
+      // 检查是否在canvas窗口范围内
+      let isOverCanvas = false;
+      if (canvasContainer) {
+        const containerRect = canvasContainer.getBoundingClientRect();
+        isOverCanvas = e.clientX >= containerRect.left &&
+                      e.clientX <= containerRect.right &&
+                      e.clientY >= containerRect.top &&
+                      e.clientY <= containerRect.bottom;
+      }
+
+      let pageOverlay = document.getElementById('instrument-drag-overlay');
+
+      if (!isOverCanvas) {
+        // 拖拽出canvas范围，创建页面遮罩使页面变暗
+        if (!pageOverlay) {
+          pageOverlay = document.createElement('div');
+          pageOverlay.id = 'instrument-drag-overlay';
+          // 在全屏模式下使用更高的z-index
+          const overlayZIndex = isFullscreen ? 10001 : 9000;
+          pageOverlay.style.cssText = `
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            background: rgba(0, 0, 0, 0.4);
+            z-index: ${overlayZIndex};
+            pointer-events: none;
+          `;
+          document.body.appendChild(pageOverlay);
+          console.log(`🌑 创建页面遮罩：页面变暗 (全屏模式: ${isFullscreen}, z-index: ${overlayZIndex})`);
+        }
+      } else {
+        // 回到canvas范围内，移除页面遮罩
+        if (pageOverlay) {
+          pageOverlay.remove();
+          console.log('☀️ 移除页面遮罩：页面恢复');
+        }
+      }
+    }
+
     // 鼠标移动事件 - 拖动中
     function onMouseMove(e) {
       if (!isDragging || !draggedButton) return;
@@ -4449,7 +4497,10 @@ export class MidiEditor {
         
         // 强制重绘以确保位置更新
         ghostElement.style.transform = 'translateZ(0)';
-        
+
+        // 检查拖拽位置并更新页面遮罩效果
+        updatePageOverlay(e);
+
         // 找到当前鼠标下的目标按钮
         const currentButton = findButtonAtPosition(e.clientX, e.clientY);
         
@@ -4475,7 +4526,14 @@ export class MidiEditor {
     // 鼠标松开事件 - 结束拖拽
     function onMouseUp(e) {
       if (!isDragging || !draggedButton) return;
-      
+
+      // 清理页面遮罩
+      const pageOverlay = document.getElementById('instrument-drag-overlay');
+      if (pageOverlay) {
+        pageOverlay.remove();
+        console.log('🧹 清理页面遮罩：拖拽结束');
+      }
+
       // 恢复按钮原始状态
       draggedButton.style.position = originalPosition;
       draggedButton.style.zIndex = originalZIndex;
@@ -4490,8 +4548,7 @@ export class MidiEditor {
         ghostElement = null;
       }
       
-      // 检查拖拽释放位置
-      const canvas = document.getElementById('midi-editor');
+      // 简化的拖拽判定逻辑：拖拽出canvas窗口范围才重新选择音色
       const canvasContainer = document.querySelector('.canvas-container');
       const instrumentPanel = this.instrumentVisibilityPanel;
       
@@ -4505,60 +4562,19 @@ export class MidiEditor {
                                e.clientY <= panelRect.bottom;
       }
       
-      // 检查是否在可见的画布区域内
-      let isOverVisibleCanvas = false;
+      // 检查是否在canvas窗口范围内
+      let isOverCanvas = false;
       if (canvasContainer && e) {
         const containerRect = canvasContainer.getBoundingClientRect();
         
-        // 获取容器的实际可见尺寸（考虑overflow等样式）
-        const containerStyle = window.getComputedStyle(canvasContainer);
-        const visibleWidth = containerRect.width;
-        const visibleHeight = containerRect.height;
-        
-        // 检查鼠标是否在可见的画布容器区域内
-        isOverVisibleCanvas = e.clientX >= containerRect.left && 
-                             e.clientX <= containerRect.left + visibleWidth && 
-                             e.clientY >= containerRect.top && 
-                             e.clientY <= containerRect.top + visibleHeight;
-        
-        // 额外检查：确保容器在视口内可见
-        const isContainerVisible = containerRect.width > 0 && 
-                                  containerRect.height > 0 && 
-                                  containerRect.top < window.innerHeight && 
-                                  containerRect.bottom > 0 &&
-                                  containerRect.left < window.innerWidth && 
-                                  containerRect.right > 0;
-        
-        // 只有在容器可见时才认为在可见画布区域内
-        isOverVisibleCanvas = isOverVisibleCanvas && isContainerVisible;
-        
-        console.log('可见画布检测:', {
-          containerLeft: containerRect.left,
-          containerTop: containerRect.top,
-          visibleWidth: visibleWidth,
-          visibleHeight: visibleHeight,
-          isContainerVisible: isContainerVisible,
-          mouseX: e.clientX,
-          mouseY: e.clientY,
-          isOverVisibleCanvas: isOverVisibleCanvas
-        });
+        // 检查鼠标是否在canvas容器区域内
+        isOverCanvas = e.clientX >= containerRect.left && 
+                      e.clientX <= containerRect.right && 
+                      e.clientY >= containerRect.top && 
+                      e.clientY <= containerRect.bottom;
       }
       
-      // 检查鼠标下的元素是否是可见的画布相关元素
-      let isOverCanvasElement = false;
-      if (e) {
-        const elementUnderMouse = document.elementFromPoint(e.clientX, e.clientY);
-        if (elementUnderMouse) {
-          // 只检查可见的画布容器，不检查整个canvas
-          isOverCanvasElement = elementUnderMouse.closest('.canvas-container') &&
-                               elementUnderMouse.closest('.canvas-container').offsetParent !== null;
-        }
-      }
-      
-      // 最终判断：只有在可见画布区域且不在音色控制面板内时，才认为是拖拽到画布
-      const finalIsOverCanvas = (isOverVisibleCanvas || isOverCanvasElement) && !isOverInstrumentPanel;
-      
-      // 额外检查：如果拖拽距离太短，不触发音色切换（避免误触）
+      // 计算拖拽距离
       const dragDistance = Math.sqrt(
         Math.pow(e.clientX - (parseInt(originalX) || 0), 2) + 
         Math.pow(e.clientY - (parseInt(originalY) || 0), 2)
@@ -4569,18 +4585,17 @@ export class MidiEditor {
         mouseX: e.clientX,
         mouseY: e.clientY,
         isOverInstrumentPanel: isOverInstrumentPanel,
-        isOverVisibleCanvas: isOverVisibleCanvas,
-        isOverCanvasElement: isOverCanvasElement,
+        isOverCanvas: isOverCanvas,
         dragDistance: dragDistance,
         minDragDistance: minDragDistance,
-        finalResult: finalIsOverCanvas && dragDistance >= minDragDistance,
-        elementUnderMouse: e ? document.elementFromPoint(e.clientX, e.clientY) : null
+        shouldChangeInstrument: !isOverCanvas && !isOverInstrumentPanel && dragDistance >= minDragDistance
       });
       
-      if (finalIsOverCanvas && dragDistance >= minDragDistance) {
-        // 拖拽到画布上，切换当前音色
+      // 新的判定逻辑：拖拽出canvas窗口范围且不在音色控制面板内时，才切换音色
+      if (!isOverCanvas && !isOverInstrumentPanel && dragDistance >= minDragDistance) {
+        // 拖拽出canvas窗口范围，切换当前音色
         const instrumentId = draggedButton.dataset.instrumentId;
-        console.log('✅ 触发音色切换:', instrumentId);
+        console.log('✅ 拖拽出canvas范围，触发音色切换:', instrumentId);
         
         if (instrumentId) {
           try {
@@ -4590,7 +4605,7 @@ export class MidiEditor {
             });
             document.dispatchEvent(changeInstrumentEvent);
             
-            console.log(`🎵 拖拽到画布，已发送切换音色事件: ${instrumentId}`);
+            console.log(`🎵 拖拽出canvas范围，已发送切换音色事件: ${instrumentId}`);
             
             // 使用LoadingManager的通知系统显示音色切换成功
             this.showInstrumentChangeNotification(instrumentId);
@@ -4601,11 +4616,13 @@ export class MidiEditor {
           console.log('❌ 无法切换音色: instrumentId 为空');
         }
       } else {
-        // 拖拽到其他地方，更新tracks数组顺序以反映DOM顺序
+        // 拖拽在canvas窗口内或音色控制面板内，更新tracks数组顺序
         if (dragDistance < minDragDistance) {
           console.log('📏 拖拽距离过短，不执行任何操作');
         } else if (isOverInstrumentPanel) {
           console.log('🎛️ 拖拽在音色控制面板内，执行音色顺序重排');
+        } else if (isOverCanvas) {
+          console.log('🎨 拖拽在canvas窗口内，执行音色顺序重排');
         } else {
           console.log('🔄 拖拽到其他区域，执行音色顺序重排');
         }
@@ -4736,14 +4753,14 @@ export class MidiEditor {
     notification.className = 'loading-notification';
     notification.dataset.instrumentId = `change-${instrumentId}`;
     notification.style.cssText = `
-      background: rgba(0, 204, 255, 0.2);
+      background: rgba(45, 106, 236, 0.5);
       color: white;
       padding: 8px 16px;
       border-radius: 20px;
       font-family: 'Arial', sans-serif;
       font-size: 13px;
       backdrop-filter: blur(15px);
-      border: 1px solid rgba(0, 204, 255, 0.4);
+      border: 1px solid rgba(255, 255, 255, 0.3);
       box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
       display: flex;
       align-items: center;
@@ -4765,6 +4782,10 @@ export class MidiEditor {
         font-size: 12px;
         font-weight: bold;
         flex-shrink: 0;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        line-height: 1;
       ">🎵</div>
       <span style="
         overflow: hidden;

@@ -155,8 +155,12 @@ export class LoadingManager {
       spinner.innerHTML = '✓';
       spinner.style.border = 'none';
       spinner.style.color = 'white';
-    spinner.style.fontSize = '12px';
+      spinner.style.fontSize = '12px';
       spinner.style.fontWeight = 'bold';
+      spinner.style.display = 'flex';
+      spinner.style.alignItems = 'center';
+      spinner.style.justifyContent = 'center';
+      spinner.style.lineHeight = '1';
 
     text.textContent = `${instrumentName} 加载完成`;
 
