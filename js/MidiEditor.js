@@ -4356,6 +4356,10 @@ export class MidiEditor {
       const baseOpacity = isHidden ? 0.5 : 1;
       const borderColor = isHidden ? '#666' : '#00ccff';
       
+      // 检查是否在全屏模式下，调整z-index确保可见性
+      const isFullscreen = document.querySelector('.midi-editor-container')?.classList.contains('fullscreen');
+      const zIndex = isFullscreen ? 10000 : 3000;
+      
       ghostElement.style.cssText = `
         width: 24px;
         height: 24px;
@@ -4364,9 +4368,12 @@ export class MidiEditor {
         border: 2px solid ${borderColor};
         box-shadow: 0 0 10px rgba(0, 204, 255, 0.7);
         position: fixed;
-        z-index: 3000;
+        z-index: ${zIndex};
         pointer-events: none;
         opacity: ${baseOpacity * 0.9};
+        transform: translateZ(0);
+        will-change: transform;
+        backface-visibility: hidden;
       `;
       
       // 如果按钮是隐藏状态，添加斜杠
@@ -4386,6 +4393,20 @@ export class MidiEditor {
       }
       
       document.body.appendChild(ghostElement);
+      
+      // 确保幽灵元素在全屏模式下可见
+      if (isFullscreen) {
+        // 强制重绘
+        ghostElement.offsetHeight;
+        
+        // 检查是否成功添加到DOM
+        console.log('幽灵元素创建完成:', {
+          isFullscreen: isFullscreen,
+          zIndex: ghostElement.style.zIndex,
+          isInDOM: document.body.contains(ghostElement),
+          computedZIndex: window.getComputedStyle(ghostElement).zIndex
+        });
+      }
     }
     
     // 鼠标移动事件 - 拖动中
@@ -4408,13 +4429,26 @@ export class MidiEditor {
         
         // 设置按钮为半透明，让用户知道正在拖拽
         button.style.opacity = '0.3';
+        
+        // 调试信息
+        console.log('开始拖拽:', {
+          isFullscreen: document.querySelector('.midi-editor-container')?.classList.contains('fullscreen'),
+          ghostElement: !!ghostElement,
+          zIndex: ghostElement?.style.zIndex
+        });
       }
       
       // 如果已经有幽灵元素，则更新其位置
       if (ghostElement) {
-        // 更新幽灵元素位置
-        ghostElement.style.left = (e.clientX - 12) + 'px';
-        ghostElement.style.top = (e.clientY - 12) + 'px';
+        // 更新幽灵元素位置，确保在全屏模式下也能正确显示
+        const left = e.clientX - 12;
+        const top = e.clientY - 12;
+        
+        ghostElement.style.left = left + 'px';
+        ghostElement.style.top = top + 'px';
+        
+        // 强制重绘以确保位置更新
+        ghostElement.style.transform = 'translateZ(0)';
         
         // 找到当前鼠标下的目标按钮
         const currentButton = findButtonAtPosition(e.clientX, e.clientY);
