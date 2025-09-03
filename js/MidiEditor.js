@@ -1851,22 +1851,15 @@ export class MidiEditor {
     const noteWidth = (referenceNote.endTime - referenceNote.startTime) * this.pixelsPerBeat;
     const noteY = (127 - referenceNote.midiNote) * this.pixelsPerNote;
     
-    // 如果有多个音符被选中，则默认为整体移动
-    if (this.selectedNotes.length > 1) {
+    // 检查是否点击了边缘（调整长度）
+    if (x < noteX + 5) {
+      this.dragType = 'resize-left';
+    } else if (x > noteX + noteWidth - 5) {
+      this.dragType = 'resize-right';
+    } else {
       this.dragType = 'move';
       this.dragOffsetX = x - noteX;
       this.dragOffsetY = y - noteY;
-    } else {
-      // 检查是否点击了边缘（调整长度）
-      if (x < noteX + 5) {
-        this.dragType = 'resize-left';
-      } else if (x > noteX + noteWidth - 5) {
-        this.dragType = 'resize-right';
-      } else {
-        this.dragType = 'move';
-        this.dragOffsetX = x - noteX;
-        this.dragOffsetY = y - noteY;
-      }
     }
     
     this.dragStartX = x;
@@ -1937,58 +1930,84 @@ export class MidiEditor {
     }
   }
   
+  // 辅助方法：时间吸附
+  snapToBeat(time) {
+    if (!this.isSnapEnabled) return time;
+    const snapped = Math.round(time * this.snapPrecision) / this.snapPrecision;
+    const snapOffset = snapped - time;
+    return Math.abs(snapOffset) < (this.snapSensitivity / this.snapPrecision) ? snapped : time;
+  }
+
+  // 辅助方法：从末尾拉伸音符
+  stretchNotesFromEnd(notes, endTime, ratio) {
+    for (const note of notes) {
+      const relativeStart = endTime - note.startTime;
+      const relativeEnd = endTime - note.endTime;
+      const newRelativeStart = relativeStart * ratio;
+      const newRelativeEnd = relativeEnd * ratio;
+      const newStartTime = endTime - newRelativeStart;
+      const newEndTime = endTime - newRelativeEnd;
+
+      note.startTime = Math.max(0, newStartTime);
+      note.endTime = newEndTime;
+    }
+  }
+
+  // 辅助方法：从开始拉伸音符
+  stretchNotesFromStart(notes, startTime, ratio) {
+    for (const note of notes) {
+      const relativeStart = note.startTime - startTime;
+      const relativeEnd = note.endTime - startTime;
+      const newStartTime = startTime + (relativeStart * ratio);
+      const newEndTime = startTime + (relativeEnd * ratio);
+
+      note.startTime = newStartTime;
+      note.endTime = newEndTime;
+    }
+  }
+
   // 调整音符左边缘
   resizeNoteLeft(x) {
-    // 使用拖拽基准音符作为参考
-    const referenceNote = this.dragReferenceNote ? this.dragReferenceNote.note : this.selectedNotes[0].note;
-    // 将像素位置转换为拍数
-    let newStartTime = x / this.pixelsPerBeat;
-    
-    // 如果启用了自动吸附功能，则对时间位置进行吸附
-    if (this.isSnapEnabled) {
-      // 计算最近的拍数位置，考虑吸附精度
-      const snappedStartBeats = Math.round(newStartTime * this.snapPrecision) / this.snapPrecision;
-      const snapOffset = snappedStartBeats - newStartTime;
-      // 使用新的灵敏度变量，考虑吸附精度
-      if (Math.abs(snapOffset) < (this.snapSensitivity / this.snapPrecision)) {
-        newStartTime = snappedStartBeats;
+    const newStartTime = this.snapToBeat(x / this.pixelsPerBeat);
+
+    if (this.selectedNotes.length > 1) {
+      const referenceNote = this.dragReferenceNote?.note || this.selectedNotes[0].note;
+      const latestEndTime = Math.max(...this.selectedNotes.map(note => note.endTime));
+
+      const originalDuration = latestEndTime - referenceNote.startTime;
+      const newDuration = latestEndTime - newStartTime;
+
+      if (newDuration > 0 && originalDuration > 0) {
+        const ratio = newDuration / originalDuration;
+        this.stretchNotesFromEnd(this.selectedNotes, latestEndTime, ratio);
       }
-    }
-    
-    if (newStartTime < referenceNote.endTime) {
-      const timeOffset = newStartTime - referenceNote.startTime;
-      
-      // 批量调整所有选中音符的开始时间
-      for (const noteRef of this.selectedNotes) {
-        noteRef.startTime = Math.max(0, noteRef.startTime + timeOffset);
+    } else {
+      const referenceNote = this.dragReferenceNote?.note || this.selectedNotes[0].note;
+      if (newStartTime < referenceNote.endTime) {
+        referenceNote.startTime = Math.max(0, newStartTime);
       }
     }
   }
   
   // 调整音符右边缘
   resizeNoteRight(x) {
-    // 使用拖拽基准音符作为参考
-    const referenceNote = this.dragReferenceNote ? this.dragReferenceNote.note : this.selectedNotes[0].note;
-    // 将像素位置转换为拍数
-    let newEndTime = x / this.pixelsPerBeat;
-    
-    // 如果启用了自动吸附功能，则对时间位置进行吸附
-    if (this.isSnapEnabled) {
-      // 计算最近的拍数位置，考虑吸附精度
-      const snappedEndBeats = Math.round(newEndTime * this.snapPrecision) / this.snapPrecision;
-      const snapOffset = snappedEndBeats - newEndTime;
-      // 使用新的灵敏度变量，考虑吸附精度
-      if (Math.abs(snapOffset) < (this.snapSensitivity / this.snapPrecision)) {
-        newEndTime = snappedEndBeats;
+    const newEndTime = this.snapToBeat(x / this.pixelsPerBeat);
+
+    if (this.selectedNotes.length > 1) {
+      const referenceNote = this.dragReferenceNote?.note || this.selectedNotes[0].note;
+      const earliestStartTime = Math.min(...this.selectedNotes.map(note => note.startTime));
+
+      const originalDuration = referenceNote.endTime - earliestStartTime;
+      const newDuration = newEndTime - earliestStartTime;
+
+      if (newDuration > 0 && originalDuration > 0) {
+        const ratio = newDuration / originalDuration;
+        this.stretchNotesFromStart(this.selectedNotes, earliestStartTime, ratio);
       }
-    }
-    
-    if (newEndTime > referenceNote.startTime) {
-      const timeOffset = newEndTime - referenceNote.endTime;
-      
-      // 批量调整所有选中音符的结束时间
-      for (const noteRef of this.selectedNotes) {
-        noteRef.endTime = noteRef.endTime + timeOffset;
+    } else {
+      const referenceNote = this.dragReferenceNote?.note || this.selectedNotes[0].note;
+      if (newEndTime > referenceNote.startTime) {
+        referenceNote.endTime = newEndTime;
       }
     }
   }
@@ -3797,28 +3816,15 @@ export class MidiEditor {
       const noteX = note.startTime * this.pixelsPerBeat;
       const noteWidth = (note.endTime - note.startTime) * this.pixelsPerBeat;
       
-      // 检查是否有多选状态
-      const isMultiSelected = this.selectedNotes.length > 1;
-      
       // 根据鼠标位置设置不同的光标样式
       if (pos.x < noteX + 5) {
         // 鼠标在左边缘
-        if (isMultiSelected) {
-          // 多选状态下不显示拉伸光标，显示移动光标
-          this.canvas.style.cursor = 'pointer';
-        } else {
-          // 单选状态下显示拉伸光标
-          this.canvas.style.cursor = 'w-resize';
-        }
+        // 多选状态下也显示拉伸光标，支持批量拉伸
+        this.canvas.style.cursor = 'w-resize';
       } else if (pos.x > noteX + noteWidth - 5) {
         // 鼠标在右边缘
-        if (isMultiSelected) {
-          // 多选状态下不显示拉伸光标，显示移动光标
-          this.canvas.style.cursor = 'pointer';
-        } else {
-          // 单选状态下显示拉伸光标
-          this.canvas.style.cursor = 'e-resize';
-        }
+        // 多选状态下也显示拉伸光标，支持批量拉伸
+        this.canvas.style.cursor = 'e-resize';
       } else {
         // 鼠标在音符内部，设置为手指箭头
         this.canvas.style.cursor = 'pointer';
