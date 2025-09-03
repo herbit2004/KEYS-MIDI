@@ -1241,15 +1241,12 @@ export class MidiEditor {
       try {
         const data = JSON.parse(e.target.result);
         
-        // 验证数据格式
+                // 验证数据格式
         if (data.tracks && Array.isArray(data.tracks)) {
-          // 保存导入前的状态
-          this.saveToHistory('import');
-          
           // 清空现有数据
           this.tracks = [];
           this.visibleInstruments.clear();
-          
+
           // 导入BPM和拍/小节信息（如果存在）
           if (data.bpm !== undefined) {
             this.bpm = data.bpm;
@@ -1261,7 +1258,7 @@ export class MidiEditor {
             this.updateBpmDisplay();
             console.log(`导入BPM: ${this.bpm}`);
           }
-          
+
           if (data.beatsPerMeasure !== undefined) {
             this.beatsPerMeasure = data.beatsPerMeasure;
             // 更新拍/小节输入框和显示
@@ -1272,31 +1269,34 @@ export class MidiEditor {
             this.updateBeatsPerMeasureDisplay();
             console.log(`导入拍/小节: ${this.beatsPerMeasure}`);
           }
-          
+
           // 重新计算pixelsPerBeat以确保正确显示
           this.pixelsPerBeat = this.calculatePixelsPerBeat();
-          
+
           // 使用轨道格式
           this.tracks = data.tracks;
-          
+
           // 设置所有音色为可见
           for (const track of this.tracks) {
             this.visibleInstruments.add(track.instrument);
           }
-          
+
           // 清空选中列表
           this.selectedNotes = [];
-          
+
           // 调整canvas尺寸以适应导入的音符
           this.resizeCanvas();
-          
+
           // 更新音色显示控制面板
           this.updateInstrumentVisibilityPanel();
-          
+
+          // 保存导入后的状态到历史记录
+          this.saveToHistory('import');
+
           console.log('录制内容已导入');
-          
+
           // 异步预加载需要的音色（不阻塞音符显示）
-          const notesToPreload = data.tracks.flatMap(track => 
+          const notesToPreload = data.tracks.flatMap(track =>
             track.notes.map(note => ({ instrument: track.instrument }))
           );
           this.preloadInstrumentsAsync(notesToPreload);
@@ -4684,7 +4684,7 @@ export class MidiEditor {
     
     // 检查是否应该保存历史
     // 对于某些关键操作，总是保存历史，确保每个操作都有独立的历史节点
-    const alwaysSaveActions = ['paste', 'delete', 'cut', 'recording', 'mouse_input', 'changeVelocity', 'moveNotesToInstrument', 'tracks_reorder'];
+    const alwaysSaveActions = ['paste', 'delete', 'cut', 'recording', 'mouse_input', 'import', 'changeVelocity', 'moveNotesToInstrument', 'tracks_reorder'];
     const shouldSave = alwaysSaveActions.includes(actionType) || this.hasStateChanged(currentState);
     
     if (!shouldSave) {
